@@ -1,14 +1,20 @@
-from __future__ import annotations
-
 import sys
-
 sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-playground7")
 
 from domain import Domain
 from constraints import ConstraintNetwork, ConstraintType
 
 import time
-import random
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
 
 ############################################
 
@@ -49,7 +55,7 @@ def print_temporal_details1(u:str, v:str):
         constraint_network.m_stn.m_minimal_network[(u,v)],
         constraint_network.m_stn.m_minimal_network[(v,u)]))
 
-def test1():
+def test1(verbose=False):
 
     reset_constraint_network()
     constraint_network.declare_and_init_objvars({
@@ -60,24 +66,30 @@ def test1():
         "var4":Domain(initial_allowed_values=[3,4,5]),
         "var5":Domain(initial_allowed_values=[6,7]),
     })
-    for v in constraint_network.m_bcn.m_domains:
-        print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
         (ConstraintType.UNIFICATION,("var1", "var2")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints_partial(constrs)
     es = time.perf_counter()
     print("---")
-    print("input constraints : {0}".format(constrs))
-    print("(arc-consistent) propagation successful ? : {0}".format(res))
-    print("time : {0}".format(es-ts))
-    print_obj_details1()
-    print_obj_details2("var1","var2")
+    if verbose:
+        print("input constraints : {0}".format(constrs))
+        print("(arc-consistent) propagation successful ? : {0}".format(res))
+        print("time : {0}".format(es-ts))
+        print_obj_details1()
+        print_obj_details2("var1","var2")
+    if res == True:
+        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+    else:
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
     print("---")
 
-def test2():
+def test2(verbose=False):
     
     reset_constraint_network()
     constraint_network.declare_and_init_objvars({
@@ -88,25 +100,31 @@ def test2():
         "var4":Domain(initial_allowed_values=[3,4,5]),
         "var5":Domain(initial_allowed_values=[6,7]),
     })
-    for v in constraint_network.m_bcn.m_domains:
-        print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
         (ConstraintType.UNIFICATION,("var1", "var4")),
         (ConstraintType.UNIFICATION,("var3", "var1")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints_partial(constrs)
     es = time.perf_counter()
     print("---")
-    print("input constraints : {0}".format(constrs))
-    print("(arc-consistent) propagation successful ? : {0}".format(res))
-    print("time : {0}".format(es-ts))
-    print_obj_details1()
-    print_obj_details2("var1","var2")
+    if verbose:
+        print("input constraints : {0}".format(constrs))
+        print("(arc-consistent) propagation successful ? : {0}".format(res))
+        print("time : {0}".format(es-ts))
+        print_obj_details1()
+        print_obj_details2("var1","var2")
+    if res == True:
+        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+    else:
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
     print("---")
 
-def test3():
+def test3(verbose=False):
     
     reset_constraint_network()
     constraint_network.declare_and_init_objvars({
@@ -117,24 +135,30 @@ def test3():
         "var4":Domain(initial_allowed_values=[3,4,5]),
         "var5":Domain(initial_allowed_values=[6,7]),
     })
-    for v in constraint_network.m_bcn.m_domains:
-        print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
         (ConstraintType.UNIFICATION,("var1", "var5")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints_partial(constrs)
     es = time.perf_counter()
     print("---")
-    print("input constraints : {0}".format(constrs))
-    print("(arc-consistent) propagation successful ? : {0}".format(res))
-    print("time : {0}".format(es-ts))
-    print_obj_details1()
-    print_obj_details2("var1","var5")
+    if verbose:
+        print("input constraints : {0}".format(constrs))
+        print("(arc-consistent) propagation successful ? : {0}".format(res))
+        print("time : {0}".format(es-ts))
+        print_obj_details1()
+        print_obj_details2("var1","var5")
+    if res == False:
+        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+    else:
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
     print("---")
 
-def test4():
+def test4(verbose=False):
     
     reset_constraint_network()
     constraint_network.declare_and_init_objvars({
@@ -145,24 +169,30 @@ def test4():
         "var4":Domain(initial_allowed_values=[3,4,5]),
         "var5":Domain(initial_allowed_values=[6,7]),
     })
-    for v in constraint_network.m_bcn.m_domains:
-        print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
         (ConstraintType.SEPARATION,("var2", "var1")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints_partial(constrs)
     es = time.perf_counter()
     print("---")
-    print("input constraints : {0}".format(constrs))
-    print("(arc-consistent) propagation successful ? : {0}".format(res))
-    print("time : {0}".format(es-ts))
-    print_obj_details1()
-    print_obj_details2("var1","var2")
+    if verbose:
+        print("input constraints : {0}".format(constrs))
+        print("(arc-consistent) propagation successful ? : {0}".format(res))
+        print("time : {0}".format(es-ts))
+        print_obj_details1()
+        print_obj_details2("var1","var2")
+    if res == True:
+        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+    else:
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
     print("---")
 
-def test5():
+def test5(verbose=False):
     
     reset_constraint_network()
     constraint_network.declare_and_init_objvars({
@@ -173,25 +203,31 @@ def test5():
         "var4":Domain(initial_allowed_values=[3,4,5]),
         "var5":Domain(initial_allowed_values=[6,7]),
     })
-    for v in constraint_network.m_bcn.m_domains:
-        print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
         (ConstraintType.SEPARATION,("var2", "var1")),
         (ConstraintType.DISJ_UNIFICATION,("var1", ["var2","var3","var5"])),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints_partial(constrs)
     es = time.perf_counter()
     print("---")
-    print("input constraints : {0}".format(constrs))
-    print("(arc-consistent) propagation successful ? : {0}".format(res))
-    print("time : {0}".format(es-ts))
-    print_obj_details1()
-    print_obj_details2("var1","var2")
+    if verbose:
+        print("input constraints : {0}".format(constrs))
+        print("(arc-consistent) propagation successful ? : {0}".format(res))
+        print("time : {0}".format(es-ts))
+        print_obj_details1()
+        print_obj_details2("var1","var2")
+    if res == True:
+        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+    else:
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
     print("---")
 
-def test6():
+def test6(verbose=False):
     
     reset_constraint_network()
     constraint_network.declare_and_init_objvars({
@@ -202,25 +238,31 @@ def test6():
         "var4":Domain(initial_allowed_values=[3,4,5]),
         "var5":Domain(initial_allowed_values=[6,7]),
     })
-    for v in constraint_network.m_bcn.m_domains:
-        print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
         (ConstraintType.SEPARATION,("var1", "var2")),
         (ConstraintType.GENERAL_RELATION,("relation", (("var2","var3"),[(1,1),(2,2)]))),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints_partial(constrs)
     es = time.perf_counter()
     print("---")
-    print("input constraints : {0}".format(constrs))
-    print("(arc-consistent) propagation successful ? : {0}".format(res))
-    print("time : {0}".format(es-ts))
-    print_obj_details1()
-    print_obj_details2("var1","var2")
+    if verbose:
+        print("input constraints : {0}".format(constrs))
+        print("(arc-consistent) propagation successful ? : {0}".format(res))
+        print("time : {0}".format(es-ts))
+        print_obj_details1()
+        print_obj_details2("var1","var2")
+    if res == True:
+        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+    else:
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
     print("---")
 
-def test7():
+def test7(verbose=False):
     
     reset_constraint_network()
     constraint_network.declare_and_init_objvars({
@@ -231,8 +273,9 @@ def test7():
         "var4":Domain(initial_allowed_values=[3,4,5]),
         "var5":Domain(initial_allowed_values=[6,7]),
     })
-    for v in constraint_network.m_bcn.m_domains:
-        print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
         (ConstraintType.UNIFICATION,("var1", "var2")),
@@ -240,17 +283,22 @@ def test7():
         (ConstraintType.SEPARATION,("var3", "var2")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints_partial(constrs)
     es = time.perf_counter()
     print("---")
-    print("input constraints : {0}".format(constrs))
-    print("(arc-consistent) propagation successful ? : {0}".format(res))
-    print("time : {0}".format(es-ts))
-    print_obj_details1()
-    print_obj_details2("var1","var2")
+    if verbose:
+        print("input constraints : {0}".format(constrs))
+        print("(arc-consistent) propagation successful ? : {0}".format(res))
+        print("time : {0}".format(es-ts))
+        print_obj_details1()
+        print_obj_details2("var1","var2")
+    if res == False:
+        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+    else:
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
     print("---")
 
-def test8():
+def test8(verbose=False):
     
     reset_constraint_network()
     constraint_network.declare_and_init_objvars({
@@ -261,25 +309,31 @@ def test8():
         "var4":Domain(initial_allowed_values=[3,4,5]),
         "var5":Domain(initial_allowed_values=[6,7]),
     })
-    for v in constraint_network.m_bcn.m_domains:
-        print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
         (ConstraintType.DISJ_UNIFICATION,("var1", ["var2","var4"])),
         (ConstraintType.GENERAL_RELATION,("relation", (("var2","var3"),[(0,1),(1,1),(0,3),(1,3)]))),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints_partial(constrs)
     es = time.perf_counter()
     print("---")
-    print("input constraints : {0}".format(constrs))
-    print("(arc-consistent) propagation successful ? : {0}".format(res))
-    print("time : {0}".format(es-ts))
-    print_obj_details1()
-    print_obj_details2("var1","var2")
+    if verbose:
+        print("input constraints : {0}".format(constrs))
+        print("(arc-consistent) propagation successful ? : {0}".format(res))
+        print("time : {0}".format(es-ts))
+        print_obj_details1()
+        print_obj_details2("var1","var2")
+    if res == True:
+        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+    else:
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
     print("---")
 
-def test9():
+def test9(verbose=False):
     
     reset_constraint_network()
     constraint_network.declare_and_init_objvars({
@@ -290,24 +344,30 @@ def test9():
         "var4":Domain(initial_allowed_values=[3,4,5]),
         "var5":Domain(initial_allowed_values=[6,7]),
     })
-    for v in constraint_network.m_bcn.m_domains:
-        print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
         (ConstraintType.SEPARATION,("var1", "var5")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints_partial(constrs)
     es = time.perf_counter()
     print("---")
-    print("input constraints : {0}".format(constrs))
-    print("(arc-consistent) propagation successful ? : {0}".format(res))
-    print("time : {0}".format(es-ts))
-    print_obj_details1()
-    print_obj_details2("var1","var5")
+    if verbose:
+        print("input constraints : {0}".format(constrs))
+        print("(arc-consistent) propagation successful ? : {0}".format(res))
+        print("time : {0}".format(es-ts))
+        print_obj_details1()
+        print_obj_details2("var1","var5")
+    if res == True:
+        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+    else:
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
     print("---")
 
-def test10():
+def test10(verbose=False):
     
     reset_constraint_network()
     constraint_network.m_stn.m_controllability["t1"] = True
@@ -324,15 +384,20 @@ def test10():
         (ConstraintType.TEMPORAL,("origin","t1","c_l01")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints_partial(constrs)
     es = time.perf_counter()
     print("---")
-    print("propagation successful ? : {0}".format(res))
-    print("time : {0}".format(es-ts))
-    print(constraint_network.m_stn.m_minimal_network)
+    if verbose:
+        print("propagation successful ? : {0}".format(res))
+        print("time : {0}".format(es-ts))
+        print(constraint_network.m_stn.m_minimal_network)
+    if res == True:
+        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+    else:
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
     print("---")
 
-def test11():
+def test11(verbose=False):
     
     reset_constraint_network()
     constraint_network.m_stn.m_controllability["t1"] = True
@@ -357,15 +422,20 @@ def test11():
         (ConstraintType.TEMPORAL,("t1","t2","c_u21")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints_partial(constrs)
     es = time.perf_counter()
     print("---")
-    print("propagation successful ? : {0}".format(res))
-    print("time : {0}".format(es-ts))
-    print(constraint_network.m_stn.m_minimal_network)
+    if verbose:
+        print("propagation successful ? : {0}".format(res))
+        print("time : {0}".format(es-ts))
+        print(constraint_network.m_stn.m_minimal_network)
+    if res == False:
+        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+    else:
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
     print("---")
 
-def test12():
+def test12(verbose=False):
     
     reset_constraint_network()
     constraint_network.m_stn.m_controllability["t1"] = True
@@ -398,15 +468,20 @@ def test12():
         (ConstraintType.TEMPORAL,("t1","t4","c_u41")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints_partial(constrs)
     es = time.perf_counter()
     print("---")
-    print("propagation successful ? : {0}".format(res))
-    print("time : {0}".format(es-ts))
-    print(constraint_network.m_stn.m_minimal_network)
+    if verbose:
+        print("propagation successful ? : {0}".format(res))
+        print("time : {0}".format(es-ts))
+        print(constraint_network.m_stn.m_minimal_network)
+    if res == True:
+        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+    else:
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
     print("---")
 
-def test13():
+def test13(verbose=False):
     
     reset_constraint_network()
     constraint_network.m_stn.m_controllability["t1"] = True
@@ -414,7 +489,7 @@ def test13():
     constraint_network.m_stn.m_controllability["t3"] = True
     constraint_network.m_stn.m_controllability["t4"] = True
     constraint_network.declare_and_init_objvars({
-        "c_l01":Domain(initial_allowed_values=[-6,-5,-4,-3,-2,-1,0]),
+        "c_l01":Domain(initial_allowed_values=[-6,-5,-4,-3,-2,-1]),
         "c_u01":Domain(initial_allowed_values=[5,6,7,8,9,10])
     })
 
@@ -423,11 +498,16 @@ def test13():
         (ConstraintType.TEMPORAL,("t1","origin","c_u01")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints_partial(constrs)
     es = time.perf_counter()
     print("---")
-    print("propagation successful ? : {0}".format(res))
-    print("time : {0}".format(es-ts))
-    print(constraint_network.m_stn.m_minimal_network)
+    if verbose:
+        print("propagation successful ? : {0}".format(res))
+        print("time : {0}".format(es-ts))
+        print(constraint_network.m_stn.m_minimal_network)
+    if res == True:
+        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+    else:
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
     print("---")
 

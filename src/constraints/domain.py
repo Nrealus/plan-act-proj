@@ -8,7 +8,7 @@ from enum import Enum
 
 ############################################
 
-# 28 / 08 / 2022
+# 22 / 08 / 2022
 
 # This file contains the implementation for the general Domain type.
 # Its purpose is to wrap the value domain of "object variables" appearing in constraints.
@@ -31,10 +31,6 @@ from enum import Enum
 
 class DomainType(Enum):
     DISCRETE=0
-
-class ComparisonOp(Enum):
-    LE = 0
-    GE = 1
 
 class Domain():
 
@@ -135,15 +131,27 @@ class Domain():
         #    return res
         return NotImplemented
 
-    def restrict_to(self, comparator:ComparisonOp, value):
+    def restrict_to_lseq(self, value):
         
         if self.m_type == DomainType.DISCRETE:
             res = False
             new_set = set()
             for v in self._m_discrete_values:
-                if ((comparator == ComparisonOp.LE and v <= value)
-                    or (comparator == ComparisonOp.GE and v >= value)
-                ): 
+                if v <= value:
+                    new_set.add(v)
+                else:
+                    res = True
+            self._m_discrete_values = new_set
+            return res
+        return NotImplemented
+
+    def restrict_to_gteq(self, value):
+        
+        if self.m_type == DomainType.DISCRETE:
+            res = False
+            new_set = set()
+            for v in self._m_discrete_values:
+                if v >= value:
                     new_set.add(v)
                 else:
                     res = True
