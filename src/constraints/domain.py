@@ -34,13 +34,15 @@ class DomainType(Enum):
 
 class Domain():
 
+    _UNKNOWN_VALUE = "UNKNOWN_VALUE"
+
     def __init__(
         self,
-        type:DomainType=DomainType.DISCRETE,
-        initial_allowed_values:typing.Iterable=[]
+        p_type:DomainType=DomainType.DISCRETE,
+        p_initial_allowed_values:typing.Iterable=[]
     ):
-        self.m_type:DomainType = type
-        self._m_discrete_values:typing.Set = set(initial_allowed_values)
+        self.m_type:DomainType = p_type
+        self._m_discrete_values:typing.Set = set(p_initial_allowed_values)
 
     def get_values(self):
 
@@ -131,13 +133,13 @@ class Domain():
         #    return res
         return NotImplemented
 
-    def restrict_to_lseq(self, value):
+    def restrict_to_ls(self, value, strict=False):
         
         if self.m_type == DomainType.DISCRETE:
             res = False
             new_set = set()
             for v in self._m_discrete_values:
-                if v <= value:
+                if (strict and v < value) or v <= value:
                     new_set.add(v)
                 else:
                     res = True
@@ -145,13 +147,13 @@ class Domain():
             return res
         return NotImplemented
 
-    def restrict_to_gteq(self, value):
+    def restrict_to_gt(self, value, strict=False):
         
         if self.m_type == DomainType.DISCRETE:
             res = False
             new_set = set()
             for v in self._m_discrete_values:
-                if v >= value:
+                if (strict and v > value) or v >= value:
                     new_set.add(v)
                 else:
                     res = True

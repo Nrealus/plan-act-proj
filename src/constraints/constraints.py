@@ -1,7 +1,9 @@
 from __future__ import annotations
+from csv import Dialect
 from hashlib import new
 
 import sys
+
 sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-playground7")
 
 import typing
@@ -11,7 +13,7 @@ from enum import Enum
 from copy import deepcopy
 from src.utility.unionfind import UnionFind2
 from src.utility.new_int_id import new_int_id
-from src.constraints.domain import ComparisonOpType, Domain
+from src.constraints.domain import Domain, DomainType
 
 ############################################
 
@@ -52,6 +54,8 @@ class ConstraintType(Enum):
     DISJ_UNIFICATION = 1
     SEPARATION = 2
     GENERAL_RELATION = 3
+    DOMAIN_VAL_LEQ = 4
+    DOMAIN_VAL_GEQ = 5
     DOMAIN_VAL_LE = 6
     DOMAIN_VAL_GE = 7
     TEMPORAL = 8
@@ -74,7 +78,7 @@ class ConstraintNetwork():
             Updates BCN domains object and initialises BCN union-find object used for unification constraints
         """
         self.m_bcn.m_unifications.make_set(p_domains.keys())
-        self.m_bcn.m_domains = dict(p_domains)
+        self.m_bcn.m_domains = { **self.m_bcn.m_domains , **p_domains }
 
     def objvar_domain(self, p_var:str) -> Domain:
         """
@@ -96,6 +100,8 @@ class ConstraintNetwork():
         Returns:
             True if the specified object variables are unified, False otherwise
         """
+        if p_var1 == p_var2:
+            return True
         # include check of symmetric orderings ? (v1 (<=) v2) and (v2 (<=) v1) <==> v1 (=) v2
         # that actually would be much easier to represent with a graph as a "traditional" adjancency list than a disjoint set (union-find)...
         if (self.m_bcn.m_unifications.contains([p_var1]) and self.m_bcn.m_unifications.contains([p_var2])
@@ -103,7 +109,7 @@ class ConstraintNetwork():
         ):
             return True
         if self.m_bcn.m_domains[p_var1].size() == 1:
-            return self.m_bcn.m_domains[p_var1].get_values() == self.m_bcn.m_domains[p_var2].get_values()
+            return self.m_bcn.m_domains[p_var1].get_values() == self.m_bcn.m_domains[p_var2].get_values() and not self.m_bcn.m_domains[p_var1].contains(Domain._UNKNOWN_VALUE)
         return False
 
     def objvars_unifiable(self, p_var1:str, p_var2:str) -> bool:
@@ -116,18 +122,25 @@ class ConstraintNetwork():
         Returns:
             True if the specified object variables are unifiable, False otherwise
         """
+        if p_var1 == p_var2:
+            return True
+
         if ((p_var1 in self.m_bcn.m_separations and p_var2 in self.m_bcn.m_separations[p_var1])
             or (p_var2 in self.m_bcn.m_separations and p_var1 in self.m_bcn.m_separations[p_var2])
         ):
             return False
+
         if not self.m_bcn.m_domains[p_var1].intersects(self.m_bcn.m_domains[p_var2]):
             return False
+
+        if self.m_bcn.m_domains[p_var1].contains(Domain._UNKNOWN_VALUE) or self.m_bcn.m_domains[p_var2].contains(Domain._UNKNOWN_VALUE):
+            return False
+
         if self.m_bcn.m_unifications.contains([p_var1]) and self.m_bcn.m_unifications.contains([p_var2]):
             cc1 = self.m_bcn.m_unifications.connected_component(p_var1)
             cc2 = self.m_bcn.m_unifications.connected_component(p_var2)
             for unif_var1 in cc1:
                 for unif_var2 in cc2:
-                # O(n*m) unfortunately, but that will be enough (for now...:p)
                     if unif_var1 in self.m_bcn.m_separations and unif_var2 in self.m_bcn.m_separations[unif_var1]:
                         return False
         return True
@@ -156,8 +169,18 @@ class ConstraintNetwork():
         """        
         return not self.objvars_unifiable(p_var1, p_var2)
 
+    #def timepoint_domain(self, p_var:str) -> Domain:
+    #    """
+    #    Wrapper used to access the domain object of an object variable (through the BCN)
+    #    Arguments:
+    #        p_var (str): an object variable
+    #    Returns:
+    #       The domain (Domain) of the specified object variable 
+    #    """
+    #    return self.m_bcn.m_domains[p_var]
+
     # "mixed constraints" (involving both temporal and object variables) are dealt with using both constraints networks
-    def propagate_constraints_partial(
+    def propagate_constraints(
         self,
         p_input_constraints:typing.List[typing.Tuple[ConstraintType,typing.Any]],
         p_just_checking_no_propagation=False,
@@ -169,7 +192,8 @@ class ConstraintNetwork():
                 List of input constraints to (attempt to) propagate.
                 The constraints are formatted the following way:
                     if TEMPORAL:
-                        (timepoint1, timepoint2, objvar)
+                        (timepoint1, timepoint2, objvar, strict_or_not) or (timepoint1, timepoint2, constant value, strict_or_not)
+                        In the second case, a new object variable with singleton domain contain the constant value is created and used to represent the constraint
                     if DOMAIN_VAL_GE or DOMAIN_VAL_LE:
                         (objvar, value)
                     if UNIFICATION or SEPARATIon:
@@ -353,15 +377,15 @@ class BCN():
             var2 = None
             var2list = []
 
-            if constr_type == ConstraintType.DOMAIN_VAL_LE or constr_type == ConstraintType.DOMAIN_VAL_GE:
+            if (constr_type == ConstraintType.DOMAIN_VAL_LEQ or constr_type == ConstraintType.DOMAIN_VAL_LE
+                or constr_type == ConstraintType.DOMAIN_VAL_GEQ or constr_type == ConstraintType.DOMAIN_VAL_GE):
 
                 var1 = constr[0]
                 val = constr[1]
-
-                if constr_type == ConstraintType.DOMAIN_VAL_LE:
-                    changed = self.m_domains[var1].restrict_to_lseq(val)
-                elif constr_type == ConstraintType.DOMAIN_VAL_GE:
-                    changed = self.m_domains[var1].restrict_to_gteq(val)
+                if constr_type == ConstraintType.DOMAIN_VAL_LEQ or constr_type == ConstraintType.DOMAIN_VAL_LE:
+                    changed = self.m_domains[var1].restrict_to_ls(val, constr_type == ConstraintType.DOMAIN_VAL_LE)
+                elif constr_type == ConstraintType.DOMAIN_VAL_GEQ or constr_type == ConstraintType.DOMAIN_VAL_GE:
+                    changed = self.m_domains[var1].restrict_to_gt(val, constr_type == ConstraintType.DOMAIN_VAL_GE)
 
                 if changed:
                     change_info.append((var1,val))
@@ -392,17 +416,17 @@ class BCN():
                 
                 var1 = constr[0]
                 var2list = constr[1]
-
+            
                 self.m_disj_unifications.setdefault(var1,set()).update(var2list)
-
+            
                 _temp = deepcopy(self.m_domains[var2list[0]]) # deep copy so that the actual domain of var2list[0] doesn't get modified in the loop
                 for i in range(1,len(var2list)): # start at 1 instead of 0 because first element already taken care of on the previous line
                     _temp.union(self.m_domains[var2list[i]])
-
+            
                 changed = self.m_domains[var1].intersection(_temp)
                 if changed:
                     change_info.append((var1,var2list))
-
+            
                 if self.m_domains[var1].is_empty():
                     return False
 
@@ -427,19 +451,19 @@ class BCN():
                 if self.m_domains[var1].is_empty():
                     return False
 
-            elif constr_type == ConstraintType.ORDER_LE or constr_type == ConstraintType.ORDER_GE:
-                
-                var1 = constr[0]
-                var2 = constr[1]
-
-                self.m_separations.setdefault(var1,set()).add(var2)
-
-                changed = self.m_domains[var1].difference_if_other_is_singleton(self.m_domains[var2])
-                if changed:
-                    change_info.append((var1,var2))
-                
-                if self.m_domains[var1].is_empty():
-                    return False
+            #elif constr_type == ConstraintType.ORDER_LE or constr_type == ConstraintType.ORDER_GE:
+            #    
+            #    var1 = constr[0]
+            #    var2 = constr[1]
+            #
+            #    self.m_separations.setdefault(var1,set()).add(var2)
+            #
+            #    changed = self.m_domains[var1].difference_if_other_is_singleton(self.m_domains[var2])
+            #    if changed:
+            #        change_info.append((var1,var2))
+            #    
+            #    if self.m_domains[var1].is_empty():
+            #        return False
 
             elif constr_type == ConstraintType.GENERAL_RELATION:
                 
@@ -521,6 +545,9 @@ class BCN():
                 #            #    return False
                 #            # although maybe that's precisely what we shouldn't do ? since it's not "least-constraining..."
                 #            # + would allow "variable" bounds... 
+                #
+                # the thing is, we're using apsp computation / minimal network establishment for consistency checking of the stn
+                # and if ever min(l)+min(u) < 0 (for -l <= x-y <= u) that will manifest in the apsp graph/matrix, with a < 0 value on the diagonal
                             
 
         return True
@@ -573,18 +600,18 @@ class BCN():
 class STN():
 
     def __init__(self):
-        self.m_controllability: typing.Dict[str, bool] = { "origin" : True }
+        self.m_controllability: typing.Dict[str, bool] = {}
         # bool indicates whether the variable is controllable or not. Zero time point controllable ? idk
-        self.m_constraints: typing.Dict[typing.Tuple[str,str],typing.Set[str]] = {}
+        self.m_constraints: typing.Dict[typing.Tuple[str,str],typing.Set[(str,bool)]] = {}
         self.m_involved_objvars: typing.Dict[str, typing.Set[typing.Tuple[str,str]]] = {}
-        # to deal with general temporal constraints of form t2 - t1 <= f(x1, ... , xn)
+        # to deal with general temporal constraints of form t1 - t2 <= f(x1, ... , xn)
         # for now : only var
-        # constraints of the form : t2 - t1 <= d (object variable) are interpreted as : t2 - t1 <= max{ v | v € dom(v) } : dom(v) = domain of v in binding constr net
+        # constraints of the form : t1 - t2 <= d (object variable) are interpreted as : t1 - t2 <= max{ v | v € dom(v) } : dom(v) = domain of v in binding constr net
         self.m_minimal_network: typing.Dict[typing.Tuple[str,str],float] = {}
         # ("dist_STN(t1,t2) is the minimal delay between t1 and t2, which is given in the minimal network")
 
-        self.m_old_controllability: typing.Dict[str, bool] = { "origin" : True }
-        self.m_old_constraints: typing.Dict[typing.Tuple[str,str],typing.Set[str]] = {}
+        self.m_old_controllability: typing.Dict[str, bool] = {}
+        self.m_old_constraints: typing.Dict[typing.Tuple[str,str],typing.Set[(str,bool)]] = {}
         self.m_old_involved_objvars: typing.Dict[str, typing.Set[typing.Tuple[str,str]]] = {}
         self.m_old_minimal_network: typing.Dict[typing.Tuple[str,str],float] = {}
 
@@ -622,12 +649,12 @@ class STN():
         Side effects:
             Clears (by reinstantiating) all collections (including backups)
         """
-        self.m_controllability = { "origin" : True }
+        self.m_controllability = {}
         self.m_constraints = {}
         self.m_involved_objvars = {}
         self.m_minimal_network = {}
 
-        self.m_old_controllability = { "origin" : True }
+        self.m_old_controllability = {}
         self.m_old_constraints = {}
         self.m_old_involved_objvars = {}
         self.m_old_minimal_network = {}
@@ -641,7 +668,7 @@ class STN():
 
     def _propagate(
         self,
-        p_input_constraints:typing.List[typing.Tuple[str,str,str]],
+        p_input_constraints:typing.List[typing.Tuple[str,str,str|float,bool]],
         p_bcn:BCN
     ) -> bool:
         """
@@ -658,21 +685,34 @@ class STN():
             Modifies collections during propagation.
         """
         worklist = p_input_constraints#list(p_input_constraints)
-        for (t1, t2, var) in worklist:
+        for (t1, t2, bound, strict) in worklist:
+            
+            if type(bound) is str:
+                var = bound
+            else:
+                var = "_hcov_{0}".format(new_int_id()) # hcov = helper constant object variable
+                p_bcn.m_domains[var] = Domain(DomainType.DISCRETE, [bound])
+
+            #if t1 == t2 and (p_bcn.m_domains[var].max_value() < 0 or (strict and p_bcn.m_domains[var].max_value() == 0)):
+            #    return False
+            #elif t1 == t2:
+            #    continue
+            #else:
             self.m_controllability.setdefault(t1,True)# will deal with controllability later
             self.m_controllability.setdefault(t2,True)# will deal with controllability later
-            self.m_constraints.setdefault((t1,t2),set()).add(var)
+
+            self.m_constraints.setdefault((t1,t2),set()).add((var,strict))
             self.m_involved_objvars.setdefault(var,set()).add((t1,t2))
             if (t2,t1) in self.m_constraints: # (t2,t1), not (t1,t2) !!!!!
-                for other_var in self.m_constraints[(t2,t1)]:
-                    if (not p_bcn._propagate([(
-                        ConstraintType.DOMAIN_VAL_GE,
-                        (other_var,-p_bcn.m_domains[var].max_value()))], self)
-                    ):
+                for (other_var, strict) in self.m_constraints[(t2,t1)]:
+                    if strict:
+                        cstr_type = ConstraintType.DOMAIN_VAL_GE
+                    else:
+                        cstr_type = ConstraintType.DOMAIN_VAL_GEQ
+                    if (not p_bcn._propagate([(cstr_type,(other_var,-p_bcn.m_domains[var].max_value()))], self)):
                         return False
 
         res = self._apsp(p_bcn)
-
         for v in self.m_controllability:
             if res[(v,v)] < 0:
                 return False
@@ -697,8 +737,11 @@ class STN():
         if p_cstr in self.m_constraints:
             min = 0
             res = math.inf
-            for var in self.m_constraints[p_cstr]:
-                min = p_bcn.m_domains[var].max_value()
+            for (objvar, strict) in self.m_constraints[p_cstr]:
+                if not strict:
+                    min = p_bcn.m_domains[objvar].max_value()
+                else:
+                    min = p_bcn.m_domains[objvar].max_value() - sys.float_info.epsilon
                 if min <= res:
                     res = min
             return min
