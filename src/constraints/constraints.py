@@ -534,7 +534,7 @@ class BCN():
                     if name != relname and var1 in self.m_general_relations[name][0]:
                         worklist.append((ConstraintType.GENERAL_RELATION,(name, self.m_general_relations[name])))
 
-                #if p_stn != None:
+                #if p_stn is not None:
                 #    if var1 in p_stn.m_involved_objvars:
                 #        for cstr in p_stn.m_involved_objvars[var1]:
                 #            # actually important, can't just get away with evaluating the max in stn. in case the max goes up, need to enforce previous, more restrictive max
@@ -686,10 +686,12 @@ class STN():
         """
         worklist = p_input_constraints#list(p_input_constraints)
         for (t1, t2, bound, strict) in worklist:
-            
+
             if type(bound) is str:
                 var = bound
             else:
+                if bound == 0 and not strict and t1 == t2:
+                    break
                 var = "_hcov_{0}".format(new_int_id()) # hcov = helper constant object variable
                 p_bcn.m_domains[var] = Domain(DomainType.DISCRETE, [bound])
 

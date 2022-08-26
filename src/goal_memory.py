@@ -4,7 +4,7 @@ sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-play
 from enum import Enum
 import typing
 from src.base import Assertion
-from src.constraints.constraints import ConstraintType
+from src.constraints.constraints import ConstraintNetwork, ConstraintType
 
 class GoalMode(Enum):
     FORMULATED = 0
@@ -19,13 +19,14 @@ class GoalNode():
 
     def __init__(self):
         self.m_assertion:Assertion = None
-        self.m_constraints:typing.List[typing.Tuple[ConstraintType,typing.Any]] = []
+        #self.m_constraints:typing.List[typing.Tuple[ConstraintType,typing.Any]] = []
+        #self.m_constraint_network:ConstraintNetwork = ConstraintNetwork()
         self.m_mode:GoalMode = GoalMode.FORMULATED
-        self.m_expansions:typing.List = []
+        self.m_expansions:typing.List = [] # i.e. chronicle transformations
         self.m_committed_expansion = None
         self.m_metrics:typing.Dict = {}
 
-class ExtendedGoalMemory():
+class GoalMemory():
 
     def __init__(self):
         self.m_goal_nodes:typing.List[GoalNode] = []

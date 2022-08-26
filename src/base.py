@@ -79,6 +79,89 @@ class Assertion(typing.NamedTuple):
 
         return False
 
+    def check_conflict(self, p_asrt2:Assertion, p_cn:ConstraintNetwork):
+
+        if self == p_asrt2:
+            return False
+        elif self.m_sv_name == p_asrt2.m_sv_name and self.m_sv_params_names == p_asrt2.m_sv_params_names:
+            b = True
+            for i in range(len(self.m_sv_params_vars)):
+                if not p_cn.objvars_unifiable(self.m_sv_params_vars[i],p_asrt2.m_sv_params_vars[i]):
+                    return False
+
+        if self.m_type == AssertionType.PERSISTENCE and p_asrt2.m_type == AssertionType.PERSISTENCE:
+
+            if b and p_cn.objvars_separable(self.m_sv_val, p_asrt2.m_sv_val):
+                if (p_cn.propagate_constraints([
+                    (ConstraintType.TEMPORAL,(self.m_time_start,p_asrt2.m_time_end,0,False)),
+                    (ConstraintType.TEMPORAL,(p_asrt2.m_time_start,self.m_time_end,0,False)),
+                    ],p_just_checking_no_propagation=True) 
+                ):
+                    return True
+            return False
+
+        elif self.m_type == AssertionType.TRANSITION and p_asrt2.m_type == AssertionType.TRANSITION:
+
+            if b:
+                if (p_cn.propagate_constraints([
+                    (ConstraintType.TEMPORAL,(self.m_time_start,p_asrt2.m_time_end,0,False)),
+                    (ConstraintType.TEMPORAL,(p_asrt2.m_time_start,self.m_time_end,0,False)),
+                    ],p_just_checking_no_propagation=True) 
+                ):
+                    if ((p_cn.objvars_unified(self.m_sv_val, p_asrt2.m_sv_val) and p_cn.objvars_unified(self.m_sv_val_sec, p_asrt2.m_sv_val_sec)
+                        and (p_cn.propagate_constraints([
+                            (ConstraintType.TEMPORAL,(self.m_time_start,p_asrt2.m_time_start,0, False)),
+                            (ConstraintType.TEMPORAL,(p_asrt2.m_time_start,self.m_time_start,0, False)),
+                            (ConstraintType.TEMPORAL,(self.m_time_end,p_asrt2.m_time_end,0, False)),
+                            (ConstraintType.TEMPORAL,(p_asrt2.m_time_end,self.m_time_end,0, False)),
+                            ],p_just_checking_no_propagation=True)))
+                    or (p_cn.objvars_unified(self.m_sv_val, p_asrt2.m_sv_val_sec)
+                        and p_cn.propagate_constraints([
+                            (ConstraintType.TEMPORAL,(self.m_time_start,p_asrt2.m_time_end,0, False)),
+                            (ConstraintType.TEMPORAL,(p_asrt2.m_time_end,self.m_time_start,0, False)),
+                            ],p_just_checking_no_propagation=True))
+                    or (p_cn.objvars_unified(p_asrt2.m_sv_val, self.m_sv_val_sec)
+                        and p_cn.propagate_constraints([
+                            (ConstraintType.TEMPORAL,(p_asrt2.m_time_start,self.m_time_end,0, False)),
+                            (ConstraintType.TEMPORAL,(self.m_time_end,p_asrt2.m_time_start,0, False)),
+                            ],p_just_checking_no_propagation=True))
+                    ):
+                        return False
+                    else:
+                        return True
+            return False
+
+        else:
+
+            if self.m_type == AssertionType.PERSISTENCE:
+                asrt_pers = self
+                asrt_trans = p_asrt2
+            else:
+                asrt_pers = p_asrt2
+                asrt_trans = self
+
+            if b:
+                if (p_cn.propagate_constraints([
+                    (ConstraintType.TEMPORAL,(asrt_pers.m_time_start,asrt_trans.m_time_end,0,False)),
+                    (ConstraintType.TEMPORAL,(asrt_trans.m_time_start,asrt_pers.m_time_end,0,False)),
+                    ],p_just_checking_no_propagation=True) 
+                ):
+                    if ((p_cn.objvars_unified(asrt_trans.m_sv_val_sec, asrt_pers.m_sv_val)
+                        and p_cn.propagate_constraints([
+                            (ConstraintType.TEMPORAL,(asrt_pers.m_time_start,asrt_trans.m_time_end,0, False)),
+                            (ConstraintType.TEMPORAL,(asrt_trans.m_time_end,asrt_pers.m_time_start,0, False)),
+                            ],p_just_checking_no_propagation=True))
+                    or (p_cn.objvars_unified(asrt_pers.m_sv_val, asrt_trans.m_sv_val)
+                        and p_cn.propagate_constraints([
+                            (ConstraintType.TEMPORAL,(asrt_trans.m_time_start,asrt_pers.m_time_end,0, False)),
+                            (ConstraintType.TEMPORAL,(asrt_pers.m_time_end,asrt_trans.m_time_start,0, False)),
+                            ],p_just_checking_no_propagation=True))
+                    ):
+                        return False
+                    else:
+                        return True
+            return False
+
 #class Timeline(typing.NamedTuple):
 #    m_sv_name:str
 #    m_assertions:typing.List[Assertion]
@@ -93,10 +176,10 @@ class Action(typing.NamedTuple):
     m_time_start:str
     m_time_end:str
 
-    m_assertions = []
+    m_assertions:typing.Set[Assertion] = set()
     # (unsupported assertions) (Nau 2020 : "no supported assertions = if you insert an action into a chronicle, you need to figure out how to support it")
     # reminds of HGN(?) ActorSim(?) and Bit-Monnot 2020 (hierarchronicles - "method chronicles with subtasks and no effects" and "action chronicles with effects and no subtasks")
-    m_constraints:typing.List[typing.Tuple[ConstraintType,typing.Any]] = []
+    m_constraints:typing.Set[typing.Tuple[ConstraintType,typing.Any]] = set()
 
 
 # actually method *template*
@@ -109,13 +192,5 @@ class Method(typing.NamedTuple):
     m_time_start:str
     m_time_end:str
 
-    m_assertions = [] # actually subgoals ; Nau 2020: "can't make a change happen, can only create subgoals"
-    m_constraints:typing.List[typing.Tuple[ConstraintType,typing.Any]] = []
-
-
-def is_action_applicable(action:Action, chronicle:Chronicle, time:str): # time : str - var name : to have grounding : pass in a variable singleton domain
-    pass
-
-
-def is_method_applicable(action:Method, chronicle:Chronicle, time:str):
-    pass
+    m_assertions:typing.Set[Assertion] = set() # actually subgoals ; Nau 2020: "can't make a change happen, can only create subgoals"
+    m_constraints:typing.Set[typing.Tuple[ConstraintType,typing.Any]] = set()

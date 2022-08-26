@@ -4,7 +4,8 @@ sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-play
 from src.constraints.domain import Domain
 from src.constraints.constraints import ConstraintNetwork, ConstraintType
 
-from src.base import Assertion, AssertionType, Chronicle
+from src.base import Assertion, AssertionType
+from src.chronicle import Chronicle
 
 import time
 
@@ -89,8 +90,8 @@ def test1(verbose=False):
     asrt1 = Assertion(
         m_type=AssertionType.PERSISTENCE,
         m_sv_name="sv_location",
-        m_sv_params_names=["param_robot"],
-        m_sv_params_vars=["objvar_robots_grp1"],
+        m_sv_params_names=("param_robot"),
+        m_sv_params_vars=("objvar_robots_grp1"),
         m_time_start="t0",
         m_time_end="t1",
         m_sv_val="objvar_location_A",
@@ -100,8 +101,8 @@ def test1(verbose=False):
     asrt2 = Assertion(
         m_type=AssertionType.PERSISTENCE,
         m_sv_name="sv_location",
-        m_sv_params_names=["param_robot"],
-        m_sv_params_vars=["objvar_robots_grp1"],
+        m_sv_params_names=("param_robot"),
+        m_sv_params_vars=("objvar_robots_grp1"),
         m_time_start="t0",
         m_time_end="t1",
         m_sv_val="objvar_location_B",
@@ -124,16 +125,15 @@ def test1(verbose=False):
     ]
     constraint_network.propagate_constraints(constrs)
 
-    chronicle.m_unsupported_assertions.append(asrt1)
-
+    chronicle.m_assertions[asrt1] = False
     ts = time.perf_counter()
-    res = chronicle.get_resulting_conflicts([asrt2], constraint_network)
+    res = chronicle.get_induced_conflicts([asrt2], constraint_network)
     es = time.perf_counter()
     print("---")
     if verbose:
         print("conflicts : {0}".format(res))
         print("time : {0}".format(es-ts))
-    if res == [(asrt1, asrt2)] or res == [(asrt2, asrt1)]:
+    if res == set([(asrt1, asrt2)]):
         print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
     else:
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
@@ -146,8 +146,8 @@ def test2(verbose=False):
     asrt1 = Assertion(
         m_type=AssertionType.PERSISTENCE,
         m_sv_name="sv_location",
-        m_sv_params_names=["param_robot"],
-        m_sv_params_vars=["objvar_robots_grp1"],
+        m_sv_params_names=("param_robot"),
+        m_sv_params_vars=("objvar_robots_grp1"),
         m_time_start="t0",
         m_time_end="t1",
         m_sv_val="objvar_location_A",
@@ -157,8 +157,8 @@ def test2(verbose=False):
     asrt2 = Assertion(
         m_type=AssertionType.PERSISTENCE,
         m_sv_name="sv_location",
-        m_sv_params_names=["param_robot"],
-        m_sv_params_vars=["objvar_robots_grp1"],
+        m_sv_params_names=("param_robot"),
+        m_sv_params_vars=("objvar_robots_grp1"),
         m_time_start="t2",
         m_time_end="t3",
         m_sv_val="objvar_location_B",
@@ -183,16 +183,15 @@ def test2(verbose=False):
     #print(constraint_network.propagate_constraints_partial([(ConstraintType.TEMPORAL,("t3", "t0", 0, False))],True))
     #print(constraint_network.propagate_constraints_partial([(ConstraintType.TEMPORAL,("t2", "t1", 0, False))],True))
 
-    chronicle.m_unsupported_assertions.append(asrt1)
-        
+    chronicle.m_assertions[asrt1] = False        
     ts = time.perf_counter()
-    res = chronicle.get_resulting_conflicts([asrt2], constraint_network)
+    res = chronicle.get_induced_conflicts([asrt2], constraint_network)
     es = time.perf_counter()
     print("---")
     if verbose:
         print("conflicts : {0}".format(res))
         print("time : {0}".format(es-ts))
-    if res == [(asrt1, asrt2)] or res == [(asrt2, asrt1)]:
+    if res == set([(asrt1, asrt2)]):
         print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
     else:
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
@@ -205,8 +204,8 @@ def test3(verbose=False):
     asrt1 = Assertion(
         m_type=AssertionType.PERSISTENCE,
         m_sv_name="sv_location",
-        m_sv_params_names=["param_robot"],
-        m_sv_params_vars=["objvar_robots_grp1"],
+        m_sv_params_names=("param_robot"),
+        m_sv_params_vars=("objvar_robots_grp1"),
         m_time_start="t0",
         m_time_end="t1",
         m_sv_val="objvar_location_A",
@@ -216,8 +215,8 @@ def test3(verbose=False):
     asrt2 = Assertion(
         m_type=AssertionType.PERSISTENCE,
         m_sv_name="sv_location",
-        m_sv_params_names=["param_robot"],
-        m_sv_params_vars=["objvar_robots_grp1"],
+        m_sv_params_names=("param_robot"),
+        m_sv_params_vars=("objvar_robots_grp1"),
         m_time_start="t2",
         m_time_end="t3",
         m_sv_val="objvar_location_A",
@@ -240,16 +239,15 @@ def test3(verbose=False):
     ]
     constraint_network.propagate_constraints(constrs)
 
-    chronicle.m_unsupported_assertions.append(asrt1)
-        
+    chronicle.m_assertions[asrt1] = False        
     ts = time.perf_counter()
-    res = chronicle.get_resulting_conflicts([asrt2], constraint_network)
+    res = chronicle.get_induced_conflicts([asrt2], constraint_network)
     es = time.perf_counter()
     print("---")
     if verbose:
         print("conflicts : {0}".format(res))
         print("time : {0}".format(es-ts))
-    if res == [] or res == []:
+    if res == set():
         print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
     else:
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
@@ -262,8 +260,8 @@ def test4(verbose=False):
     asrt1 = Assertion(
         m_type=AssertionType.PERSISTENCE,
         m_sv_name="sv_location",
-        m_sv_params_names=["param_robot"],
-        m_sv_params_vars=["objvar_robots_grp1"],
+        m_sv_params_names=("param_robot"),
+        m_sv_params_vars=("objvar_robots_grp1"),
         m_time_start="t0",
         m_time_end="t1",
         m_sv_val="objvar_location_A",
@@ -273,8 +271,8 @@ def test4(verbose=False):
     asrt2 = Assertion(
         m_type=AssertionType.PERSISTENCE,
         m_sv_name="sv_location",
-        m_sv_params_names=["param_robot"],
-        m_sv_params_vars=["objvar_robots_grp1"],
+        m_sv_params_names=("param_robot"),
+        m_sv_params_vars=("objvar_robots_grp1"),
         m_time_start="t2",
         m_time_end="t3",
         m_sv_val="objvar_location_C",
@@ -297,16 +295,15 @@ def test4(verbose=False):
     ]
     constraint_network.propagate_constraints(constrs)
 
-    chronicle.m_unsupported_assertions.append(asrt1)
-        
+    chronicle.m_assertions[asrt1] = False        
     ts = time.perf_counter()
-    res = chronicle.get_resulting_conflicts([asrt2], constraint_network)
+    res = chronicle.get_induced_conflicts([asrt2], constraint_network)
     es = time.perf_counter()
     print("---")
     if verbose:
         print("conflicts : {0}".format(res))
         print("time : {0}".format(es-ts))
-    if res == [(asrt1, asrt2)] or res == [(asrt2, asrt1)]:
+    if res == set([(asrt1, asrt2)]):
         print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
     else:
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
@@ -319,8 +316,8 @@ def test5(verbose=False):
     asrt1 = Assertion(
         m_type=AssertionType.PERSISTENCE,
         m_sv_name="sv_location",
-        m_sv_params_names=["param_robot"],
-        m_sv_params_vars=["objvar_robots_grp1"],
+        m_sv_params_names=("param_robot"),
+        m_sv_params_vars=("objvar_robots_grp1"),
         m_time_start="t0",
         m_time_end="t1",
         m_sv_val="objvar_location_A",
@@ -330,8 +327,8 @@ def test5(verbose=False):
     asrt2 = Assertion(
         m_type=AssertionType.TRANSITION,
         m_sv_name="sv_location",
-        m_sv_params_names=["param_robot"],
-        m_sv_params_vars=["objvar_robots_grp1"],
+        m_sv_params_names=("param_robot"),
+        m_sv_params_vars=("objvar_robots_grp1"),
         m_time_start="t1",
         m_time_end="t2",
         m_sv_val="objvar_location_A",
@@ -354,16 +351,15 @@ def test5(verbose=False):
     ]
     constraint_network.propagate_constraints(constrs)
 
-    chronicle.m_unsupported_assertions.append(asrt1)
-        
+    chronicle.m_assertions[asrt1] = False        
     ts = time.perf_counter()
-    res = chronicle.get_resulting_conflicts([asrt2], constraint_network)
+    res = chronicle.get_induced_conflicts([asrt2], constraint_network)
     es = time.perf_counter()
     print("---")
     if verbose:
         print("conflicts : {0}".format(res))
         print("time : {0}".format(es-ts))
-    if res == []:
+    if res == set():
         print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
     else:
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
@@ -376,8 +372,8 @@ def test6(verbose=False):
     asrt1 = Assertion(
         m_type=AssertionType.PERSISTENCE,
         m_sv_name="sv_location",
-        m_sv_params_names=["param_robot"],
-        m_sv_params_vars=["objvar_robots_grp1"],
+        m_sv_params_names=("param_robot"),
+        m_sv_params_vars=("objvar_robots_grp1"),
         m_time_start="t0",
         m_time_end="t1",
         m_sv_val="objvar_location_A",
@@ -387,8 +383,8 @@ def test6(verbose=False):
     asrt2 = Assertion(
         m_type=AssertionType.TRANSITION,
         m_sv_name="sv_location",
-        m_sv_params_names=["param_robot"],
-        m_sv_params_vars=["objvar_robots_grp1"],
+        m_sv_params_names=("param_robot"),
+        m_sv_params_vars=("objvar_robots_grp1"),
         m_time_start="t2",
         m_time_end="t3",
         m_sv_val="objvar_location_A",
@@ -411,16 +407,15 @@ def test6(verbose=False):
     ]
     constraint_network.propagate_constraints(constrs)
 
-    chronicle.m_unsupported_assertions.append(asrt1)
-        
+    chronicle.m_assertions[asrt1] = False        
     ts = time.perf_counter()
-    res = chronicle.get_resulting_conflicts([asrt2], constraint_network)
+    res = chronicle.get_induced_conflicts([asrt2], constraint_network)
     es = time.perf_counter()
     print("---")
     if verbose:
         print("conflicts : {0}".format(res))
         print("time : {0}".format(es-ts))
-    if res == [(asrt1, asrt2)] or res == [(asrt2, asrt1)]:
+    if res == set([(asrt1, asrt2)]):
         print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
     else:
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
