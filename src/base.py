@@ -7,7 +7,6 @@ sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-play
 import typing
 from enum import Enum
 from src.constraints.constraints import ConstraintNetwork, ConstraintType
-from src.constraints.domain import Domain
 
 ############################################
 
@@ -35,12 +34,7 @@ class Assertion(typing.NamedTuple):
     # name + params : "head"
     m_sv_name:str
     m_sv_params_names:typing.Tuple[str,...]
-    m_sv_params_vars:typing.Tuple[str,...] # to ground : set a variale with a singleton domain;
-
-    m_time_start:str
-    #m_time_start_interval_open:bool # should be always false except for "unknown" value persistence assertions decomposed from transition assertions
-    m_time_end:str
-    #m_time_end_interval_open:bool # idem
+    m_sv_params_vars:typing.Tuple[str,...] # to ground : set a variable with a singleton domain;
     
     #m_sv_value_type:type     # for "state relations" as in Roberts 2021 - the value type is bool (and the value is implicitly always True ...?)
 
@@ -52,166 +46,46 @@ class Assertion(typing.NamedTuple):
     # maybe use a tuple, and if assertion type is transition, assume that the tuple has 2 elements ?
     # maybe good for python, but unsure about anything else. keep as is for now.
 
+    m_time_start:str
+    #m_time_start_interval_open:bool # should be always false except for "unknown" value persistence assertions decomposed from transition assertions
+    m_time_end:str
+    #m_time_end_interval_open:bool # idem
+
+    def is_causally_supported_by(self, p_other_assertion:Assertion, p_cn:ConstraintNetwork) -> bool:
+
+        if (self.m_sv_name == p_other_assertion.m_sv_name and self.m_sv_params_names == p_other_assertion.m_sv_params_names):
+            for i in range(len(self.m_sv_params_vars)):
+                if p_cn.objvars_separated(self.m_sv_params_vars[i],p_other_assertion.m_sv_params_vars[i]):
+                    return False
+        else:
+            return False
+
+        if (p_other_assertion.m_type == AssertionType.PERSISTENCE
+            and p_cn.propagate_constraints([
+                (ConstraintType.TEMPORAL,(self.m_time_start,p_other_assertion.m_time_end,0,False)),
+                (ConstraintType.TEMPORAL,(p_other_assertion.m_time_end,self.m_time_start,0,False)),
+                (ConstraintType.UNIFICATION), (p_other_assertion.m_sv_val, self.m_sv_val)
+                ],p_just_checking_no_propagation=True)
+        ):
+            return True
+        elif (p_other_assertion.m_type == AssertionType.TRANSITION
+            and p_cn.propagate_constraints([
+                (ConstraintType.TEMPORAL,(self.m_time_start,p_other_assertion.m_time_end,0,False)),
+                (ConstraintType.TEMPORAL,(p_other_assertion.m_time_end,self.m_time_start,0,False)),
+                (ConstraintType.UNIFICATION), (p_other_assertion.m_sv_val_sec, self.m_sv_val)
+                ],p_just_checking_no_propagation=True)
+        ):
+            return True
+
+        return False
 
 #class Timeline(typing.NamedTuple):
 #    m_sv_name:str
 #    m_assertions:typing.List[Assertion]
 
-
-class ChronicleTransformation(Enum):
-    #"refinement transformation ?" no sense since we don't do tasks (yet) ? and goal refinements / methods add subgoals, which are assertions, which are already taken care of
-    ADD_PERSISTENCE_ASSERTION = 0
-    ADD_TRANSITION_ASSERTION = 1
-    ADD_CONSTRAINT = 2
-    ADD_ACTION = 3
-## useless ?
-
-# experiments on unification with goal nodes of goal memory ?
-class Chronicle():
-
-    def __init__(self):
-        #self.m_variables:typing.Set[str] = set()
-        self.m_goal = None
-        # in bit-monnot 2022 there are also subtasks. adapting to subgoals seems weird, as subgoals can (are) already specified in unsupported assertions
-        self.m_unsupported_assertions:typing.List[Assertion] = []
-        self.m_supported_assertions:typing.List[Assertion] = []
-        # "subdivide" even further ? (un)supported conditions/effects (separately)
-        self.m_constraints:typing.List[typing.Tuple[ConstraintType,typing.Any]] = []
-        #self.m_actions = [] - in GNT 2016 (book) - "a set A of temporally qualified primitives and tasks"...
-
-        self.m_causal_links:typing.Dict[Assertion,typing.Set[Assertion]] = {} # other way to store supported assertions...? (how to do with those that are "a priori" supported?)
-    
-    def clear(self):
-        self.m_goal = None
-        self.m_unsupported_assertions = []
-        self.m_supported_assertions = []
-        self.m_constraints = []
-        self.m_causal_links = {}
-
-    # checking possible conflicts should be done incrementally with every transformation of the chronicle
-    # assuming the new assertions and constraints are consistent with each other - checking conflicts with "old" assertions and constraints
-    # as for conflicts in new assertions and constraints, assume that they are formed/built as to be consistent with each other
-    # OR will have to deal with them anyway, either here (in this method or a similar one) or somewhere else
-    def get_resulting_conflicts(self, p_new_assertions:typing.Iterable[Assertion], p_cn:ConstraintNetwork):
-
-        def persistences_conflict(p_asrt1:Assertion, p_asrt2:Assertion):
-            if p_asrt1 == p_asrt2:
-                return False
-            elif p_asrt1.m_sv_name == p_asrt2.m_sv_name and p_asrt1.m_sv_params_names == p_asrt2.m_sv_params_names:
-                #eq_constrs_on_sv_params:typing.List[typing.Tuple[ConstraintType,typing.Any]] = []
-                #for i in range(len(p_asrt1.m_sv_params_vars)):
-                #    eq_constrs_on_sv_params.append((ConstraintType.UNIFICATION,(p_asrt1.m_sv_params_vars[i],p_asrt2.m_sv_params_vars[i])))
-                #if (p_cn.propagate_constraints_partial(eq_constrs_on_sv_params,p_just_checking_no_propagation=True) 
-                #    and p_cn.objvars_separable(p_asrt1.m_sv_val, p_asrt2.m_sv_val)
-                #):
-                # is it equivalent to check if the param state vars are unifiable ?
-                b = True
-                for i in range(len(p_asrt1.m_sv_params_vars)):
-                    if p_cn.objvars_separated(p_asrt1.m_sv_params_vars[i],p_asrt2.m_sv_params_vars[i]):
-                        b = False
-                        break
-                if b and p_cn.objvars_separable(p_asrt1.m_sv_val, p_asrt2.m_sv_val):
-                    if (p_cn.propagate_constraints([
-                        (ConstraintType.TEMPORAL,(p_asrt1.m_time_start,p_asrt2.m_time_end,0,False)),
-                        (ConstraintType.TEMPORAL,(p_asrt2.m_time_start,p_asrt1.m_time_end,0,False)),
-                        ],p_just_checking_no_propagation=True) 
-                    ):
-                        return True
-            return False
-
-        def transitions_conflict(p_asrt1:Assertion, p_asrt2:Assertion):
-            if p_asrt1 == p_asrt2:
-                return False
-            elif p_asrt1.m_sv_name == p_asrt2.m_sv_name and p_asrt1.m_sv_params_names == p_asrt2.m_sv_params_names:
-                b = True
-                for i in range(len(p_asrt1.m_sv_params_vars)):
-                    if not p_cn.objvars_unifiable(p_asrt1.m_sv_params_vars[i],p_asrt2.m_sv_params_vars[i]):
-                        b = False
-                        break
-                if b:
-                    if (p_cn.propagate_constraints([
-                        (ConstraintType.TEMPORAL,(p_asrt1.m_time_start,p_asrt2.m_time_end,0,False)),
-                        (ConstraintType.TEMPORAL,(p_asrt2.m_time_start,p_asrt1.m_time_end,0,False)),
-                        ],p_just_checking_no_propagation=True) 
-                    ):
-                        if ((p_cn.objvars_unified(p_asrt1.m_sv_val, p_asrt2.m_sv_val) and p_cn.objvars_unified(p_asrt1.m_sv_val_sec, p_asrt2.m_sv_val_sec)
-                            and (p_cn.propagate_constraints([
-                                (ConstraintType.TEMPORAL,(p_asrt1.m_time_start,p_asrt2.m_time_start,0, False)),
-                                (ConstraintType.TEMPORAL,(p_asrt2.m_time_start,p_asrt1.m_time_start,0, False)),
-                                (ConstraintType.TEMPORAL,(p_asrt1.m_time_end,p_asrt2.m_time_end,0, False)),
-                                (ConstraintType.TEMPORAL,(p_asrt2.m_time_end,p_asrt1.m_time_end,0, False)),
-                                ],p_just_checking_no_propagation=True)))
-                        or (p_cn.objvars_unified(p_asrt1.m_sv_val, p_asrt2.m_sv_val_sec)
-                            and p_cn.propagate_constraints([
-                                (ConstraintType.TEMPORAL,(p_asrt1.m_time_start,p_asrt2.m_time_end,0, False)),
-                                (ConstraintType.TEMPORAL,(p_asrt2.m_time_end,p_asrt1.m_time_start,0, False)),
-                                ],p_just_checking_no_propagation=True))
-                        or (p_cn.objvars_unified(p_asrt2.m_sv_val, p_asrt1.m_sv_val_sec)
-                            and p_cn.propagate_constraints([
-                                (ConstraintType.TEMPORAL,(p_asrt2.m_time_start,p_asrt1.m_time_end,0, False)),
-                                (ConstraintType.TEMPORAL,(p_asrt1.m_time_end,p_asrt2.m_time_start,0, False)),
-                                ],p_just_checking_no_propagation=True))
-                        ):
-                            return False
-                        else:
-                            return True
-            return False
-
-        def persistence_transition_conflict(p_asrt_pers:Assertion, p_asrt_trans:Assertion):
-            if p_asrt_pers.m_sv_name == p_asrt_trans.m_sv_name and p_asrt_pers.m_sv_params_names == p_asrt_trans.m_sv_params_names:
-                b = True
-                for i in range(len(p_asrt_pers.m_sv_params_vars)):
-                    if not p_cn.objvars_unifiable(p_asrt_pers.m_sv_params_vars[i],p_asrt_trans.m_sv_params_vars[i]):
-                        b = False
-                        break
-                if b:
-                    if (p_cn.propagate_constraints([
-                        (ConstraintType.TEMPORAL,(p_asrt_pers.m_time_start,p_asrt_trans.m_time_end,0,False)),
-                        (ConstraintType.TEMPORAL,(p_asrt_trans.m_time_start,p_asrt_pers.m_time_end,0,False)),
-                        ],p_just_checking_no_propagation=True) 
-                    ):
-                        if ((p_cn.objvars_unified(p_asrt_trans.m_sv_val_sec, p_asrt_pers.m_sv_val)
-                            and p_cn.propagate_constraints([
-                                (ConstraintType.TEMPORAL,(p_asrt_pers.m_time_start,p_asrt_trans.m_time_end,0, False)),
-                                (ConstraintType.TEMPORAL,(p_asrt_trans.m_time_end,p_asrt_pers.m_time_start,0, False)),
-                                ],p_just_checking_no_propagation=True))
-                        or (p_cn.objvars_unified(p_asrt_pers.m_sv_val, p_asrt_trans.m_sv_val)
-                            and p_cn.propagate_constraints([
-                                (ConstraintType.TEMPORAL,(p_asrt_trans.m_time_start,p_asrt_pers.m_time_end,0, False)),
-                                (ConstraintType.TEMPORAL,(p_asrt_pers.m_time_end,p_asrt_trans.m_time_start,0, False)),
-                                ],p_just_checking_no_propagation=True))
-                        ):
-                            return False
-                        else:
-                            return True
-            return False
-
-        res:typing.List[typing.Tuple[Assertion,Assertion]] = []
-
-        # naive brute force implementation
-        # can use heuristics, info accumulated during search etc for inference (causal chains etc) to restrict the search / candidate flaws
-        for new_asrt in p_new_assertions:
-            for asrt in self.m_unsupported_assertions + self.m_supported_assertions:
-                if new_asrt.m_type == AssertionType.PERSISTENCE and asrt.m_type == AssertionType.PERSISTENCE:
-                    if persistences_conflict(new_asrt, asrt):
-                        res.append((new_asrt, asrt))
-                elif new_asrt.m_type == AssertionType.TRANSITION and asrt.m_type == AssertionType.TRANSITION:
-                    if transitions_conflict(new_asrt, asrt):
-                        res.append((new_asrt, asrt))
-                else:
-                    if new_asrt.m_type == AssertionType.PERSISTENCE:
-                        asrt_pers = new_asrt
-                        asrt_trans = asrt
-                    else:
-                        asrt_pers = asrt
-                        asrt_trans = new_asrt
-                    if persistence_transition_conflict(asrt_pers, asrt_trans):
-                        res.append((new_asrt, asrt))
-
-        return res
-
 # actually action *template*
 class Action(typing.NamedTuple):
+
     m_action_name:str
     m_action_params_names:typing.Tuple[str,...]
     m_action_params_vars:typing.Tuple[str,...]
@@ -227,6 +101,7 @@ class Action(typing.NamedTuple):
 
 # actually method *template*
 class Method(typing.NamedTuple):
+
     m_method_name:str
     m_method_params_names:typing.Tuple[str,...]
     m_method_params_vars:typing.Tuple[str,...]
