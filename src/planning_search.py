@@ -196,12 +196,12 @@ class SearchNode():
         # use non null self.m_resolver_flaw_info
         return res
 
-    def select_charlie_move(self) -> typing.List[CharlieMoveInfo]:
+    def select_charlie_moves(self) -> typing.List[CharlieMoveInfo]:
         res = []
         # use non null self.m_resolver_node_info or self.m_eve_move_info
         return res
 
-    def select_eve_move(self) -> typing.List[EveMoveInfo]:
+    def select_eve_moves(self) -> typing.List[EveMoveInfo]:
         res = []
         # use non null self.m_charlie_move_info
         return res

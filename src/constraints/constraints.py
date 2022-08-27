@@ -1,6 +1,4 @@
 from __future__ import annotations
-from csv import Dialect
-from hashlib import new
 
 import sys
 
