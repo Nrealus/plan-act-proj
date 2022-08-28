@@ -1,5 +1,4 @@
 from __future__ import annotations
-from ast import Assert
 
 import sys
 sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-playground7")
@@ -17,7 +16,6 @@ class ChronicleTransformationType(Enum):
     ADD_ACTION = 3
 ## useless ?
 
-# experiments on unification with goal nodes of goal memory ?
 class Chronicle():
 
     def __init__(self):
@@ -26,6 +24,7 @@ class Chronicle():
         # in bit-monnot 2022 there are also subtasks. adapting to subgoals seems weird, as subgoals can (are) already specified in unsupported assertions
 
         self.m_assertions:typing.Dict[Assertion, bool] = {} # bool value : supported or not
+        self.m_supporter_origin_commitment:typing.Dict[Assertion, Method] = {} # committment on the origin of the supporter to choose for an unsupported assertion (<-> "supporting task commitments" FAPE 2020)
         self.m_causal_network:typing.Dict[Assertion, Assertion] = {} # value : supporter assertion. if a priori supported : None
         self.m_conflicts:typing.Set[typing.Tuple[Assertion,Assertion]] = set()
 
@@ -36,22 +35,16 @@ class Chronicle():
         
         self.m_goal = None
         self.m_assertions = {}
+        self.m_supporter_origin_commitment = {}
         self.m_causal_network = {}
-        self.m_constraints = []
+        self.m_constraints = []        
 
-    def transform_chronicle(self,
-        p_new_assertions:typing.Iterable[Assertion],
-        p_new_constraints:typing.Iterable[typing.Tuple[ConstraintType,typing.Any]],
-        p_cn:ConstraintNetwork
-    ):
-        
-        self.m_conflicts.update(self.get_induced_conflicts(p_new_assertions,p_cn))
+    def is_action_or_method_applicable(self, p_act_or_meth:Action|Method, p_time:str, p_cn:ConstraintNetwork) -> typing.List[typing.Tuple[Assertion,Assertion]]:#,bool]]:
 
-        
-
-    def is_action_or_method_applicable(self, p_act_or_meth:Action|Method, p_time:str, p_cn:ConstraintNetwork):
-
-        res = False
+        # idea : instead of true/false, return the (supportee (chronicle assertion), supporter (action assertion), order)
+        # order : true if supportee is from chronicle, and supporter is from action/method
+        # will facilitate action insertion, by directly providing the assertions to become supported, instead of performing a new search again
+        res = []#False
         # the action/method's starting time must be "now" (p_time)
         if (p_cn.propagate_constraints([
             (ConstraintType.TEMPORAL,(p_act_or_meth.m_time_start,p_time,0,False)),
@@ -63,21 +56,22 @@ class Chronicle():
                     if i_act_or_meth_asrt == i_chronicle_asrt:
                         break
                     # the chronicle must support all action/method's assertions
-                    if not (i_act_or_meth_asrt in self.m_causal_network or i_act_or_meth_asrt.is_causally_supported_by(i_chronicle_asrt, p_cn)):
-                        return False
-                    # the action/method must support must have at least one assertion supporting an unsupported one of the chronicle
-                    if res == False and i_chronicle_asrt.is_causally_supported_by(i_act_or_meth_asrt, p_cn):
-                        res = True
+                    #if not (i_act_or_meth_asrt in self.m_causal_network or i_act_or_meth_asrt.is_causally_supported_by(i_chronicle_asrt, p_cn)):
+                    #    return False
+                    if i_act_or_meth_asrt.is_causally_supported_by(i_chronicle_asrt, p_cn):
+                        res.append((i_act_or_meth_asrt, i_chronicle_asrt))#, False))
+                    else:
+                        return []
+                    # the action/method must have at least one assertion supporting an unsupported one of the chronicle
+                    #if res == False and i_chronicle_asrt.is_causally_supported_by(i_act_or_meth_asrt, p_cn):
+                    #   res = True
+                    if i_chronicle_asrt.is_causally_supported_by(i_act_or_meth_asrt, p_cn):
+                        res.append((i_chronicle_asrt, i_act_or_meth_asrt))#, True))
         return res
 
-    # checking possible conflicts should be done incrementally with every transformation of the chronicle
-    # assuming the new assertions and constraints are consistent with each other - checking conflicts with "old" assertions and constraints
-    # as for conflicts in new assertions and constraints, assume that they are formed/built as to be consistent with each other
-    # OR will have to deal with them anyway, either here (in this method or a similar one) or somewhere else
     def get_induced_conflicts(self, p_new_assertions:typing.Iterable[Assertion], p_cn:ConstraintNetwork) -> typing.Set[typing.Tuple[Assertion,Assertion]]:
 
         res:typing.Set[typing.Tuple[Assertion,Assertion]] = set()
-
         # naive brute force implementation
         # can use heuristics, info accumulated during search etc for inference (causal chains etc) to restrict the search / candidate flaws
         for new_asrt in p_new_assertions:

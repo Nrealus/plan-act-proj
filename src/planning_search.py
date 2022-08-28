@@ -1,4 +1,5 @@
 from __future__ import annotations
+import re
 
 import sys
 
@@ -17,7 +18,13 @@ class SearchNodeType(Enum):
     RESOLVER = 1
     CHARLIE = 2
     EVE = 3
-    HELPER = 4
+
+class ResolverType(Enum):
+    CONFLICT_SEPARATION=0
+    EXISTING_DIRECT_SUPPORT_NOW=1
+    NEW_DIRECT_SUPPORT_NOW=2
+    METHOD_INSERTION_NOW=3
+    ACTION_INSERTION_NOW=4
 
 class FlawNodeInfo(typing.NamedTuple):
     m_assertion1:Assertion
@@ -27,14 +34,16 @@ class FlawNodeInfo(typing.NamedTuple):
     # if more complicated flaws are introduced, a more detailed / general representation may be needed
 
 class ResolverNodeInfo(typing.NamedTuple):
-    #m_type:ResolverType
-    m_assertion:Assertion
+    m_type:ResolverType
+    m_direct_support_assertion:Assertion
+    m_direct_support_assertion_supporter:Assertion
     m_constraints:typing.List[typing.Tuple[ConstraintType,typing.Any]]
-    m_action_or_method_instance:Action|Method
+    m_act_or_meth_instance:Action|Method
+    m_act_or_meth_assertion_support_info:typing.List[typing.Tuple[Assertion,Assertion,bool]]
 
 class CharlieMoveInfo(typing.NamedTuple):
-    chosen_controllable_times:typing.List[str]
-    wait_time:float # here float could make sense...! i.e. wait until a certain "real" time, not necessarily towards a variable / time point. in that case - "str"
+    m_chosen_controllable_times:typing.List[str]
+    m_wait_time:float # here float could make sense...! i.e. wait until a certain "real" time, not necessarily towards a variable / time point. in that case - "str"
     # if it's <= 0 it means we have a "play" move. if not - "wait" move
 
 class EveMoveInfo(typing.NamedTuple):
@@ -48,6 +57,7 @@ class SearchNode():
         p_time:float,
         p_state:object,
         p_chronicle:Chronicle,
+        p_goal_memory:GoalMemory=None,
         #p_constraints:object,
         #p_goal_memory:List[GoalMemoryElement]
         p_flaw_node_info:FlawNodeInfo=None,
@@ -63,8 +73,8 @@ class SearchNode():
         self.m_state:object = p_state
         self.m_chronicle:Chronicle = p_chronicle
         #self.m_constraints = None#p_constraints # constr net, i guess 
-        self.m_constraint_network = ConstraintNetwork()
-        self.m_goal_memory:GoalMemory = None#p_goal_memory
+        self.m_constraint_network = ConstraintNetwork() # should this really be here or inside the chronicle ?
+        self.m_goal_memory:GoalMemory = p_goal_memory
         #self.scheduled_time_points ?
         #other variables than time points ? maybe already accounted for in constr net ?
 
@@ -84,71 +94,95 @@ class SearchNode():
         # or, if we want to know our choices "directly", store them in lists, "parallel" to the children list
         # e.g. flaws[], resolvers[], charlie_moves[], eve_moves[] (indices corresponding to children list)
 
-
     def build_children(self):
 
         if self.m_node_type == SearchNodeType.FLAW:
 
             # resolvable at time now !!
-            flaws = self.select_flaws() # can depend on search strategy
+            flaws = self.select_flaws() # order/priority can depend on search strategy
             for fi in flaws:
 
                 self.m_children.append(SearchNode(p_node_type=SearchNodeType.RESOLVER,
                     p_parent=self,
                     p_time=self.m_time,
                     p_state=self.m_state,
-                    p_chronicle=self.m_chronicle,
+                    p_chronicle=deepcopy(self.m_chronicle),
+                    p_goal_memory=deepcopy(self.m_goal_memory),
                     p_flaw_node_info=fi))
 
         if self.m_node_type == SearchNodeType.RESOLVER:
 
             # usable at time now !!
-            resolvers = self.select_resolvers()
+            resolvers = self.select_resolvers() # order/priority can depend on search strategy
             for ri in resolvers:
                 
                 transformed_chronicle = deepcopy(self.m_chronicle)
 
-                if self.m_flaw_node_info.m_assertion2 is not None: # flaw : conflict flaw - only resolver can only be constraint enforcement
-                    transformed_chronicle.m_conflicts.remove((self.m_flaw_node_info.m_assertion1,self.m_flaw_node_info.m_assertion2))
-                    transformed_chronicle.transform_chronicle(
-                        [],
-                        ri.m_constraints,
-                        self.m_constraint_network)
-                elif ri.m_action_or_method_instance is not None: # flaw : unsupported assertion - action / method insertion resolver
-                    # causal network ?
-                    transformed_chronicle.transform_chronicle(
-                        ri.m_action_or_method_instance.m_assertions,
-                        ri.m_action_or_method_instance.m_constraints,
-                        self.m_constraint_network)
-                elif ri.m_assertion is not None:  # flaw : unsupported assertion -direct supporter resolver : new assertion "prolonging" an existing one (nau 2020) (=causal link ?)
-                    # causal network ?
-                    transformed_chronicle.transform_chronicle(
-                        ri.m_assertion,
-                        ri.m_constraints,
-                        self.m_constraint_network)
-                else:  # flaw : unsupported assertion - direct support resolver : constraints to use an existing assertion as a supporter
-                    # causal network ?
-                    transformed_chronicle.transform_chronicle(
-                        [],
-                        ri.m_constraints,
-                        self.m_constraint_network)
+                if ri.m_type == ResolverType.CONFLICT_SEPARATION:
 
-                # unify last two ?
+                    self.m_constraint_network.propagate_constraints(ri.m_constraints)
+
+                    transformed_chronicle.m_conflicts.remove((self.m_flaw_node_info.m_assertion1,self.m_flaw_node_info.m_assertion2))
+                    transformed_chronicle.m_constraints.update(ri.m_constraints)
+
+                elif ri.m_type == ResolverType.EXISTING_DIRECT_SUPPORT_NOW or ri.m_type == ResolverType.NEW_DIRECT_SUPPORT_NOW:
+                    
+                    transformed_chronicle.m_assertions[ri.m_direct_support_assertion] = True
+                    transformed_chronicle.m_causal_network[ri.m_direct_support_assertion] = ri.m_direct_support_assertion_supporter
+                    # the assertion supporting the introduced direct supporter (for the flawed assertion)
+
+                    transformed_chronicle.m_assertions[self.m_flaw_node_info.m_assertion1] = True
+                    transformed_chronicle.m_causal_network[self.m_flaw_node_info.m_assertion1] = ri.m_direct_support_assertion
+
+                    self.m_constraint_network.propagate_constraints(ri.m_constraints)
+
+                    transformed_chronicle.m_constraints.update(ri.m_constraints)
+                    transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts([ri.m_direct_support_assertion], self.m_constraint_network))
+
+                elif ri.m_type == ResolverType.METHOD_INSERTION_NOW or ri.m_type == ResolverType.ACTION_INSERTION_NOW:
+
+                    transformed_chronicle.m_supporter_origin_commitment[self.m_flaw_node_info.m_assertion1] = ri.m_act_or_meth_instance
+                    # transformed_chronicle.m_assertions[self.m_flaw_node_info.m_assertion1] = True
+                    # NOTE : DON'T SET THE FLAWED UNSUPPORTED ASSERTION TO "SUPPORTED" ! (line of code above)
+                    # if an action was inserted, setting the flawed unsupported assertion to supported will be done in the 2nd loop below.
+                    # if a method was inserted, it could also have a subgoal ((unsupported) persistence assertion) supporting the flawed assertion, 
+                    # which would be dealt with the same way as with an action (below)
+                    # if the inserted method doesn't have a subgoal "directly" supporting the flawed assertion, we still commit (see above) to the fact that
+                    # the supporter of the flawed assertion will come from a further decomposition (by a method/action) of one of the method's subgoal assertions.
+                    # in that case, the supporter origin (see above) will have to be update to the new decomposing method/action.
+
+                    for i_asrt in ri.m_act_or_meth_instance.m_assertions:
+                        transformed_chronicle.m_assertions[i_asrt] = False
+
+                    for (i_asrt_supportee, i_asrt_supporter) in ri.m_act_or_meth_assertion_support_info:
+                        transformed_chronicle.m_assertions[i_asrt_supportee] = True
+                        transformed_chronicle.m_causal_network[i_asrt_supportee] = i_asrt_supporter
+
+                    self.m_constraint_network.propagate_constraints(ri.m_constraints)
+
+                    transformed_chronicle.m_constraints.update(ri.m_constraints)
+                    transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts(ri.m_direct_support_assertion, self.m_constraint_network))
+
+                # decision could be made using search control on whether to follow with a flaw or charlie child (or both)
+                # until then / by default - both 
 
                 self.m_children.append(SearchNode(p_node_type=SearchNodeType.FLAW,
                     p_parent=self,
                     p_time=self.m_time,
                     p_state=self.m_state,
                     p_chronicle=transformed_chronicle,
+                    p_goal_memory=deepcopy(self.m_goal_memory),
+                    # UPDATE GOAL MEMORY (WITH ACTION INTRODUCTIONS (or maybe all chronicle transformations) IN EXPANSIONS ?)
                     p_resolver_node_info=ri))
 
-                # not necessarily charlie or flaw : both children type should be possible... since resolver nodes are like "or"
-                # self.m_children.append(SearchNode(p_node_type=SearchNodeType.CHARLIE,
-                #     p_parent=self,
-                #     p_time=self.m_time,
-                #     p_state=self.m_state,
-                #     p_chronicle=transformed_chronicle,
-                #     p_resolver_node_info=ri))
+                self.m_children.append(SearchNode(p_node_type=SearchNodeType.CHARLIE,
+                    p_parent=self,
+                    p_time=self.m_time,
+                    p_state=self.m_state,
+                    p_chronicle=transformed_chronicle,
+                    p_goal_memory=deepcopy(self.m_goal_memory),
+                    # UPDATE GOAL MEMORY (WITH ACTION INTRODUCTIONS (or maybe all chronicle transformations) IN EXPANSIONS ?)
+                    p_resolver_node_info=ri))
 
         if self.m_node_type == SearchNodeType.CHARLIE:
             pass
@@ -158,6 +192,7 @@ class SearchNode():
             #         p_time=self.m_time,
             #         p_state=self.m_state,
             #         p_chronicle=transformed_chronicle,
+            #         p_goal_memory=deepcopy(self.m_goal_memory),
             #         p_charlie_move_info=ci))
 
         if self.m_node_type == SearchNodeType.EVE:
@@ -168,6 +203,7 @@ class SearchNode():
             #         p_time=self.m_time,
             #         p_state=self.m_state,
             #         p_chronicle=transformed_chronicle,
+            #         p_goal_memory=deepcopy(self.m_goal_memory),
             #         p_eve_move_info=ei))
             # for ...
             #     self.m_children.append(SearchNode(p_node_type=SearchNodeType.FLAW,
@@ -175,6 +211,7 @@ class SearchNode():
             #         p_time=self.m_time,
             #         p_state=self.m_state,
             #         p_chronicle=transformed_chronicle,
+            #         p_goal_memory=deepcopy(self.m_goal_memory),
             #         p_eve_move_info=ei))
 
     def select_flaws(self) -> typing.List[FlawNodeInfo]:
