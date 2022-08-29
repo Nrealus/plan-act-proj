@@ -1,5 +1,4 @@
 from __future__ import annotations
-from ast import Assert
 
 import sys
 sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-playground7")

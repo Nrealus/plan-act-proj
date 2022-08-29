@@ -6,6 +6,7 @@ from src.constraints.constraints import ConstraintNetwork, ConstraintType
 
 from src.base import Assertion, AssertionType
 from src.chronicle import Chronicle
+from src.goal_node import GoalMode
 
 import time
 
@@ -123,11 +124,14 @@ def test1(verbose=False):
         (ConstraintType.TEMPORAL,("t2", "t3", "c_l23", False)),
         (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
     ]
+
     constraint_network.propagate_constraints(constrs)
+    chronicle.m_constraint_network = constraint_network
 
     chronicle.m_assertions[asrt1] = False
+    chronicle.m_goal_nodes.setdefault(asrt1,GoalMode()).m_mode = GoalMode.COMMITTED
     ts = time.perf_counter()
-    res = chronicle.get_induced_conflicts([asrt2], constraint_network)
+    res = chronicle.get_induced_conflicts([asrt2])
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -180,12 +184,14 @@ def test2(verbose=False):
         (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
     ]
     constraint_network.propagate_constraints(constrs)
+    chronicle.m_constraint_network = constraint_network
     #print(constraint_network.propagate_constraints_partial([(ConstraintType.TEMPORAL,("t3", "t0", 0, False))],True))
     #print(constraint_network.propagate_constraints_partial([(ConstraintType.TEMPORAL,("t2", "t1", 0, False))],True))
 
     chronicle.m_assertions[asrt1] = False        
+    chronicle.m_goal_nodes.setdefault(asrt1,GoalMode()).m_mode = GoalMode.COMMITTED
     ts = time.perf_counter()
-    res = chronicle.get_induced_conflicts([asrt2], constraint_network)
+    res = chronicle.get_induced_conflicts([asrt2])
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -238,10 +244,12 @@ def test3(verbose=False):
         (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
     ]
     constraint_network.propagate_constraints(constrs)
+    chronicle.m_constraint_network = constraint_network
 
     chronicle.m_assertions[asrt1] = False        
+    chronicle.m_goal_nodes.setdefault(asrt1,GoalMode()).m_mode = GoalMode.COMMITTED
     ts = time.perf_counter()
-    res = chronicle.get_induced_conflicts([asrt2], constraint_network)
+    res = chronicle.get_induced_conflicts([asrt2])
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -294,10 +302,12 @@ def test4(verbose=False):
         (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
     ]
     constraint_network.propagate_constraints(constrs)
+    chronicle.m_constraint_network = constraint_network
 
     chronicle.m_assertions[asrt1] = False        
+    chronicle.m_goal_nodes.setdefault(asrt1,GoalMode()).m_mode = GoalMode.COMMITTED
     ts = time.perf_counter()
-    res = chronicle.get_induced_conflicts([asrt2], constraint_network)
+    res = chronicle.get_induced_conflicts([asrt2])
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -350,10 +360,12 @@ def test5(verbose=False):
         (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
     ]
     constraint_network.propagate_constraints(constrs)
+    chronicle.m_constraint_network = constraint_network
 
     chronicle.m_assertions[asrt1] = False        
+    chronicle.m_goal_nodes.setdefault(asrt1,GoalMode()).m_mode = GoalMode.COMMITTED
     ts = time.perf_counter()
-    res = chronicle.get_induced_conflicts([asrt2], constraint_network)
+    res = chronicle.get_induced_conflicts([asrt2])
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -406,10 +418,12 @@ def test6(verbose=False):
         (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
     ]
     constraint_network.propagate_constraints(constrs)
+    chronicle.m_constraint_network = constraint_network
 
     chronicle.m_assertions[asrt1] = False        
+    chronicle.m_goal_nodes.setdefault(asrt1,GoalMode()).m_mode = GoalMode.COMMITTED
     ts = time.perf_counter()
-    res = chronicle.get_induced_conflicts([asrt2], constraint_network)
+    res = chronicle.get_induced_conflicts([asrt2])
     es = time.perf_counter()
     print("---")
     if verbose:
