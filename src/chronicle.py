@@ -8,13 +8,19 @@ from enum import Enum
 from src.base import Assertion, AssertionType, Action, Method
 from src.constraints.constraints import ConstraintNetwork, ConstraintType
 
-class ChronicleTransformationType(Enum):
-    #"refinement transformation ?" no sense since we don't do tasks (yet) ? and goal refinements / methods add subgoals, which are assertions, which are already taken care of
-    ADD_PERSISTENCE_ASSERTION = 0
-    ADD_TRANSITION_ASSERTION = 1
-    ADD_CONSTRAINT = 2
-    ADD_ACTION = 3
-## useless ?
+############################################
+
+# NOTE: Chronicle, 29 / 08 / 2022
+
+# The chronicle is implemented here. It is one of the main building blocks of the planning system.
+
+# A chronicle is a collection of temporal assertions and constraints on the variables appearing in them.
+# Often, temporal assertions on a particular state variable and constraints on them are called timeline.
+# We do not represent them explicitly, as we can do just fine representing temporal assertions and constraints directly,
+# however an explicit representation of timelines to group assertions by state variables could be beneficial if 
+# it proves to be more efficient algorithmically.
+
+# A chronicle expresses temporal knowledge and temporal evolution of multiple state variables
 
 class Chronicle():
 
@@ -23,12 +29,13 @@ class Chronicle():
         self.m_goal = None
         # in bit-monnot 2022 there are also subtasks. adapting to subgoals seems weird, as subgoals can (are) already specified in unsupported assertions
 
-        self.m_assertions:typing.Dict[Assertion, bool] = {} # bool value : supported or not
-        self.m_supporter_origin_commitment:typing.Dict[Assertion, Method] = {} # committment on the origin of the supporter to choose for an unsupported assertion (<-> "supporting task commitments" FAPE 2020)
-        self.m_causal_network:typing.Dict[Assertion, Assertion] = {} # value : supporter assertion. if a priori supported : None
-        self.m_conflicts:typing.Set[typing.Tuple[Assertion,Assertion]] = set()
+        self.m_assertions: typing.Dict[Assertion, bool] = {} # bool value : supported or not
+        self.m_supporter_origin_commitment: typing.Dict[Assertion, Method] = {} # committment on the origin of the supporter to choose for an unsupported assertion (<-> "supporting task commitments" FAPE 2020)
+        self.m_causal_network: typing.Dict[Assertion, Assertion] = {} # value : supporter assertion. if a priori supported : None
+        self.m_conflicts: typing.Set[typing.Tuple[Assertion,Assertion]] = set()
 
-        self.m_constraints:typing.Set[typing.Tuple[ConstraintType,typing.Any]] = []
+        #self.m_constraints:typing.Set[typing.Tuple[ConstraintType,typing.Any]] = []
+        self.m_constraint_network: ConstraintNetwork = ConstraintNetwork()
         #self.m_actions = [] - in GNT 2016 (book) - "a set A of temporally qualified primitives and tasks"...
 
     def clear(self):
@@ -37,7 +44,8 @@ class Chronicle():
         self.m_assertions = {}
         self.m_supporter_origin_commitment = {}
         self.m_causal_network = {}
-        self.m_constraints = []        
+        #self.m_constraints = []        
+        self.m_constraint_network = ConstraintNetwork()
 
     def is_action_or_method_applicable(self, p_act_or_meth:Action|Method, p_time:str, p_cn:ConstraintNetwork) -> typing.List[typing.Tuple[Assertion,Assertion]]:#,bool]]:
 

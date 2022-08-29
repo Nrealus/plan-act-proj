@@ -39,7 +39,7 @@ class ResolverNodeInfo(typing.NamedTuple):
     m_direct_support_assertion_supporter:Assertion
     m_constraints:typing.List[typing.Tuple[ConstraintType,typing.Any]]
     m_act_or_meth_instance:Action|Method
-    m_act_or_meth_assertion_support_info:typing.List[typing.Tuple[Assertion,Assertion,bool]]
+    m_act_or_meth_assertion_support_info:typing.List[typing.Tuple[Assertion,Assertion]]#,bool]]
 
 class CharlieMoveInfo(typing.NamedTuple):
     m_chosen_controllable_times:typing.List[str]
@@ -117,13 +117,12 @@ class SearchNode():
             for ri in resolvers:
                 
                 transformed_chronicle = deepcopy(self.m_chronicle)
+                transformed_goal_memory = deepcopy(self.m_goal_memory)
 
                 if ri.m_type == ResolverType.CONFLICT_SEPARATION:
 
-                    self.m_constraint_network.propagate_constraints(ri.m_constraints)
-
+                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
                     transformed_chronicle.m_conflicts.remove((self.m_flaw_node_info.m_assertion1,self.m_flaw_node_info.m_assertion2))
-                    transformed_chronicle.m_constraints.update(ri.m_constraints)
 
                 elif ri.m_type == ResolverType.EXISTING_DIRECT_SUPPORT_NOW or ri.m_type == ResolverType.NEW_DIRECT_SUPPORT_NOW:
                     
@@ -134,9 +133,7 @@ class SearchNode():
                     transformed_chronicle.m_assertions[self.m_flaw_node_info.m_assertion1] = True
                     transformed_chronicle.m_causal_network[self.m_flaw_node_info.m_assertion1] = ri.m_direct_support_assertion
 
-                    self.m_constraint_network.propagate_constraints(ri.m_constraints)
-
-                    transformed_chronicle.m_constraints.update(ri.m_constraints)
+                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
                     transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts([ri.m_direct_support_assertion], self.m_constraint_network))
 
                 elif ri.m_type == ResolverType.METHOD_INSERTION_NOW or ri.m_type == ResolverType.ACTION_INSERTION_NOW:
@@ -158,9 +155,7 @@ class SearchNode():
                         transformed_chronicle.m_assertions[i_asrt_supportee] = True
                         transformed_chronicle.m_causal_network[i_asrt_supportee] = i_asrt_supporter
 
-                    self.m_constraint_network.propagate_constraints(ri.m_constraints)
-
-                    transformed_chronicle.m_constraints.update(ri.m_constraints)
+                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
                     transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts(ri.m_direct_support_assertion, self.m_constraint_network))
 
                 # decision could be made using search control on whether to follow with a flaw or charlie child (or both)
@@ -171,8 +166,7 @@ class SearchNode():
                     p_time=self.m_time,
                     p_state=self.m_state,
                     p_chronicle=transformed_chronicle,
-                    p_goal_memory=deepcopy(self.m_goal_memory),
-                    # UPDATE GOAL MEMORY (WITH ACTION INTRODUCTIONS (or maybe all chronicle transformations) IN EXPANSIONS ?)
+                    p_goal_memory=transformed_goal_memory,
                     p_resolver_node_info=ri))
 
                 self.m_children.append(SearchNode(p_node_type=SearchNodeType.CHARLIE,
@@ -180,8 +174,7 @@ class SearchNode():
                     p_time=self.m_time,
                     p_state=self.m_state,
                     p_chronicle=transformed_chronicle,
-                    p_goal_memory=deepcopy(self.m_goal_memory),
-                    # UPDATE GOAL MEMORY (WITH ACTION INTRODUCTIONS (or maybe all chronicle transformations) IN EXPANSIONS ?)
+                    p_goal_memory=transformed_goal_memory,
                     p_resolver_node_info=ri))
 
         if self.m_node_type == SearchNodeType.CHARLIE:
@@ -192,7 +185,7 @@ class SearchNode():
             #         p_time=self.m_time,
             #         p_state=self.m_state,
             #         p_chronicle=transformed_chronicle,
-            #         p_goal_memory=deepcopy(self.m_goal_memory),
+            #         p_goal_memory=transformed_goal_memory,
             #         p_charlie_move_info=ci))
 
         if self.m_node_type == SearchNodeType.EVE:
@@ -203,7 +196,7 @@ class SearchNode():
             #         p_time=self.m_time,
             #         p_state=self.m_state,
             #         p_chronicle=transformed_chronicle,
-            #         p_goal_memory=deepcopy(self.m_goal_memory),
+            #         p_goal_memory=transformed_goal_memory,
             #         p_eve_move_info=ei))
             # for ...
             #     self.m_children.append(SearchNode(p_node_type=SearchNodeType.FLAW,
@@ -211,7 +204,7 @@ class SearchNode():
             #         p_time=self.m_time,
             #         p_state=self.m_state,
             #         p_chronicle=transformed_chronicle,
-            #         p_goal_memory=deepcopy(self.m_goal_memory),
+            #         p_goal_memory=transformed_goal_memory,
             #         p_eve_move_info=ei))
 
     def select_flaws(self) -> typing.List[FlawNodeInfo]:

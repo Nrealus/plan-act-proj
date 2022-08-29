@@ -15,7 +15,7 @@ from src.constraints.domain import Domain, DomainType
 
 ############################################
 
-# 22 / 08 / 2022
+# NOTE: Constraint Network, 22 / 08 / 2022
 
 # The main constraint network is implemented here.
 # Its purpose is to store and aggregate constraints on temporal and object variables
@@ -48,15 +48,15 @@ from src.constraints.domain import Domain, DomainType
 ############################################
 
 class ConstraintType(Enum):
-    UNIFICATION = 0
-    DISJ_UNIFICATION = 1
-    SEPARATION = 2
-    GENERAL_RELATION = 3
-    DOMAIN_VAL_LEQ = 4
-    DOMAIN_VAL_GEQ = 5
-    DOMAIN_VAL_LE = 6
-    DOMAIN_VAL_GE = 7
-    TEMPORAL = 8
+    UNIFICATION = 0         # (binary) unification constraint : two variables are required to always be equal values
+    DISJ_UNIFICATION = 1    # disjunctive unification constraint : a variable is required to always be equal to one of the specified variables
+    SEPARATION = 2          # (binary) separation constraint : two variables are required to always have different values
+    GENERAL_RELATION = 3    # general relation (or table) constraint between multiple variables
+    DOMAIN_VAL_LEQ = 4      # unary constraint : a variable is required to have its domain of values less than or equal to specified value
+    DOMAIN_VAL_GEQ = 5      # unary constraint : a variable is required to have its domain of values greater than or equal to specified value
+    DOMAIN_VAL_LE = 6       # unary constraint : a variable is required to have its domain of values less than specified value
+    DOMAIN_VAL_GE = 7       # unary constraint : a variable is required to have its domain of values greater than to specified value
+    TEMPORAL = 8            # temporal constraint between temporal variables (time points) of the form "t1" - "t0" <= "var"
 
 class ConstraintNetwork():
 
@@ -98,16 +98,20 @@ class ConstraintNetwork():
         Returns:
             True if the specified object variables are unified, False otherwise
         """
+        # check for identity - a variable is obviously unified with itself
         if p_var1 == p_var2:
             return True
-        # include check of symmetric orderings ? (v1 (<=) v2) and (v2 (<=) v1) <==> v1 (=) v2
-        # that actually would be much easier to represent with a graph as a "traditional" adjancency list than a disjoint set (union-find)...
+        # check for unification constraints
+        # NOTE:(currently uses disjoint sets / union-find, but in case order constraints need to be supported,
+        # it would be better to use a classic adjacency list representation and check for both orderings ("<=" and ">=")) 
         if (self.m_bcn.m_unifications.contains([p_var1]) and self.m_bcn.m_unifications.contains([p_var2])
             and self.m_bcn.m_unifications.find(p_var1) == self.m_bcn.m_unifications.find(p_var2)
         ):
             return True
+        # check for identical singleton domains (without the special "unknown value", which is unifiable with nothing, not even itself)
         if self.m_bcn.m_domains[p_var1].size() == 1:
-            return self.m_bcn.m_domains[p_var1].get_values() == self.m_bcn.m_domains[p_var2].get_values() and not self.m_bcn.m_domains[p_var1].contains(Domain._UNKNOWN_VALUE)
+            return (self.m_bcn.m_domains[p_var1].get_values() == self.m_bcn.m_domains[p_var2].get_values()
+                and not self.m_bcn.m_domains[p_var1].contains(Domain._UNKNOWN_VALUE))
         return False
 
     def objvars_unifiable(self, p_var1:str, p_var2:str) -> bool:
@@ -120,20 +124,22 @@ class ConstraintNetwork():
         Returns:
             True if the specified object variables are unifiable, False otherwise
         """
-        if p_var1 == p_var2:
+        # check for identity - a variable is obviously unified with itself
+        if p_var1 == p_var2: 
             return True
-
+        # check for separation constraints
         if ((p_var1 in self.m_bcn.m_separations and p_var2 in self.m_bcn.m_separations[p_var1])
             or (p_var2 in self.m_bcn.m_separations and p_var1 in self.m_bcn.m_separations[p_var2])
         ):
             return False
-
+        # check for domain intersection
         if not self.m_bcn.m_domains[p_var1].intersects(self.m_bcn.m_domains[p_var2]):
             return False
-
+        # check for presence of "unknown value" (which is unifiable with nothing, even itself) in both domains
         if self.m_bcn.m_domains[p_var1].contains(Domain._UNKNOWN_VALUE) or self.m_bcn.m_domains[p_var2].contains(Domain._UNKNOWN_VALUE):
             return False
-
+        # check for separation constraints between variables unified with the specified / input variables
+        # NOTE: rather inefficient
         if self.m_bcn.m_unifications.contains([p_var1]) and self.m_bcn.m_unifications.contains([p_var2]):
             cc1 = self.m_bcn.m_unifications.connected_component(p_var1)
             cc2 = self.m_bcn.m_unifications.connected_component(p_var2)
@@ -177,7 +183,6 @@ class ConstraintNetwork():
     #    """
     #    return self.m_bcn.m_domains[p_var]
 
-    # "mixed constraints" (involving both temporal and object variables) are dealt with using both constraints networks
     def propagate_constraints(
         self,
         p_input_constraints:typing.List[typing.Tuple[ConstraintType,typing.Any]],
@@ -211,15 +216,18 @@ class ConstraintNetwork():
             If it is True, then even if propagation is successful, the changes will be reverted and there won't be any side effects.
             Currently these backups and restorations are managed through deepcopies... (inefficient and not elegant). 
         """
+        # initialise constraints worklists
         binding_constraints_worklist = []
         temporal_constraints_worklist = []
         
+        # temporary binary constraints dictionary, used to 
         _temp_bin_constrs:typing.Dict[typing.Tuple[str,str],typing.Set[ConstraintType]] = {}
         for (cstr_type, cstr) in p_input_constraints:
             if cstr_type == ConstraintType.TEMPORAL:
                 temporal_constraints_worklist.append(cstr)
             else:
                 if cstr_type == ConstraintType.UNIFICATION or cstr_type == ConstraintType.SEPARATION:
+                    # for unification / separation constraints, cache them and directly add both symmetric forms to the worklists
                     if not cstr in _temp_bin_constrs or not cstr_type in _temp_bin_constrs[cstr]:
                         _temp_bin_constrs[cstr] = set([cstr_type])
                         binding_constraints_worklist.append((cstr_type,(cstr[0],cstr[1])))
@@ -229,27 +237,32 @@ class ConstraintNetwork():
                 else:
                     binding_constraints_worklist.append((cstr_type,cstr))
         
+        # back up networks
         self.m_bcn.backup()
         self.m_stn.backup()
 
+        # propagate constraints to both (interacting) constraint networks (hence stn and bcn specified as arguments)
         if (self.m_bcn._propagate(binding_constraints_worklist,self.m_stn)
             and self.m_stn._propagate(temporal_constraints_worklist,self.m_bcn)
         ):
+            # if only checking / verifying possibly consistent propagation is required, then restore backed up networks
+            # (no need to apply new propagated constraints)
             if p_just_checking_no_propagation:
                 self.m_bcn.restore()
                 self.m_stn.restore()
             return True
 
+        # if propagation cannot be consistent, then don't apply in any case - restore backed up networks
         self.m_bcn.restore()
         self.m_stn.restore()
         return False
 
 ############################################
 
-# 22 / 08 / 2022
+# NOTE: Binding Constraint Network, 22 / 08 / 2022
 
 # The binding constraint network is implemented here.
-# Additional info is available in the notes for constraints.py,
+# Additional info is available in the notes above.
 # notably on the linkage in constraint propagation between the STN and BCN.
 
 # Currently, (partial) propagation is achieved through full lookahead arc consistency (aka maintaining arc consistency) based on AC-3.
@@ -274,9 +287,9 @@ class BCN():
         self.m_unifications: UnionFind2 = UnionFind2()
         self.m_disj_unifications: typing.Dict[str,typing.Set[str]] = {}
         self.m_separations: typing.Dict[str,typing.Set[str]] = {}
-        #self.m_orderings: typing.Dict[str,typing.Set[str]] = {}
+        # self.m_orderings: typing.Dict[str,typing.Set[str]] = {}
         self.m_general_relations: typing.Dict[str,typing.Tuple[typing.Tuple[str,...], typing.List[typing.Tuple[object,...]]]] = {}
-        # general relations inefficient but good enough for now... B+Tree ???
+        # NOTE: general relations inefficient but good enough for now... B+Tree ???
         # linear arithmetic constraints ? for example for durations...
         # ANSWER : through general relation constraints (corresponding to formula) and fape-type linking between binding constraint net and temporal net
         self.m_old_domains: typing.Dict[str, Domain] = {}
@@ -338,8 +351,7 @@ class BCN():
         #self.m_old_orderings = {}
         self.m_old_general_relations = {}
 
-    # full lookahead (maintaining) arc consistency, based on ac3
-    # quite an inefficient implementation because of the copying etc...
+    # NOTE: quite an inefficient implementation because of the copying etc...
     # ideally - the domain objects should only contain pointers to values, not the values themselves
     # that way, we can get away with feeding this function with shallow copies - or maybe even find a better way than that - instead of deep copies
     # the implementation also has some temporary/caching shallow copies of lists/sets which ideally would have to be dealt with 
@@ -364,7 +376,8 @@ class BCN():
             Modifies domains object and collection storing constraints during propagation.
         """
         #file:///home/nrealus/T%C3%A9l%C3%A9chargements/781f16-3.pdf
-        worklist = p_input_constraints#list(p_input_constrs)
+        # initial worklist (already shallow-copied in the main constraint network before calling this method)
+        worklist = p_input_constraints
         while (len(worklist) > 0):
 
             (constr_type, constr) = worklist.pop(0)
@@ -374,6 +387,10 @@ class BCN():
             val = None
             var2 = None
             var2list = []
+
+            # "revise" operation for all (except temporal) constraint types
+            # restrict domains of variables from the popped constraint
+            # if at any point a variable has an empty domain, then the network is not arc-consistent, and therefore inconsistent
 
             if (constr_type == ConstraintType.DOMAIN_VAL_LEQ or constr_type == ConstraintType.DOMAIN_VAL_LE
                 or constr_type == ConstraintType.DOMAIN_VAL_GEQ or constr_type == ConstraintType.DOMAIN_VAL_GE):
@@ -493,6 +510,9 @@ class BCN():
                     if self.m_domains[var].is_empty():
                         return False
 
+            # for all variables whose domains were updated during propagation of the popped constraints
+            # push the constraints they're involved in to the worklist
+
             while len(change_info) > 0:
 
                 (var1, arg) = change_info.pop(0)
@@ -552,10 +572,10 @@ class BCN():
 
 ############################################
 
-# 22 / 08 / 2022
+# NOTE: Simple Temporal Network, 22 / 08 / 2022
 
 # The simple temporal network is implemented here.
-# Additional info is available in the notes for constraints.py,
+# Additional info is available in the notes above,
 # notably on the linkage in constraint propagation between the STN and BCN.
 
 # Currently, propagation is done in a non-incremental way using a direct computation of
@@ -682,25 +702,28 @@ class STN():
         Side effects:
             Modifies collections during propagation.
         """
+        # initial worklist (already shallow-copied in the main constraint network before calling this method)
         worklist = p_input_constraints#list(p_input_constraints)
         for (t1, t2, bound, strict) in worklist:
 
             if type(bound) is str:
                 var = bound
-            else:
+            else: # if the bound is not specified as a variable name (managed in the bcn), but as a value,
+                # if the specified bound not strict, is given as the value 0, and the variables are identical, the constraint is trivial
+                # such checks can happen a lot in chronicle management, which is why it makes sense to deal with it early and avoid further unnecessary checks
                 if bound == 0 and not strict and t1 == t2:
                     break
-                var = "_hcov_{0}".format(new_int_id()) # hcov = helper constant object variable
+                # create a helper constant variable (singleton domain) in the bcn and use it instead
+                # "hcov" stands for "helper constant object variable"
+                var = "_hcov_{0}".format(new_int_id())
                 p_bcn.m_domains[var] = Domain(DomainType.DISCRETE, [bound])
 
-            #if t1 == t2 and (p_bcn.m_domains[var].max_value() < 0 or (strict and p_bcn.m_domains[var].max_value() == 0)):
-            #    return False
-            #elif t1 == t2:
-            #    continue
-            #else:
             self.m_controllability.setdefault(t1,True)# will deal with controllability later
             self.m_controllability.setdefault(t2,True)# will deal with controllability later
 
+            # register the constraint, and propagate a new one in the bcn
+            # restricting the domain of the "bound" variable of the symmetric constraint in a "least-constraining fashion"
+            # e.g. if the considered constraint is "t1 - t2 <= u", and we also have "l <= t1 - t2", then we restrict l to be >= -max(u).
             self.m_constraints.setdefault((t1,t2),set()).add((var,strict))
             self.m_involved_objvars.setdefault(var,set()).add((t1,t2))
             if (t2,t1) in self.m_constraints: # (t2,t1), not (t1,t2) !!!!!
@@ -712,16 +735,19 @@ class STN():
                     if (not p_bcn._propagate([(cstr_type,(other_var,-p_bcn.m_domains[var].max_value()))], self)):
                         return False
 
-        res = self._apsp(p_bcn)
+        # compute the all pairs shortest paths graph (using floyd warshall)
+        # if there is a < 0 value on the diagonal, then the stn is inconsistent
+        # NOTE: this is obviously inefficient, although easy. Planken incremental full path consistency algorithm, or johnson's algorithm
+        # could be nice
+        res = self._apsp_fw(p_bcn)
         for v in self.m_controllability:
             if res[(v,v)] < 0:
                 return False
 
         self.m_minimal_network = res
         return True
-        #return (variables, constraints, res)
 
-    def _apsp(self, p_bcn:BCN): # floyd warshall apprach
+    def _apsp_fw(self, p_bcn:BCN):
         
         res = dict(self.m_minimal_network)
         for q in self.m_controllability:
@@ -733,7 +759,8 @@ class STN():
         return res
 
     def _eval(self, p_cstr:typing.Tuple[str,str], p_bcn:BCN):
-
+        # NOTE: need documentation, although not yet sure myself of why exactly i'm using "max" here.
+        # for now in most cases we have singleton domains, so it's trivial, but later a this may have to be refined / investigated further 
         if p_cstr in self.m_constraints:
             min = 0
             res = math.inf

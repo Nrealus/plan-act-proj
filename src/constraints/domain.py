@@ -8,7 +8,7 @@ from enum import Enum
 
 ############################################
 
-# 22 / 08 / 2022
+# NOTE: Domain, 22 / 08 / 2022
 
 # This file contains the implementation for the general Domain type.
 # Its purpose is to wrap the value domain of "object variables" appearing in constraints.
@@ -34,7 +34,7 @@ class DomainType(Enum):
 
 class Domain():
 
-    _UNKNOWN_VALUE = "UNKNOWN_VALUE"
+    _UNKNOWN_VALUE = "UNKNOWN_VALUE" # special value, which is not unifiable with any other, even itself
 
     def __init__(
         self,

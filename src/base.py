@@ -10,6 +10,27 @@ from src.constraints.constraints import ConstraintNetwork, ConstraintType
 
 ############################################
 
+# NOTE: Base, 29 / 08 / 2022
+
+# Lots of basic building blocks / primitives are implemented / defined here.
+
+# Specifically Assertions, Actions and Methods (which are practically the same in terms of structure).
+
+# "Temporal assertions" (Assertions for short) are the main building block of the approach to temporal planning used in the project.
+# They can be described as temporally qualified fluents on state variables.
+# There are usually two types of Assertions (Persistence, Transition) but sometimes a third type is also considered (Assignment)
+# Persistence assertions express the fact that a state variable is equal to a certain value for the whole duration of a temporal interval
+# Transition assertions express the fact that a state variable has a certain value at the beginning of a temporal interval,
+# and then at some point acquires (or transitions to) another value, which it holds until the interval's end.
+# Assertions are used to describe temporal knowledge.
+# They are composed of a head (state variable name and parameter names, as well as parameter values (i.e. variables)) and a temporal interval, i.e. a start and end time point variable
+
+# Actions
+
+# Methods
+
+############################################
+
 class AssertionType(Enum):
     PERSISTENCE=0
     TRANSITION=1 # or change
