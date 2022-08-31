@@ -33,6 +33,17 @@ class Chronicle():
 
         self.m_assertions: typing.Dict[Assertion, bool] = {} # bool value : supported or not
         
+        self.m_associated_actions: typing.Dict[Assertion, Action] = {}   # == "committed expansion" ???
+        # in the case of assertions that are spawned from an action, store that action
+        # when this action will be triggered during acting (for example in a bt) during its execution, it will have to make sure 
+        # that the current state is indeed conformant to those assertions
+        # in other words, this action (in BT, for example) will make sure to execute the commands to follow these assertions
+        # and monitor the correctness of their execution (- basically monitoring)
+        # in the case of assertions that do not spawn from actions directly (like persistence assertions introduced as direct supporters)
+        # create a simple action which only corresponds to monitoring the state of the assertion (i.e. only monitoring,
+        # not actuating, as that would be done by "real" actions (like in the first case) having transitions/assignment assertions)
+        # the concrete instantiation of such actions (for the second case) could even be defered to the last moment before dispatching...?
+
         self.m_supporter_origin_commitment: typing.Dict[Assertion, Method] = {} # commitment on the origin of the supporter to choose for an unsupported assertion (<-> "supporting task commitments" FAPE 2020)
         
         self.m_causal_network: typing.Dict[Assertion, Assertion] = {} # value : supporter assertion. if a priori supported : None
@@ -47,6 +58,7 @@ class Chronicle():
         
         self.m_goal_nodes = {}
         self.m_assertions = {}
+        self.m_associated_actions = {}
         self.m_supporter_origin_commitment = {}
         self.m_causal_network = {}
         #self.m_constraints = []        

@@ -122,16 +122,20 @@ class SearchNode():
 
                 elif ri.m_type == ResolverType.EXISTING_DIRECT_PERSISTENCE_SUPPORT_NOW or ri.m_type == ResolverType.NEW_DIRECT_PERSISTENCE_SUPPORT_NOW:
 
-                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
-
                     self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.EXPANDED
-                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_expansions.append(ri)
+                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_expansions.append("see note")
+                    # NOTE: in reality should be an action that will have to monitor the whether the assertion is indeed respected during execution
+                    # it is this action that will be triggered when the goal/assertion will be dispatched
+                    #self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_expansions.append(ri.m_direct_support_assertion)
 
                     transformed_chronicle.m_assertions[self.m_flaw_node_info.m_assertion1] = True
                     transformed_chronicle.m_causal_network[self.m_flaw_node_info.m_assertion1] = ri.m_direct_support_assertion
 
                     transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.COMMITTED
-                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = ri.m_direct_support_assertion
+                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_expansions = ["see note"]
+                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = "see note"
+                    #transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_expansions = [ri.m_direct_support_assertion]
+                    #transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = ri.m_direct_support_assertion
                     
                     # it is indeed None in the case of direct support from an existing persistence assertion, where only constraints are actually added
                     # (this is adressed right above)
@@ -143,14 +147,14 @@ class SearchNode():
 
                         transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion] = GoalNode()
                         transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_mode = GoalMode.COMMITTED
-                        transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_committed_expansion = ri.m_direct_support_assertion_supporter
+                        transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_committed_expansion = "see note"
+                        #transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_committed_expansion = ri.m_direct_support_assertion_supporter
                         transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_parent = transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1]
 
-                    transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts([ri.m_direct_support_assertion]))
+                        transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
+                        transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts([ri.m_direct_support_assertion]))
 
                 elif ri.m_type == ResolverType.METHOD_INSERTION_NOW or ri.m_type == ResolverType.ACTION_INSERTION_NOW:
-
-                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
 
                     transformed_chronicle.m_supporter_origin_commitment[self.m_flaw_node_info.m_assertion1] = ri.m_act_or_meth_instance
                     # transformed_chronicle.m_assertions[self.m_flaw_node_info.m_assertion1] = True
@@ -164,12 +168,17 @@ class SearchNode():
                     #transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.COMMITTED
                     #transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = ri.m_act_or_meth_instance                    
 
+                    if type(ri.m_act_or_meth_instance) == Action:
+                        self.m_chronicle.m_plan.append(ri.m_act_or_meth_instance)
+
                     self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.EXPANDED
-                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_expansions.append(ri)
+                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_expansions.append("see note")
+                    #self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_expansions.append(ri.m_act_or_meth_instance)
 
                     for i_asrt in ri.m_act_or_meth_instance.m_assertions:
                         
                         transformed_chronicle.m_assertions[i_asrt] = False
+                        #transformed_chronicle.m_associated_actions[i_asrt] = ri.m_act_or_meth_instance
 
                         transformed_chronicle.m_goal_nodes[i_asrt] = GoalNode()
                         transformed_chronicle.m_goal_nodes[i_asrt].m_mode = GoalMode.SELECTED
@@ -181,9 +190,13 @@ class SearchNode():
                         transformed_chronicle.m_causal_network[i_asrt_supportee] = i_asrt_supporter
 
                         transformed_chronicle.m_goal_nodes[i_asrt_supportee].m_mode = GoalMode.COMMITTED
-                        transformed_chronicle.m_goal_nodes[i_asrt_supportee].m_committed_expansion = ri.m_act_or_meth_instance
+                        transformed_chronicle.m_goal_nodes[i_asrt_supportee].m_expansions = ["see note"]
+                        transformed_chronicle.m_goal_nodes[i_asrt_supportee].m_committed_expansion = "see note"
+                        #transformed_chronicle.m_goal_nodes[i_asrt_supportee].m_expansions = [ri.m_act_or_meth_instance]
+                        #transformed_chronicle.m_goal_nodes[i_asrt_supportee].m_committed_expansion = ri.m_act_or_meth_instance
 
-                    transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts([ri.m_direct_support_assertion]))
+                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
+                    transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts(ri.m_act_or_meth_instance.m_assertions))
 
                 # decision could be made using search control on whether to follow with a flaw or charlie child (or both)
                 # until then / by default - both 
@@ -227,9 +240,13 @@ class SearchNode():
                             (ConstraintType.TEMPORAL, ("ref_tp", ctr_tp, self.m_time, False)),
                         ])
 
+                        for asrt in []: # assertions_starting_at_ctr_tp (need to check all time points "unified" with ctr_tp?)
+                            if transformed_chronicle.m_goal_nodes[asrt].m_mode == GoalMode.COMMITTED:
+                                transformed_chronicle.m_goal_nodes[asrt].m_mode = GoalMode.DISPATCHED
+                                #NOTE: action dispatching ?..
+                                # "preparation for execution -> execution_state state variable with inactive/running/completed values, then outcomes(successful,failed,unknown(?))"
                         # goal mode : dispatch (for start) for assertions whose starting time point is selected here
-                        # also don't forget to constrain the duration of assertions whose end time point is selected here
-
+ 
                     self.m_children.append(SearchNode(p_node_type=SearchNodeType.EVE,
                         p_parent=self,
                         p_time=self.m_time,
