@@ -31,19 +31,19 @@ def reset():
     constraint_network.m_stn.clear()
     chronicle.clear()
 
-def print_obj_details1():
-
-    print("details : ")
-    print("   var1 domain : {0}".format(constraint_network.objvar_domain("var1").get_values()))
-    print("   var2 domain : {0}".format(constraint_network.objvar_domain("var2").get_values()))
-    print("   var3 domain : {0}".format(constraint_network.objvar_domain("var3").get_values()))
-    print("   var4 domain : {0}".format(constraint_network.objvar_domain("var4").get_values()))
-    print("   var5 domain : {0}".format(constraint_network.objvar_domain("var5").get_values()))
-    print("   unionfind connected component - var1 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var1")))
-    print("   unionfind connected component - var2 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var2")))
-    print("   unionfind connected component - var3 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var3")))
-    print("   unionfind connected component - var4 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var4")))
-    print("   unionfind connected component - var5 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var5")))
+#def print_obj_details1():
+#
+#    print("details : ")
+#    print("   var1 domain : {0}".format(constraint_network.objvar_domain("var1").get_values()))
+#    print("   var2 domain : {0}".format(constraint_network.objvar_domain("var2").get_values()))
+#    print("   var3 domain : {0}".format(constraint_network.objvar_domain("var3").get_values()))
+#    print("   var4 domain : {0}".format(constraint_network.objvar_domain("var4").get_values()))
+#    print("   var5 domain : {0}".format(constraint_network.objvar_domain("var5").get_values()))
+#    print("   unionfind connected component - var1 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var1")))
+#    print("   unionfind connected component - var2 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var2")))
+#    print("   unionfind connected component - var3 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var3")))
+#    print("   unionfind connected component - var4 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var4")))
+#    print("   unionfind connected component - var5 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var5")))
 
 def print_obj_details2(u:str, v:str):
 
@@ -87,34 +87,8 @@ def init_situation1():
 def test1(verbose=False):
 
     init_situation1()
-
-    asrt1 = Assertion(
-        m_type=AssertionType.PERSISTENCE,
-        m_sv_name="sv_location",
-        m_sv_params_names=("param_robot"),
-        m_sv_params_vars=("objvar_robots_grp1"),
-        m_time_start="t0",
-        m_time_end="t1",
-        m_sv_val="objvar_location_A",
-        m_sv_val_sec=None,
-    )
-
-    asrt2 = Assertion(
-        m_type=AssertionType.PERSISTENCE,
-        m_sv_name="sv_location",
-        m_sv_params_names=("param_robot"),
-        m_sv_params_vars=("objvar_robots_grp1"),
-        m_time_start="t0",
-        m_time_end="t1",
-        m_sv_val="objvar_location_B",
-        m_sv_val_sec=None,
-    )
-
-    if verbose:
-        for v in constraint_network.m_bcn.m_domains:
-            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
-
-    constrs = [
+    constrs = []
+    constrs.extend([
         (ConstraintType.TEMPORAL,("t0", "t1", "c_l01", False)),
         (ConstraintType.TEMPORAL,("t1", "t0", "c_u01", False)),
         (ConstraintType.TEMPORAL,("t0", "t3", "c_l03", False)),
@@ -123,57 +97,79 @@ def test1(verbose=False):
         (ConstraintType.TEMPORAL,("t2", "t1", "c_u12", False)),
         (ConstraintType.TEMPORAL,("t2", "t3", "c_l23", False)),
         (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
-    ]
+    ])
 
-    constraint_network.propagate_constraints(constrs)
+    asrt1 = Assertion(
+        p_type=AssertionType.PERSISTENCE,
+        p_sv_name="sv_location",
+        p_sv_params_names=("param_robot",),
+        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_A",
+        p_sv_val_sec=None,
+    )
+    constrs.extend([
+#        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
+#        (ConstraintType.TEMPORAL,("t0", asrt1.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_start, "t0", 0, False)),
+        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_end, "t1", 0, False)),
+        (ConstraintType.TEMPORAL,("t1", asrt1.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_start, asrt1.time_end, 0, asrt1.type == AssertionType.TRANSITION)),
+    ])
+
+    asrt2 = Assertion(
+        p_type=AssertionType.PERSISTENCE,
+        p_sv_name="sv_location",
+        p_sv_params_names=("param_robot",),
+        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_B",
+        p_sv_val_sec=None,
+    )
+    constrs.extend([
+#        (ConstraintType.TEMPORAL,("t0", asrt2.time_start, 0, False)),
+#        (ConstraintType.TEMPORAL,("t0", asrt2.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_start, "t0", 0, False)),
+        (ConstraintType.TEMPORAL,("t0", asrt2.time_start, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_end, "t1", 0, False)),
+        (ConstraintType.TEMPORAL,("t1", asrt2.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_start, asrt2.time_end, 0, asrt2.type == AssertionType.TRANSITION)),
+    ])
+
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+
+    ok = constraint_network.propagate_constraints(constrs)
     chronicle.m_constraint_network = constraint_network
 
-    chronicle.m_assertions[asrt1] = False
-    chronicle.m_goal_nodes.setdefault(asrt1,GoalMode()).m_mode = GoalMode.COMMITTED
-    ts = time.perf_counter()
-    res = chronicle.get_induced_conflicts([asrt2])
-    es = time.perf_counter()
-    print("---")
     if verbose:
-        print("conflicts : {0}".format(res))
-        print("time : {0}".format(es-ts))
-    if res == set([(asrt1, asrt2)]):
-        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
-    else:
+        print(chronicle.m_constraint_network.m_stn.m_minimal_network)
+
+    if not ok:
+        print("---")
+        print("---")
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
-    print("---")
+        print("---")
+    else:            
+        ts = time.perf_counter()
+        chronicle.m_assertions[asrt1] = False
+        res = chronicle.get_induced_conflicts([asrt2])
+        es = time.perf_counter()
+        print("---")
+        if verbose:
+            print("conflicts : {0}".format(res))
+            print("time : {0}".format(es-ts))
+        if res == set([(asrt1, asrt2)]):
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
 
 def test2(verbose=False):
 
     init_situation1()
-
-    asrt1 = Assertion(
-        m_type=AssertionType.PERSISTENCE,
-        m_sv_name="sv_location",
-        m_sv_params_names=("param_robot"),
-        m_sv_params_vars=("objvar_robots_grp1"),
-        m_time_start="t0",
-        m_time_end="t1",
-        m_sv_val="objvar_location_A",
-        m_sv_val_sec=None,
-    )
-
-    asrt2 = Assertion(
-        m_type=AssertionType.PERSISTENCE,
-        m_sv_name="sv_location",
-        m_sv_params_names=("param_robot"),
-        m_sv_params_vars=("objvar_robots_grp1"),
-        m_time_start="t2",
-        m_time_end="t3",
-        m_sv_val="objvar_location_B",
-        m_sv_val_sec=None,
-    )
-
-    if verbose:
-        for v in constraint_network.m_bcn.m_domains:
-            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
-
-    constrs = [
+    constrs = []
+    constrs.extend([
         (ConstraintType.TEMPORAL,("t0", "t1", "c_l01", False)),
         (ConstraintType.TEMPORAL,("t1", "t0", "c_u01", False)),
         (ConstraintType.TEMPORAL,("t0", "t3", "c_l03", False)),
@@ -182,58 +178,78 @@ def test2(verbose=False):
         (ConstraintType.TEMPORAL,("t2", "t1", "c_u12", False)),
         (ConstraintType.TEMPORAL,("t2", "t3", "c_l23", False)),
         (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
-    ]
-    constraint_network.propagate_constraints(constrs)
-    chronicle.m_constraint_network = constraint_network
-    #print(constraint_network.propagate_constraints_partial([(ConstraintType.TEMPORAL,("t3", "t0", 0, False))],True))
-    #print(constraint_network.propagate_constraints_partial([(ConstraintType.TEMPORAL,("t2", "t1", 0, False))],True))
+    ])
 
-    chronicle.m_assertions[asrt1] = False        
-    chronicle.m_goal_nodes.setdefault(asrt1,GoalMode()).m_mode = GoalMode.COMMITTED
-    ts = time.perf_counter()
-    res = chronicle.get_induced_conflicts([asrt2])
-    es = time.perf_counter()
-    print("---")
+    asrt1 = Assertion(
+        p_type=AssertionType.PERSISTENCE,
+        p_sv_name="sv_location",
+        p_sv_params_names=("param_robot",),
+        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_A",
+        p_sv_val_sec=None,
+    )
+    constrs.extend([
+#        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
+#        (ConstraintType.TEMPORAL,("t0", asrt1.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_start, "t0", 0, False)),
+        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_end, "t1", 0, False)),
+        (ConstraintType.TEMPORAL,("t1", asrt1.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_start, asrt1.time_end, 0, asrt1.type == AssertionType.TRANSITION)),
+    ])
+
+    asrt2 = Assertion(
+        p_type=AssertionType.PERSISTENCE,
+        p_sv_name="sv_location",
+        p_sv_params_names=("param_robot",),
+        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_B",
+        p_sv_val_sec=None,
+    )
+    constrs.extend([
+#        (ConstraintType.TEMPORAL,("t0", asrt2.time_start, 0, False)),
+#        (ConstraintType.TEMPORAL,("t0", asrt2.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_start, "t2", 0, False)),
+        (ConstraintType.TEMPORAL,("t2", asrt2.time_start, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_end, "t3", 0, False)),
+        (ConstraintType.TEMPORAL,("t3", asrt2.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_start, asrt2.time_end, 0, asrt2.type == AssertionType.TRANSITION)),
+    ])
+
     if verbose:
-        print("conflicts : {0}".format(res))
-        print("time : {0}".format(es-ts))
-    if res == set([(asrt1, asrt2)]):
-        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
-    else:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+
+    ok = constraint_network.propagate_constraints(constrs)
+    chronicle.m_constraint_network = constraint_network
+
+    if verbose:
+        print(chronicle.m_constraint_network.m_stn.m_minimal_network)
+
+    if not ok:
+        print("---")
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
-    print("---")
+        print("---")
+    else:
+        ts = time.perf_counter()
+        chronicle.m_assertions[asrt1] = False
+        res = chronicle.get_induced_conflicts([asrt2])
+        es = time.perf_counter()
+        print("---")
+        if verbose:
+            print("conflicts : {0}".format(res))
+            print("time : {0}".format(es-ts))
+        if res == set([(asrt1, asrt2)]):
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
 
 def test3(verbose=False):
 
     init_situation1()
-
-    asrt1 = Assertion(
-        m_type=AssertionType.PERSISTENCE,
-        m_sv_name="sv_location",
-        m_sv_params_names=("param_robot"),
-        m_sv_params_vars=("objvar_robots_grp1"),
-        m_time_start="t0",
-        m_time_end="t1",
-        m_sv_val="objvar_location_A",
-        m_sv_val_sec=None,
-    )
-
-    asrt2 = Assertion(
-        m_type=AssertionType.PERSISTENCE,
-        m_sv_name="sv_location",
-        m_sv_params_names=("param_robot"),
-        m_sv_params_vars=("objvar_robots_grp1"),
-        m_time_start="t2",
-        m_time_end="t3",
-        m_sv_val="objvar_location_A",
-        m_sv_val_sec=None,
-    )
-
-    if verbose:
-        for v in constraint_network.m_bcn.m_domains:
-            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
-
-    constrs = [
+    constrs = []
+    constrs.extend([
         (ConstraintType.TEMPORAL,("t0", "t1", "c_l01", False)),
         (ConstraintType.TEMPORAL,("t1", "t0", "c_u01", False)),
         (ConstraintType.TEMPORAL,("t0", "t3", "c_l03", False)),
@@ -242,56 +258,78 @@ def test3(verbose=False):
         (ConstraintType.TEMPORAL,("t2", "t1", "c_u12", False)),
         (ConstraintType.TEMPORAL,("t2", "t3", "c_l23", False)),
         (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
-    ]
-    constraint_network.propagate_constraints(constrs)
+    ])
+
+    asrt1 = Assertion(
+        p_type=AssertionType.PERSISTENCE,
+        p_sv_name="sv_location",
+        p_sv_params_names=("param_robot",),
+        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_A",
+        p_sv_val_sec=None,
+    )
+    constrs.extend([
+#        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
+#        (ConstraintType.TEMPORAL,("t0", asrt1.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_start, "t0", 0, False)),
+        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_end, "t1", 0, False)),
+        (ConstraintType.TEMPORAL,("t1", asrt1.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_start, asrt1.time_end, 0, asrt1.type == AssertionType.TRANSITION)),
+    ])
+
+    asrt2 = Assertion(
+        p_type=AssertionType.PERSISTENCE,
+        p_sv_name="sv_location",
+        p_sv_params_names=("param_robot",),
+        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_A",
+        p_sv_val_sec=None,
+    )
+    constrs.extend([
+#        (ConstraintType.TEMPORAL,("t0", asrt2.time_start, 0, False)),
+#        (ConstraintType.TEMPORAL,("t0", asrt2.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_start, "t2", 0, False)),
+        (ConstraintType.TEMPORAL,("t2", asrt2.time_start, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_end, "t3", 0, False)),
+        (ConstraintType.TEMPORAL,("t3", asrt2.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_start, asrt2.time_end, 0, asrt2.type == AssertionType.TRANSITION)),
+    ])
+
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+
+    ok = constraint_network.propagate_constraints(constrs)
     chronicle.m_constraint_network = constraint_network
 
-    chronicle.m_assertions[asrt1] = False        
-    chronicle.m_goal_nodes.setdefault(asrt1,GoalMode()).m_mode = GoalMode.COMMITTED
-    ts = time.perf_counter()
-    res = chronicle.get_induced_conflicts([asrt2])
-    es = time.perf_counter()
-    print("---")
     if verbose:
-        print("conflicts : {0}".format(res))
-        print("time : {0}".format(es-ts))
-    if res == set():
-        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
-    else:
+        print(chronicle.m_constraint_network.m_stn.m_minimal_network)
+
+    if not ok:
+        print("---")
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
-    print("---")
+        print("---")
+    else:            
+        ts = time.perf_counter()
+        chronicle.m_assertions[asrt1] = False
+        res = chronicle.get_induced_conflicts([asrt2])
+        es = time.perf_counter()
+        print("---")
+        if verbose:
+            print("conflicts : {0}".format(res))
+            print("time : {0}".format(es-ts))
+        if res == set():
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
 
 def test4(verbose=False):
 
     init_situation1()
-
-    asrt1 = Assertion(
-        m_type=AssertionType.PERSISTENCE,
-        m_sv_name="sv_location",
-        m_sv_params_names=("param_robot"),
-        m_sv_params_vars=("objvar_robots_grp1"),
-        m_time_start="t0",
-        m_time_end="t1",
-        m_sv_val="objvar_location_A",
-        m_sv_val_sec=None,
-    )
-
-    asrt2 = Assertion(
-        m_type=AssertionType.PERSISTENCE,
-        m_sv_name="sv_location",
-        m_sv_params_names=("param_robot"),
-        m_sv_params_vars=("objvar_robots_grp1"),
-        m_time_start="t2",
-        m_time_end="t3",
-        m_sv_val="objvar_location_C",
-        m_sv_val_sec=None,
-    )
-
-    if verbose:
-        for v in constraint_network.m_bcn.m_domains:
-            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
-
-    constrs = [
+    constrs = []
+    constrs.extend([
         (ConstraintType.TEMPORAL,("t0", "t1", "c_l01", False)),
         (ConstraintType.TEMPORAL,("t1", "t0", "c_u01", False)),
         (ConstraintType.TEMPORAL,("t0", "t3", "c_l03", False)),
@@ -300,56 +338,78 @@ def test4(verbose=False):
         (ConstraintType.TEMPORAL,("t2", "t1", "c_u12", False)),
         (ConstraintType.TEMPORAL,("t2", "t3", "c_l23", False)),
         (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
-    ]
-    constraint_network.propagate_constraints(constrs)
+    ])
+    
+    asrt1 = Assertion(
+        p_type=AssertionType.PERSISTENCE,
+        p_sv_name="sv_location",
+        p_sv_params_names=("param_robot",),
+        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_A",
+        p_sv_val_sec=None,
+    )
+    constrs.extend([
+#        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
+#        (ConstraintType.TEMPORAL,("t0", asrt1.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_start, "t0", 0, False)),
+        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_end, "t1", 0, False)),
+        (ConstraintType.TEMPORAL,("t1", asrt1.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_start, asrt1.time_end, 0, asrt1.type == AssertionType.TRANSITION)),
+    ])
+
+    asrt2 = Assertion(
+        p_type=AssertionType.PERSISTENCE,
+        p_sv_name="sv_location",
+        p_sv_params_names=("param_robot",),
+        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_C",
+        p_sv_val_sec=None,
+    )
+    constrs.extend([
+#        (ConstraintType.TEMPORAL,("t0", asrt2.time_start, 0, False)),
+#        (ConstraintType.TEMPORAL,("t0", asrt2.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_start, "t2", 0, False)),
+        (ConstraintType.TEMPORAL,("t2", asrt2.time_start, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_end, "t3", 0, False)),
+        (ConstraintType.TEMPORAL,("t3", asrt2.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_start, asrt2.time_end, 0, asrt2.type == AssertionType.TRANSITION)),
+    ])
+
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+
+    ok = constraint_network.propagate_constraints(constrs)
     chronicle.m_constraint_network = constraint_network
 
-    chronicle.m_assertions[asrt1] = False        
-    chronicle.m_goal_nodes.setdefault(asrt1,GoalMode()).m_mode = GoalMode.COMMITTED
-    ts = time.perf_counter()
-    res = chronicle.get_induced_conflicts([asrt2])
-    es = time.perf_counter()
-    print("---")
     if verbose:
-        print("conflicts : {0}".format(res))
-        print("time : {0}".format(es-ts))
-    if res == set([(asrt1, asrt2)]):
-        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
-    else:
+        print(chronicle.m_constraint_network.m_stn.m_minimal_network)
+
+    if not ok:
+        print("---")
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
-    print("---")
+        print("---")
+    else:
+        ts = time.perf_counter()
+        chronicle.m_assertions[asrt1] = False        
+        res = chronicle.get_induced_conflicts([asrt2])
+        es = time.perf_counter()
+        print("---")
+        if verbose:
+            print("conflicts : {0}".format(res))
+            print("time : {0}".format(es-ts))
+        if res == set([(asrt1, asrt2)]):
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
 
 def test5(verbose=False):
 
     init_situation1()
-
-    asrt1 = Assertion(
-        m_type=AssertionType.PERSISTENCE,
-        m_sv_name="sv_location",
-        m_sv_params_names=("param_robot"),
-        m_sv_params_vars=("objvar_robots_grp1"),
-        m_time_start="t0",
-        m_time_end="t1",
-        m_sv_val="objvar_location_A",
-        m_sv_val_sec=None,
-    )
-
-    asrt2 = Assertion(
-        m_type=AssertionType.TRANSITION,
-        m_sv_name="sv_location",
-        m_sv_params_names=("param_robot"),
-        m_sv_params_vars=("objvar_robots_grp1"),
-        m_time_start="t1",
-        m_time_end="t2",
-        m_sv_val="objvar_location_A",
-        m_sv_val_sec="objvar_location_C",
-    )
-
-    if verbose:
-        for v in constraint_network.m_bcn.m_domains:
-            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
-
-    constrs = [
+    constrs = []
+    constrs.extend([
         (ConstraintType.TEMPORAL,("t0", "t1", "c_l01", False)),
         (ConstraintType.TEMPORAL,("t1", "t0", "c_u01", False)),
         (ConstraintType.TEMPORAL,("t0", "t3", "c_l03", False)),
@@ -358,56 +418,78 @@ def test5(verbose=False):
         (ConstraintType.TEMPORAL,("t2", "t1", "c_u12", False)),
         (ConstraintType.TEMPORAL,("t2", "t3", "c_l23", False)),
         (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
-    ]
-    constraint_network.propagate_constraints(constrs)
+    ])
+    
+    asrt1 = Assertion(
+        p_type=AssertionType.TRANSITION,
+        p_sv_name="sv_location",
+        p_sv_params_names=("param_robot",),
+        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_A",
+        p_sv_val_sec="objvar_location_B",
+    )
+    constrs.extend([
+#        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
+#        (ConstraintType.TEMPORAL,("t0", asrt1.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_start, "t0", 0, False)),
+        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_end, "t1", 0, False)),
+        (ConstraintType.TEMPORAL,("t1", asrt1.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_start, asrt1.time_end, 0, asrt1.type == AssertionType.TRANSITION)),
+    ])
+
+    asrt2 = Assertion(
+        p_type=AssertionType.TRANSITION,
+        p_sv_name="sv_location",
+        p_sv_params_names=("param_robot",),
+        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_B",
+        p_sv_val_sec="objvar_location_C",
+    )
+    constrs.extend([
+#        (ConstraintType.TEMPORAL,("t0", asrt2.time_start, 0, False)),
+#        (ConstraintType.TEMPORAL,("t0", asrt2.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_start, "t1", 0, False)),
+        (ConstraintType.TEMPORAL,("t1", asrt2.time_start, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_end, "t3", 0, False)),
+        (ConstraintType.TEMPORAL,("t3", asrt2.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_start, asrt2.time_end, 0, asrt2.type == AssertionType.TRANSITION)),
+    ])
+
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+
+    ok = constraint_network.propagate_constraints(constrs)
     chronicle.m_constraint_network = constraint_network
 
-    chronicle.m_assertions[asrt1] = False        
-    chronicle.m_goal_nodes.setdefault(asrt1,GoalMode()).m_mode = GoalMode.COMMITTED
-    ts = time.perf_counter()
-    res = chronicle.get_induced_conflicts([asrt2])
-    es = time.perf_counter()
-    print("---")
     if verbose:
-        print("conflicts : {0}".format(res))
-        print("time : {0}".format(es-ts))
-    if res == set():
-        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
-    else:
+        print(chronicle.m_constraint_network.m_stn.m_minimal_network)
+
+    if not ok:
+        print("---")
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
-    print("---")
+        print("---")
+    else:
+        ts = time.perf_counter()
+        chronicle.m_assertions[asrt1] = False        
+        res = chronicle.get_induced_conflicts([asrt2])
+        es = time.perf_counter()
+        print("---")
+        if verbose:
+            print("conflicts : {0}".format(res))
+            print("time : {0}".format(es-ts))
+        if res == set():
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
 
 def test6(verbose=False):
 
     init_situation1()
-
-    asrt1 = Assertion(
-        m_type=AssertionType.PERSISTENCE,
-        m_sv_name="sv_location",
-        m_sv_params_names=("param_robot"),
-        m_sv_params_vars=("objvar_robots_grp1"),
-        m_time_start="t0",
-        m_time_end="t1",
-        m_sv_val="objvar_location_A",
-        m_sv_val_sec=None,
-    )
-
-    asrt2 = Assertion(
-        m_type=AssertionType.TRANSITION,
-        m_sv_name="sv_location",
-        m_sv_params_names=("param_robot"),
-        m_sv_params_vars=("objvar_robots_grp1"),
-        m_time_start="t2",
-        m_time_end="t3",
-        m_sv_val="objvar_location_A",
-        m_sv_val_sec="objvar_location_C",
-    )
-
-    if verbose:
-        for v in constraint_network.m_bcn.m_domains:
-            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
-
-    constrs = [
+    constrs = []
+    constrs.extend([
         (ConstraintType.TEMPORAL,("t0", "t1", "c_l01", False)),
         (ConstraintType.TEMPORAL,("t1", "t0", "c_u01", False)),
         (ConstraintType.TEMPORAL,("t0", "t3", "c_l03", False)),
@@ -416,24 +498,144 @@ def test6(verbose=False):
         (ConstraintType.TEMPORAL,("t2", "t1", "c_u12", False)),
         (ConstraintType.TEMPORAL,("t2", "t3", "c_l23", False)),
         (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
-    ]
-    constraint_network.propagate_constraints(constrs)
+    ])
+    #constrs.extend([
+    #    (ConstraintType.TEMPORAL,("t1", "t2", 0, False)),
+    #])
+    asrt1 = Assertion(
+        p_type=AssertionType.PERSISTENCE,
+        p_sv_name="sv_location",
+        p_sv_params_names=("param_robot",),
+        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_A",
+        p_sv_val_sec=None,
+    )
+    constrs.extend([
+#        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
+#        (ConstraintType.TEMPORAL,("t0", asrt1.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_start, "t0", 0, False)),
+        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_end, "t1", 0, False)),
+        (ConstraintType.TEMPORAL,("t1", asrt1.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_start, asrt1.time_end, 0, asrt1.type == AssertionType.TRANSITION)),
+    ])
+
+    asrt2 = Assertion(
+        p_type=AssertionType.TRANSITION,
+        p_sv_name="sv_location",
+        p_sv_params_names=("param_robot",),
+        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_A",
+        p_sv_val_sec="objvar_location_C",
+    )
+    constrs.extend([
+#        (ConstraintType.TEMPORAL,("t0", asrt2.time_start, 0, False)),
+#        (ConstraintType.TEMPORAL,("t0", asrt2.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_start, "t1", 0, False)),
+        (ConstraintType.TEMPORAL,("t1", asrt2.time_start, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_end, "t2", 0, False)),
+        (ConstraintType.TEMPORAL,("t2", asrt2.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_start, asrt2.time_end, 0, asrt2.type == AssertionType.TRANSITION)),
+    ])
+
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+
+    ok = constraint_network.propagate_constraints(constrs)
     chronicle.m_constraint_network = constraint_network
 
-    chronicle.m_assertions[asrt1] = False        
-    chronicle.m_goal_nodes.setdefault(asrt1,GoalMode()).m_mode = GoalMode.COMMITTED
-    ts = time.perf_counter()
-    res = chronicle.get_induced_conflicts([asrt2])
-    es = time.perf_counter()
-    print("---")
     if verbose:
-        print("conflicts : {0}".format(res))
-        print("time : {0}".format(es-ts))
-    if res == set([(asrt1, asrt2)]):
+        print(chronicle.m_constraint_network.m_stn.m_minimal_network)
+
+    if not ok:
+        print("---")
         print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        print("---")
     else:
+        print("---")
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
-    print("---")
+        print("---")
+
+def test7(verbose=False):
+
+    init_situation1()
+    constrs = []
+    constrs.extend([
+        (ConstraintType.TEMPORAL,("t0", "t1", "c_l01", False)),
+        (ConstraintType.TEMPORAL,("t1", "t0", "c_u01", False)),
+        (ConstraintType.TEMPORAL,("t0", "t3", "c_l03", False)),
+        (ConstraintType.TEMPORAL,("t3", "t0", "c_u03", False)),
+        (ConstraintType.TEMPORAL,("t1", "t2", "c_l12", False)),
+        (ConstraintType.TEMPORAL,("t2", "t1", "c_u12", False)),
+        (ConstraintType.TEMPORAL,("t2", "t3", "c_l23", False)),
+        (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
+    ])
+
+    asrt1 = Assertion(
+        p_type=AssertionType.PERSISTENCE,
+        p_sv_name="sv_location",
+        p_sv_params_names=("param_robot",),
+        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_A",
+        p_sv_val_sec=None,
+    )
+    constrs.extend([
+#        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
+#        (ConstraintType.TEMPORAL,("t0", asrt1.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_start, "t0", 0, False)),
+        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_end, "t1", 0, False)),
+        (ConstraintType.TEMPORAL,("t1", asrt1.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt1.time_start, asrt1.time_end, 0, asrt1.type == AssertionType.TRANSITION)),
+    ])
+
+    asrt2 = Assertion(
+        p_type=AssertionType.TRANSITION,
+        p_sv_name="sv_location",
+        p_sv_params_names=("param_robot",),
+        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_A",
+        p_sv_val_sec="objvar_location_C",
+    )
+    constrs.extend([
+#        (ConstraintType.TEMPORAL,("t0", asrt2.time_start, 0, False)),
+#        (ConstraintType.TEMPORAL,("t0", asrt2.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_start, "t2", 0, False)),
+        (ConstraintType.TEMPORAL,("t2", asrt2.time_start, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_end, "t3", 0, False)),
+        (ConstraintType.TEMPORAL,("t3", asrt2.time_end, 0, False)),
+        (ConstraintType.TEMPORAL,(asrt2.time_start, asrt2.time_end, 0, asrt2.type == AssertionType.TRANSITION)),
+    ])
+
+    if verbose:
+        for v in constraint_network.m_bcn.m_domains:
+            print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
+
+    ok = constraint_network.propagate_constraints(constrs)
+    chronicle.m_constraint_network = constraint_network
+
+    if verbose:
+        print(chronicle.m_constraint_network.m_stn.m_minimal_network)
+
+    if not ok:
+        print("---")
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
+    else:
+        ts = time.perf_counter()
+        chronicle.m_assertions[asrt1] = False
+        res = chronicle.get_induced_conflicts([asrt2])
+        es = time.perf_counter()
+        print("---")
+        if verbose:
+            print("conflicts : {0}".format(res))
+            print("time : {0}".format(es-ts))
+        if res == set([(asrt1, asrt2)]):
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
 
 
 test1()
@@ -442,3 +644,4 @@ test3()
 test4()
 test5()
 test6()
+test7()
