@@ -202,7 +202,7 @@ class ConstraintNetwork():
                         In the second case, a new object variable with singleton domain contain the constant value is created and used to represent the constraint
                     if DOMAIN_VAL_GE or DOMAIN_VAL_LE:
                         (objvar, value)
-                    if UNIFICATION or SEPARATIon:
+                    if UNIFICATION or SEPARATION:
                         (objvar1, objvar2)
                         This method automatically dispatches symmetric constraints, as required by the constraint propagation function for the BCN.
                         No need to manually input symmetric constraints to this method.
@@ -514,7 +514,7 @@ class BCN():
                     if self.m_domains[var].is_empty():
                         return False
 
-            # for all variables whose domains were updated during propagation of the popped constraints
+            # for all variables whose domains were updated during propagation of the popped constraints,
             # push the constraints they're involved in to the worklist
 
             while len(change_info) > 0:
@@ -623,15 +623,12 @@ class STN():
 
     def __init__(self):
         self.m_controllability: typing.Dict[str, bool] = {}
-        # bool indicates whether the variable is controllable or not. Zero time point controllable ? idk
+        # bool indicates whether the variable is controllable or not.
         self.m_constraints: typing.Dict[typing.Tuple[str,str],typing.Set[(str,bool)]] = {}
         # (x,y,d,b) <-> x - y <= d (in that order!) (and if b is true : < instead of <=)
-        self.m_involved_objvars: typing.Dict[str, typing.Set[typing.Tuple[str,str]]] = {}
-        # to deal with general temporal constraints of form t1 - t2 <= f(x1, ... , xn)
-        # for now : only var
         # constraints of the form : t1 - t2 <= d (object variable) are interpreted as : t1 - t2 <= max{ v | v € dom(v) } : dom(v) = domain of v in binding constr net
+        self.m_involved_objvars: typing.Dict[str, typing.Set[typing.Tuple[str,str]]] = {}
         self.m_minimal_network: typing.Dict[typing.Tuple[str,str],float] = {}
-        # ("dist_STN(t1,t2) is the minimal delay between t1 and t2, which is given in the minimal network")
 
         self.m_old_controllability: typing.Dict[str, bool] = {}
         self.m_old_constraints: typing.Dict[typing.Tuple[str,str],typing.Set[(str,bool)]] = {}
@@ -731,7 +728,7 @@ class STN():
             # e.g. if the considered constraint is "t1 - t2 <= u", and we also have "l <= t1 - t2", then we restrict l to be >= -max(u).
             self.m_constraints.setdefault((t1,t2),set()).add((var,strict))
             self.m_involved_objvars.setdefault(var,set()).add((t1,t2))
-            if (t2,t1) in self.m_constraints: # (t2,t1), not (t1,t2) !!!!!
+            if (t2,t1) in self.m_constraints: # notice we have (t2,t1), not (t1,t2) !!
                 for (other_var, strict) in self.m_constraints[(t2,t1)]:
                     if strict:
                         cstr_type = ConstraintType.DOMAIN_VAL_GE
@@ -758,7 +755,7 @@ class STN():
         for q in self.m_controllability:
             for u in self.m_controllability:
                 for v in self.m_controllability:
-                    # shortest path from u to v (in that order!)
+                    # shortest path from u to v (notice the order given to "eval" : v,u instead of u,v !!)
                     res[(u,v)] = min(
                         res.setdefault((u,v),self._eval((v,u), p_bcn)),
                         res.setdefault((u,q),self._eval((q,u), p_bcn)) + res.setdefault((q,v),self._eval((v,q), p_bcn)))
@@ -767,6 +764,9 @@ class STN():
     def _eval(self, p_cstr:typing.Tuple[str,str], p_bcn:BCN):
         # NOTE: need documentation, although not yet sure myself of why exactly i'm using "max" here.
         # for now in most cases we have singleton domains, so it's trivial, but later a this may have to be refined / investigated further 
+
+        # basically this takes the least constraining instantiation (max value of the bound) of the tightest constraint (the one with the smallest max bound)
+        # between the specified variables
         if p_cstr in self.m_constraints:
             min = 0
             res = math.inf
