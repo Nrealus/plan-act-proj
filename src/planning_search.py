@@ -6,6 +6,7 @@ sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-play
 from copy import deepcopy
 import typing
 from enum import Enum
+from src.utility.new_int_id import new_int_id
 from src.constraints.constraints import ConstraintNetwork, ConstraintType
 from src.base import Assertion, Action, Method
 from src.chronicle import Chronicle
@@ -24,27 +25,27 @@ class ResolverType(Enum):
     METHOD_INSERTION_NOW=3
     ACTION_INSERTION_NOW=4
 
-class FlawNodeInfo(typing.NamedTuple):
+class FlawNodeInfo():
     m_assertion1:Assertion
     m_assertion2:Assertion
     # if assertion2 is None, then it's an unsupportd assertion / open goal flaw
     # if not, then conflict assertion
     # if more complicated flaws are introduced, a more detailed / general representation may be needed
 
-class ResolverNodeInfo(typing.NamedTuple):
+class ResolverNodeInfo():
     m_type:ResolverType
     m_direct_support_assertion:Assertion
     m_direct_support_assertion_supporter:Assertion
     m_constraints:typing.List[typing.Tuple[ConstraintType,typing.Any]]
-    m_act_or_meth_instance:Action|Method
+    m_action_or_method_instance:Action|Method
     m_act_or_meth_assertion_support_info:typing.List[typing.Tuple[Assertion,Assertion]]#,bool]]
 
-class CharlieMoveInfo(typing.NamedTuple):
+class CharlieMoveInfo():
     m_selected_controllable_timepoints:typing.List[str]
     m_wait_time:float # here float could make sense...! i.e. wait until a certain "real" time, not necessarily towards a variable / time point. in that case - "str"
     # if it's <= 0 it means we have a "play" move. if not - "wait" move
 
-class EveMoveInfo(typing.NamedTuple):
+class EveMoveInfo():
     m_selected_uncontrollable_timepoints:typing.List[str]
 
 class SearchNode():
@@ -122,24 +123,50 @@ class SearchNode():
 
                 elif ri.m_type == ResolverType.EXISTING_DIRECT_PERSISTENCE_SUPPORT_NOW or ri.m_type == ResolverType.NEW_DIRECT_PERSISTENCE_SUPPORT_NOW:
 
-                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.EXPANDED
-                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_expansions.append("see note")
-                    # NOTE: in reality should be an action that will have to monitor the whether the assertion is indeed respected during execution
+                    new_action = Action(
+                        m_action_name="monitor_assertion_{0}".format(str(new_int_id())),
+                        m_action_params_names="assertion",
+                        m_action_params_vars=self.m_flaw_node_info.m_assertion1,
+                        m_time_start=self.m_flaw_node_info.m_assertion1.time_start,
+                        m_time_end=self.m_flaw_node_info.m_assertion1.time_end,
+                        m_assertions=set(), # self.m_flaw_node_info.m_assertion1.m_assertions
+                        m_constraints=set(), # self.m_flaw_node_info.m_assertion1.m_constraints
+                    )
+                    if transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent is None:
+                        parent = None
+                    else:
+                        if transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent.m_committed_expansion is not None:
+                            parent = transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent.m_committed_expansion.m_action_or_method_instance
+                            # None still possible                                
+                    transformed_chronicle.m_plan[new_action] = parent
+
+                    # an action that will have to monitor whether the assertion is indeed respected during execution
                     # it is this action that will be triggered when the goal/assertion will be dispatched
-                    #self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_expansions.append(ri.m_direct_support_assertion)
 
                     transformed_chronicle.m_assertions[self.m_flaw_node_info.m_assertion1] = True
                     transformed_chronicle.m_causal_network[self.m_flaw_node_info.m_assertion1] = ri.m_direct_support_assertion
 
                     transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.COMMITTED
-                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_expansions = ["see note"]
-                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = "see note"
-                    #transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_expansions = [ri.m_direct_support_assertion]
-                    #transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = ri.m_direct_support_assertion
+                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_possible_expansions = [ri]
+                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = ri
                     
+                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.EXPANDED
+                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_possible_expansions.append(ri)
+
                     # it is indeed None in the case of direct support from an existing persistence assertion, where only constraints are actually added
                     # (this is adressed right above)
                     if ri.m_direct_support_assertion_supporter is not None:
+
+                        new_action2 = Action(
+                            m_action_name="monitor_assertion_{0}".format(str(new_int_id())),
+                            m_action_params_names="assertion",
+                            m_action_params_vars=ri.m_direct_support_assertion,
+                            m_time_start=ri.m_direct_support_assertion.time_start,
+                            m_time_end=ri.m_direct_support_assertion.time_end,
+                            m_assertions=set(), # ri.m_direct_support_assertion.m_assertions
+                            m_constraints=set(), # ri.m_direct_support_assertion.m_constraints
+                        )
+                        transformed_chronicle.m_plan[new_action2] = parent # maybe new_action?
 
                         transformed_chronicle.m_assertions[ri.m_direct_support_assertion] = True
                         transformed_chronicle.m_causal_network[ri.m_direct_support_assertion] = ri.m_direct_support_assertion_supporter
@@ -147,18 +174,16 @@ class SearchNode():
 
                         transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion] = GoalNode()
                         transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_mode = GoalMode.COMMITTED
-                        transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_committed_expansion = "see note"
-                        #transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_committed_expansion = ri.m_direct_support_assertion_supporter
                         transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_parent = transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1]
+                        transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_possible_expansions = [ri]
+                        transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_committed_expansion = ri
 
-                        transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
-                        transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts([ri.m_direct_support_assertion]))
+                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
+                    transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts([ri.m_direct_support_assertion]))
 
                 elif ri.m_type == ResolverType.METHOD_INSERTION_NOW or ri.m_type == ResolverType.ACTION_INSERTION_NOW:
 
-                    transformed_chronicle.m_supporter_origin_commitment[self.m_flaw_node_info.m_assertion1] = ri.m_act_or_meth_instance
-                    # transformed_chronicle.m_assertions[self.m_flaw_node_info.m_assertion1] = True
-                    # NOTE : DON'T SET THE FLAWED UNSUPPORTED ASSERTION TO "SUPPORTED" ! (line of code above)
+                    # NOTE : DON'T SET THE FLAWED UNSUPPORTED ASSERTION TO "SUPPORTED" !
                     # if an action was inserted, setting the flawed unsupported assertion to supported will be done in the 2nd loop below.
                     # if a method was inserted, it could also have a subgoal ((unsupported) persistence assertion) supporting the flawed assertion, 
                     # which would be dealt with the same way as with an action (below)
@@ -168,35 +193,49 @@ class SearchNode():
                     #transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.COMMITTED
                     #transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = ri.m_act_or_meth_instance                    
 
-                    if type(ri.m_act_or_meth_instance) == Action:
-                        self.m_chronicle.m_plan.append(ri.m_act_or_meth_instance)
+                    if transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent is None:
+                        parent = None
+                    else:
+                        if transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent.m_committed_expansion is not None:
+                            parent = transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent.m_committed_expansion.m_action_or_method_instance
+                            # None still possible                                
+                    transformed_chronicle.m_plan[ri.m_action_or_method_instance] = parent
+
+                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.COMMITTED
+                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_possible_expansions = [ri]
+                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = ri
 
                     self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.EXPANDED
-                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_expansions.append("see note")
-                    #self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_expansions.append(ri.m_act_or_meth_instance)
+                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_possible_expansions.append(ri)
 
-                    for i_asrt in ri.m_act_or_meth_instance.m_assertions:
-                        
+                    for i_asrt in ri.m_action_or_method_instance.assertions:
+                            
                         transformed_chronicle.m_assertions[i_asrt] = False
-                        #transformed_chronicle.m_associated_actions[i_asrt] = ri.m_act_or_meth_instance
 
                         transformed_chronicle.m_goal_nodes[i_asrt] = GoalNode()
                         transformed_chronicle.m_goal_nodes[i_asrt].m_mode = GoalMode.SELECTED
                         transformed_chronicle.m_goal_nodes[i_asrt].m_parent = transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1]
-    
+
                     for (i_asrt_supportee, i_asrt_supporter) in ri.m_act_or_meth_assertion_support_info:
-                    
+
+                        # NOTE: support is guaranteed only for those assertions of the action which start at the same time as it !!
+                        # others may not have guaranteed supporter ! which is why we first need to set to false and selected in the previous loop
                         transformed_chronicle.m_assertions[i_asrt_supportee] = True
                         transformed_chronicle.m_causal_network[i_asrt_supportee] = i_asrt_supporter
 
-                        transformed_chronicle.m_goal_nodes[i_asrt_supportee].m_mode = GoalMode.COMMITTED
-                        transformed_chronicle.m_goal_nodes[i_asrt_supportee].m_expansions = ["see note"]
-                        transformed_chronicle.m_goal_nodes[i_asrt_supportee].m_committed_expansion = "see note"
-                        #transformed_chronicle.m_goal_nodes[i_asrt_supportee].m_expansions = [ri.m_act_or_meth_instance]
-                        #transformed_chronicle.m_goal_nodes[i_asrt_supportee].m_committed_expansion = ri.m_act_or_meth_instance
+                        if i_asrt_supportee in ri.m_action_or_method_instance.assertions:
+                            asrt = i_asrt_supportee
+                        else: # either already in chronicle or introduced by action/method
+                            asrt = i_asrt_supporter
+
+                        if asrt != self.m_flaw_node_info.m_assertion1:
+                            transformed_chronicle.m_goal_nodes[asrt].m_mode = GoalMode.COMMITTED
+                            transformed_chronicle.m_goal_nodes[asrt].m_parent = transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1]
+                            transformed_chronicle.m_goal_nodes[asrt].m_possible_expansions = [ri]
+                            transformed_chronicle.m_goal_nodes[asrt].m_committed_expansion = ri
 
                     transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
-                    transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts(ri.m_act_or_meth_instance.m_assertions))
+                    transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts(ri.m_action_or_method_instance.assertions))
 
                 # decision could be made using search control on whether to follow with a flaw or charlie child (or both)
                 # until then / by default - both 
@@ -218,14 +257,14 @@ class SearchNode():
         if self.m_node_type == SearchNodeType.CHARLIE:
             
             charlie_moves = self.select_charlie_moves()
-            for ci in charlie_moves:
+            '''for ci in charlie_moves:
 
                 transformed_chronicle = deepcopy(old_chronicle)
 
                 # "play" move
                 if ci.m_wait_time <= 0:
                 # should the wait time be a float "offset" ? or should it be a time point that comes next ?
-                # FIXME: probably. change this tomorrow
+                #FIXME: probably. change this tomorrow
 
                     for ctr_tp in ci.m_selected_controllable_timepoints:
 
@@ -263,7 +302,7 @@ class SearchNode():
                         p_state=self.m_state,
                         p_chronicle=transformed_chronicle,
                         p_charlie_move_info=ci))
-
+            '''
         if self.m_node_type == SearchNodeType.EVE:
             pass
             # for ...

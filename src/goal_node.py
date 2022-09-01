@@ -22,7 +22,7 @@ class GoalNode():
         #self.m_constraint_network:ConstraintNetwork = ConstraintNetwork()
         self.m_mode:GoalMode = GoalMode.FORMULATED
         self.m_parent:GoalNode = None
-        self.m_expansions:typing.List = [] # i.e. chronicle transformations
+        self.m_possible_expansions:typing.List = []
         self.m_committed_expansion = None
         self.m_metrics:typing.Dict = {}
 
