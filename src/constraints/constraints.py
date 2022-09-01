@@ -111,7 +111,7 @@ class ConstraintNetwork():
         # check for identical singleton domains (without the special "unknown value", which is unifiable with nothing, not even itself)
         if self.m_bcn.m_domains[p_var1].size() == 1:
             return (self.m_bcn.m_domains[p_var1].get_values() == self.m_bcn.m_domains[p_var2].get_values()
-                and not self.m_bcn.m_domains[p_var1].contains(Domain._UNKNOWN_VALUE))
+                and (not self.m_bcn.m_domains[p_var1].contains(Domain._UNKNOWN_VALUE) or self.m_bcn.m_domains[p_var1].contains(Domain._ANY_VALUE)))
         return False
 
     def objvars_unifiable(self, p_var1:str, p_var2:str) -> bool:
@@ -126,6 +126,9 @@ class ConstraintNetwork():
         """
         # check for identity - a variable is obviously unified with itself
         if p_var1 == p_var2: 
+            return True
+
+        if self.m_bcn.m_domains[p_var1].contains(Domain._ANY_VALUE) or self.m_bcn.m_domains[p_var2].contains(Domain._ANY_VALUE):
             return True
         # check for separation constraints
         if ((p_var1 in self.m_bcn.m_separations and p_var2 in self.m_bcn.m_separations[p_var1])
@@ -185,7 +188,7 @@ class ConstraintNetwork():
 
     def propagate_constraints(
         self,
-        p_input_constraints:typing.List[typing.Tuple[ConstraintType,typing.Any]],
+        p_input_constraints:typing.Iterable[typing.Tuple[ConstraintType,typing.Any]],
         p_just_checking_no_propagation=False,
     ) -> bool:
         """
@@ -222,6 +225,7 @@ class ConstraintNetwork():
         
         # temporary binary constraints dictionary, used to 
         _temp_bin_constrs:typing.Dict[typing.Tuple[str,str],typing.Set[ConstraintType]] = {}
+
         for (cstr_type, cstr) in p_input_constraints:
             if cstr_type == ConstraintType.TEMPORAL:
                 temporal_constraints_worklist.append(cstr)
@@ -557,7 +561,7 @@ class BCN():
                 #        for cstr in p_stn.m_involved_objvars[var1]:
                 #            # actually important, can't just get away with evaluating the max in stn. in case the max goes up, need to enforce previous, more restrictive max
                 #            # htb : "helper temporal bound"
-                #            #_htb_var = "_htb".join(hex(new_int_id()))
+                #            #_htb_var = "_htb_{0}".format(hex(new_int_id()))
                 #            #self.m_domains[_htb_var] = {self.m_domains[var1].max_value()}
                 #            #if not p_stn._propagate([(cstr[0],cstr[1],_htb_var)],self):
                 #            #    return False
@@ -621,6 +625,7 @@ class STN():
         self.m_controllability: typing.Dict[str, bool] = {}
         # bool indicates whether the variable is controllable or not. Zero time point controllable ? idk
         self.m_constraints: typing.Dict[typing.Tuple[str,str],typing.Set[(str,bool)]] = {}
+        # (x,y,d,b) <-> x - y <= d (in that order!) (and if b is true : < instead of <=)
         self.m_involved_objvars: typing.Dict[str, typing.Set[typing.Tuple[str,str]]] = {}
         # to deal with general temporal constraints of form t1 - t2 <= f(x1, ... , xn)
         # for now : only var
@@ -753,9 +758,10 @@ class STN():
         for q in self.m_controllability:
             for u in self.m_controllability:
                 for v in self.m_controllability:
+                    # shortest path from u to v (in that order!)
                     res[(u,v)] = min(
-                        res.setdefault((u,v),self._eval((u,v), p_bcn)),
-                        res.setdefault((u,q),self._eval((u,q), p_bcn)) + res.setdefault((q,v),self._eval((q,v), p_bcn)))
+                        res.setdefault((u,v),self._eval((v,u), p_bcn)),
+                        res.setdefault((u,q),self._eval((q,u), p_bcn)) + res.setdefault((q,v),self._eval((v,q), p_bcn)))
         return res
 
     def _eval(self, p_cstr:typing.Tuple[str,str], p_bcn:BCN):
@@ -771,6 +777,6 @@ class STN():
                     min = p_bcn.m_domains[objvar].max_value() - sys.float_info.epsilon
                 if min <= res:
                     res = min
-            return min
+            return res
         else:
             return math.inf
