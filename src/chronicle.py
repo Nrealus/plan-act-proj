@@ -73,7 +73,23 @@ class Chronicle():
         #self.m_constraint_network.m_stn.clear()
 
     def is_action_or_method_applicable(self, p_act_or_meth:Action|Method, p_time:str) -> typing.Iterable[typing.Tuple[Assertion,Assertion]]:#,bool]]:
-
+        """
+        Determines whether a (specified) action/method is applicable to this chronicle at a specified time.
+        Used for planning search purposes.
+        Arguments:
+            p_act_or_meth (Action|Method):
+                The action/method whose applicability to check for 
+            p_time (str):
+                Time at which to test for the applicability of the specified action/method
+        Returns:
+            If the action/method is not applicable - an empty list []
+            If it is applicable - a list of (supportee, supporter) pairs of Assertions which would be established in the chronicle when applying the action/method
+            As such, all of the action's/method's assertions starting at the same time as it must be present in all pairs as the first element.
+            And at least one of the action's/method's assertions present as a second element (with an already present supportee assertion from the chronicle as first element)
+        Side effects:
+            None
+        """
+        # NOTE: maybe p_time should rather be a direct float "time instance", rather than a timepoint/variable
         # idea : instead of true/false, return the (supportee (chronicle assertion), supporter (action assertion), order)
         # order : true if supportee is from chronicle, and supporter is from action/method
         # will facilitate action insertion, by directly providing the assertions to become supported, instead of performing a new search again
@@ -88,10 +104,15 @@ class Chronicle():
                 for i_chronicle_asrt in self.m_assertions:
                     if i_act_or_meth_asrt == i_chronicle_asrt:
                         break
-                    # the chronicle must support all action/method's assertions
+                    # the chronicle must support all action/method's assertions which start at the same time as it
                     #if not (i_act_or_meth_asrt in self.m_causal_network or i_act_or_meth_asrt.is_causally_supported_by(i_chronicle_asrt, p_cn)):
                     #    return False
-                    if i_act_or_meth_asrt.is_causally_supported_by(i_chronicle_asrt, self.m_constraint_network):
+                    if (i_act_or_meth_asrt.is_causally_supported_by(i_chronicle_asrt, self.m_constraint_network)
+                        and self.m_constraint_network.propagate_constraints([
+                            (ConstraintType.TEMPORAL,(i_act_or_meth_asrt.time_start,p_time,0,False)),
+                            (ConstraintType.TEMPORAL,(p_time,i_act_or_meth_asrt.time_start,0,False)),
+                            ],p_just_checking_no_propagation=True)
+                    ):
                         res.append((i_act_or_meth_asrt, i_chronicle_asrt))#, False))
                     else:
                         return []
@@ -103,7 +124,17 @@ class Chronicle():
         return res
 
     def get_induced_conflicts(self, p_new_assertions:typing.Iterable[Assertion]) -> typing.Set[typing.Tuple[Assertion,Assertion]]:
-
+        """
+        Determines the conflicting assertions which would appear in this chronicle if the specified input assertions were introduced to the chronicle.
+        Used for planning search purposes in an incremental way.
+        Arguments:
+            p_new_assertions (Iterable[Assertion]):
+                The input assertions to test
+        Returns:
+            Returns pairs of conflicting assertions which would get introduced if the specified input assertions were added to the chronicle
+        Side effects:
+            None
+        """
         res:typing.Set[typing.Tuple[Assertion,Assertion]] = set()
         # naive brute force implementation
         # can use heuristics, info accumulated during search etc for inference (causal chains etc) to restrict the search / candidate flaws
