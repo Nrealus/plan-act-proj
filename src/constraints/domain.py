@@ -34,8 +34,8 @@ class DomainType(Enum):
 
 class Domain():
 
-    _UNKNOWN_VALUE = "UNKNOWN_VALUE" # special value, which is not unifiable with any other, even itself
-    _ANY_VALUE = "ANY_VALUE" # special value, which is unifiable with everything, including itself
+    _UNKNOWN_VALUE_VAR = "_unknown_value_var" # special variable, which is not unifiable with any other, even itself
+    _ANY_VALUE_VAR = "_any_value_var" # special variable, which is unifiable with everything, including itself
 
     def __init__(
         self,

@@ -52,8 +52,8 @@ def print_temporal_details1(u:str, v:str):
     print("details on {0} and {1} : ".format(u,v))
     print("   {2} <= '{1}' - '{0}' <= {3}".format(
         u,v,
-        constraint_network.m_stn.m_minimal_network[(u,v)],
-        constraint_network.m_stn.m_minimal_network[(v,u)]))
+        constraint_network.m_stn.tempvars_minimal_directed_distance(u,v),
+        constraint_network.m_stn.tempvars_minimal_directed_distance(v,u)))
 
 def test1(verbose=False):
 
@@ -370,9 +370,7 @@ def test9(verbose=False):
 def test10(verbose=False):
     
     reset_constraint_network()
-    constraint_network.m_stn.m_controllability["t0"] = True
-    constraint_network.m_stn.m_controllability["t1"] = True
-    constraint_network.m_stn.m_controllability["t2"] = True
+    constraint_network.declare_and_init_tempvars({"t0":True,"t1":True,"t2":True})
     constraint_network.declare_and_init_objvars({
         "c_l01":Domain(p_initial_allowed_values=[-10]),
         "c_u01":Domain(p_initial_allowed_values=[15]),
@@ -399,9 +397,7 @@ def test10(verbose=False):
 def test11(verbose=False):
     
     reset_constraint_network()
-    constraint_network.m_stn.m_controllability["t0"] = True
-    constraint_network.m_stn.m_controllability["t1"] = True
-    constraint_network.m_stn.m_controllability["t2"] = True
+    constraint_network.declare_and_init_tempvars({"t0":True,"t1":True,"t2":True})
     constraint_network.declare_and_init_objvars({
         "c_l01":Domain(p_initial_allowed_values=[-10]),
         "c_u01":Domain(p_initial_allowed_values=[15]),
@@ -436,11 +432,7 @@ def test11(verbose=False):
 def test12(verbose=False):
     
     reset_constraint_network()
-    constraint_network.m_stn.m_controllability["t0"] = True
-    constraint_network.m_stn.m_controllability["t1"] = True
-    constraint_network.m_stn.m_controllability["t2"] = True
-    constraint_network.m_stn.m_controllability["t3"] = True
-    constraint_network.m_stn.m_controllability["t4"] = True
+    constraint_network.declare_and_init_tempvars({"t0":True,"t1":True,"t2":True,"t3":True,"t4":True})
     constraint_network.declare_and_init_objvars({
         "c_l01":Domain(p_initial_allowed_values=[-10]),
         "c_u01":Domain(p_initial_allowed_values=[15]),

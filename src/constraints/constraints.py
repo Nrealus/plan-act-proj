@@ -63,6 +63,8 @@ class ConstraintNetwork():
     def __init__(self):
         self.m_bcn: BCN = BCN()
         self.m_stn: STN = STN()
+        self._bcns_stack = []
+        self._stns_stack = []
 
     def declare_and_init_objvars(self, p_domains: typing.Dict[str, Domain]) -> None:
         """
@@ -77,6 +79,18 @@ class ConstraintNetwork():
         """
         self.m_bcn.m_unifications.make_set(p_domains.keys())
         self.m_bcn.m_domains = { **self.m_bcn.m_domains , **p_domains }
+
+    def declare_and_init_tempvars(self, p_controllability: typing.Dict[str,bool]) -> None:
+        """
+        Wrapper for declaring and initialising timepoints (in the STN)
+        Arguments:
+            p_controllability (dict(str,bool)): dictionary of timepoints and their associated controllability
+        Returns:
+            None
+        Side effects:
+            Updates STN timepoints with the input timepoints
+        """
+        self.m_stn.m_controllability = { **self.m_stn.m_controllability, **p_controllability }
 
     def objvar_domain(self, p_var:str) -> Domain:
         """
@@ -98,6 +112,10 @@ class ConstraintNetwork():
         Returns:
             True if the specified object variables are unified, False otherwise
         """
+        if p_var1 == Domain._UNKNOWN_VALUE_VAR or p_var2 == Domain._UNKNOWN_VALUE_VAR:
+            return False
+        if p_var1 == Domain._ANY_VALUE_VAR or p_var2 == Domain._ANY_VALUE_VAR:
+            return True
         # check for identity - a variable is obviously unified with itself
         if p_var1 == p_var2:
             return True
@@ -108,10 +126,9 @@ class ConstraintNetwork():
             and self.m_bcn.m_unifications.find(p_var1) == self.m_bcn.m_unifications.find(p_var2)
         ):
             return True
-        # check for identical singleton domains (without the special "unknown value", which is unifiable with nothing, not even itself)
+        # check for identical singleton domains
         if self.m_bcn.m_domains[p_var1].size() == 1:
-            return (self.m_bcn.m_domains[p_var1].get_values() == self.m_bcn.m_domains[p_var2].get_values()
-                and (not self.m_bcn.m_domains[p_var1].contains(Domain._UNKNOWN_VALUE) or self.m_bcn.m_domains[p_var1].contains(Domain._ANY_VALUE)))
+            return self.m_bcn.m_domains[p_var1].get_values() == self.m_bcn.m_domains[p_var2].get_values()
         return False
 
     def objvars_unifiable(self, p_var1:str, p_var2:str) -> bool:
@@ -124,11 +141,12 @@ class ConstraintNetwork():
         Returns:
             True if the specified object variables are unifiable, False otherwise
         """
+        if p_var1 == Domain._UNKNOWN_VALUE_VAR or p_var2 == Domain._UNKNOWN_VALUE_VAR:
+            return False
+        if p_var1 == Domain._ANY_VALUE_VAR or p_var2 == Domain._ANY_VALUE_VAR:
+            return True
         # check for identity - a variable is obviously unified with itself
         if p_var1 == p_var2: 
-            return True
-
-        if self.m_bcn.m_domains[p_var1].contains(Domain._ANY_VALUE) or self.m_bcn.m_domains[p_var2].contains(Domain._ANY_VALUE):
             return True
         # check for separation constraints
         if ((p_var1 in self.m_bcn.m_separations and p_var2 in self.m_bcn.m_separations[p_var1])
@@ -137,9 +155,6 @@ class ConstraintNetwork():
             return False
         # check for domain intersection
         if not self.m_bcn.m_domains[p_var1].intersects(self.m_bcn.m_domains[p_var2]):
-            return False
-        # check for presence of "unknown value" (which is unifiable with nothing, even itself) in both domains
-        if self.m_bcn.m_domains[p_var1].contains(Domain._UNKNOWN_VALUE) or self.m_bcn.m_domains[p_var2].contains(Domain._UNKNOWN_VALUE):
             return False
         # check for separation constraints between variables unified with the specified / input variables
         # NOTE: rather inefficient
@@ -176,6 +191,18 @@ class ConstraintNetwork():
         """        
         return not self.objvars_unifiable(p_var1, p_var2)
 
+    def tempvars_minimal_directed_distance(self, p_tp1:str, p_tp2:str) -> float:
+        """
+        Query used to obtain the minimal distance from timepoint p_tp1 to timepoint p_tp2.
+        i.e. are not unifiable.
+        Arguments:
+            p_tp1 (str): source timepoint
+            p_tp2 (str): destination timepoint
+        Returns:
+            The current minimal distance from timepoint p_tp1 to timepoint p_tp2
+        """        
+        return self.m_stn.m_minimal_network[(p_tp1,p_tp2)]
+
     #def timepoint_domain(self, p_var:str) -> Domain:
     #    """
     #    Wrapper used to access the domain object of an object variable (through the BCN)
@@ -186,10 +213,15 @@ class ConstraintNetwork():
     #    """
     #    return self.m_bcn.m_domains[p_var]
 
+    def backtrack(self) -> None:
+        if len(self._bcns_stack) > 0 and len(self._stns_stack) > 0:
+            self.m_bcn = self._bcns_stack.pop(-1)
+            self.m_stn = self._stns_stack.pop(-1)
+
     def propagate_constraints(
         self,
         p_input_constraints:typing.Iterable[typing.Tuple[ConstraintType,typing.Any]],
-        p_just_checking_no_propagation=False,
+        p_dont_apply_and_push=False,
     ) -> bool:
         """
         Method allowing to (partially, locally) propagate the specified constraints, by triggering (non independent) constraint propagation for both the BCN and STN.
@@ -210,12 +242,12 @@ class ConstraintNetwork():
                         (objvar1, [objvar2, objvar3, ...])
                     if GENERAL_RELATION:
                         (relation_name, ([param_objvars...], [[objvars_values...]...]))
-            p_just_checking_no_propagation (bool):
+            p_apply_and_push (bool):
                 Indicates whether to restore the changes to the constraint networks and domains as they were before, i.e. just checking propagation, not applying it.
         Returns:
             True if the constraints can be successfully propagated
         Side effects:
-            If p_just_checking_no_propagation is False (by default), the constraints and changes introduced to the constraint networks and domains will be saved if propagation is successful.
+            If p_apply_and_push is False (by default), the constraints and changes introduced to the constraint networks and domains will be saved if propagation is successful.
             If it is True, then even if propagation is successful, the changes will be reverted and there won't be any side effects.
             Currently these backups and restorations are managed through deepcopies... (inefficient and not elegant). 
         """
@@ -242,8 +274,8 @@ class ConstraintNetwork():
                     binding_constraints_worklist.append((cstr_type,cstr))
         
         # back up networks
-        self.m_bcn.backup()
-        self.m_stn.backup()
+        self._bcns_stack.append(self.m_bcn)
+        self._stns_stack.append(self.m_stn)
 
         # propagate constraints to both (interacting) constraint networks (hence stn and bcn specified as arguments)
         if (self.m_bcn._propagate(binding_constraints_worklist,self.m_stn)
@@ -251,14 +283,12 @@ class ConstraintNetwork():
         ):
             # if only checking / verifying possibly consistent propagation is required, then restore backed up networks
             # (no need to apply new propagated constraints)
-            if p_just_checking_no_propagation:
-                self.m_bcn.restore()
-                self.m_stn.restore()
+            if p_dont_apply_and_push:
+                self.backtrack()
             return True
 
         # if propagation cannot be consistent, then don't apply in any case - restore backed up networks
-        self.m_bcn.restore()
-        self.m_stn.restore()
+        self.backtrack()
         return False
 
 ############################################
