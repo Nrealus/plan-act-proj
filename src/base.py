@@ -281,7 +281,7 @@ class Action(tuple):
             te = p_time_end
         return tuple.__new__(cls, (
             p_action_template,
-            p_action_params, 
+            p_action_params.items(), 
             name,
             ts, te, 
             p_action_template.assertions_function(ts,te,p_action_params), 
@@ -293,7 +293,7 @@ class Action(tuple):
 
     @property
     def action_params(self) -> typing.Dict[str,str]:
-        return tuple.__getitem__(self, 1)
+        return dict(tuple.__getitem__(self, 1))
 
     @property
     def time_start(self) -> str:
@@ -342,7 +342,7 @@ class Method(tuple):
             te = p_time_end
         return tuple.__new__(cls, (
             p_method_template,
-            p_method_params, 
+            p_method_params.items(), 
             name,
             ts, te, 
             p_method_template.assertions_function(ts,te,p_method_params), 
@@ -354,7 +354,7 @@ class Method(tuple):
 
     @property
     def method_params(self) -> typing.Dict[str,str]:
-        return tuple.__getitem__(self, 1)
+        return dict(tuple.__getitem__(self, 1))
 
     @property
     def time_start(self) -> str:
