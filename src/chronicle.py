@@ -108,7 +108,7 @@ class Chronicle():
                     if i_act_or_meth_asrt == i_chronicle_asrt:
                         break
                     # the chronicle must support all action/method's assertions which start at the same time as it
-                    b1 = True
+                    b = True
                     for (supportee, _) in res:
                         if supportee == i_act_or_meth_asrt:
                             b = False
