@@ -41,17 +41,24 @@ class Assertion(tuple):
     def __new__(cls,
         p_type:AssertionType,
         p_sv_name:str,
-        p_sv_params_names:typing.Tuple[str,...],
-        p_sv_params_vars:typing.Tuple[str,...],
+        p_sv_params_keys:typing.Tuple[str,...],
+        p_sv_params_values:typing.Tuple[str,...],
         p_sv_val:object,
-        p_sv_val_sec:object=None
+        p_sv_val_sec:object=None,
+        p_time_start:str="",
+        p_time_end:str="",
     ):
         # create (supposed to be) unique timepoint variable names corresponding to the start and end of this assertion
         k = new_int_id()
-        ts = "_ts_asrt_{0}".format(str(k))
-        te = "_te_asrt_{0}".format(str(k))
-
-        return tuple.__new__(cls, (p_type, p_sv_name, p_sv_params_names, p_sv_params_vars, ts, te, p_sv_val, p_sv_val_sec))
+        if p_time_start == "":
+            ts = "_ts_asrt_{0}".format(str(k))
+        else:
+            ts = p_time_start
+        if p_time_end == "":
+            te = "_te_asrt_{0}".format(str(k))
+        else:
+            te = p_time_end
+        return tuple.__new__(cls, (p_type, p_sv_name, p_sv_params_keys, p_sv_params_values, ts, te, p_sv_val, p_sv_val_sec))
 
     @property
     def type(self) -> AssertionType:
@@ -66,7 +73,7 @@ class Assertion(tuple):
         return tuple.__getitem__(self, 2)
 
     @property
-    def sv_params_vars(self) -> typing.Tuple[str,...]:
+    def sv_params_values(self) -> typing.Tuple[str,...]:
         return tuple.__getitem__(self, 3)
 
     @property
@@ -105,15 +112,15 @@ class Assertion(tuple):
         """
         # check if the head of this assertion and the specified one is different
         if (self.sv_name == p_other_assertion.sv_name and self.sv_params_names == p_other_assertion.sv_params_names):
-            for i in range(len(self.sv_params_vars)):
-                if p_cn.objvars_separable(self.sv_params_vars[i],p_other_assertion.sv_params_vars[i]):
+            for i in range(len(self.sv_params_values)):
+                if p_cn.objvars_separable(self.sv_params_values[i],p_other_assertion.sv_params_values[i]):
                     return False
         else:
             return False
         # check if the start timepoint of this assertion and end timepoint of the input assertion are the same
         if (self.time_start == p_other_assertion.time_end
-            or (p_cn.m_stn.m_minimal_network[(self.time_start, p_other_assertion.time_end)] == 0
-                and p_cn.m_stn.m_minimal_network[(p_other_assertion.time_end, self.time_start)] == 0)
+            or (p_cn.tempvars_minimal_directed_distance(self.time_start, p_other_assertion.time_end) == 0
+                and p_cn.tempvars_minimal_directed_distance(p_other_assertion.time_end, self.time_start) == 0)
         ):
             # check if the values at the end of the specified assertion and at the start of this assertion are the same
             if ((p_other_assertion.type == AssertionType.PERSISTENCE and p_cn.objvars_unified(p_other_assertion.sv_val, self.sv_val))
@@ -143,8 +150,8 @@ class Assertion(tuple):
         # check if the head of this assertion and the specified one is different
         elif self.sv_name == p_asrt2.sv_name and self.sv_params_names == p_asrt2.sv_params_names:
             b = True
-            for i in range(len(self.sv_params_vars)):
-                if not p_cn.objvars_unifiable(self.sv_params_vars[i],p_asrt2.sv_params_vars[i]):
+            for i in range(len(self.sv_params_values)):
+                if not p_cn.objvars_unifiable(self.sv_params_values[i],p_asrt2.sv_params_values[i]):
                     return False
         #else:
         #    warnings.warn("shouldn't happen...!!!!")
@@ -153,8 +160,8 @@ class Assertion(tuple):
 
             if b and p_cn.objvars_separable(self.sv_val, p_asrt2.sv_val):
                 # if the assertions' temporal windows possibly intersect
-                if (p_cn.m_stn.m_minimal_network[(self.time_start,p_asrt2.time_end)]
-                    * p_cn.m_stn.m_minimal_network[(p_asrt2.time_start,self.time_end)] >= 0
+                if (p_cn.tempvars_minimal_directed_distance(self.time_start,p_asrt2.time_end)
+                    * p_cn.tempvars_minimal_directed_distance(p_asrt2.time_start,self.time_end) >= 0
                 ):
                     return True
             return False
@@ -163,23 +170,23 @@ class Assertion(tuple):
 
             if b:
                 # if the assertions' temporal windows possibly intersect
-                if (p_cn.m_stn.m_minimal_network[(self.time_start,p_asrt2.time_end)]
-                    * p_cn.m_stn.m_minimal_network[(p_asrt2.time_start,self.time_end)] >= 0
+                if (p_cn.tempvars_minimal_directed_distance(self.time_start,p_asrt2.time_end)
+                    * p_cn.tempvars_minimal_directed_distance(p_asrt2.time_start,self.time_end) >= 0
                 ):
                     # if the transition statements have the same (unified) values and same start and end timepoints
                     # or have the same (unified) values and are connected by the end of one another
                     # then there's no conflict
                     if ((p_cn.objvars_unified(self.sv_val, p_asrt2.sv_val) and p_cn.objvars_unified(self.sv_val_sec, p_asrt2.sv_val_sec)
-                        and p_cn.m_stn.m_minimal_network[(self.time_start,p_asrt2.time_start)] == 0
-                        and p_cn.m_stn.m_minimal_network[(p_asrt2.time_start,self.time_start)] == 0
-                        and p_cn.m_stn.m_minimal_network[(self.time_end,p_asrt2.time_end)] == 0
-                        and p_cn.m_stn.m_minimal_network[(p_asrt2.time_end,self.time_end)] == 0)
+                        and p_cn.tempvars_minimal_directed_distance(self.time_start,p_asrt2.time_start) == 0
+                        and p_cn.tempvars_minimal_directed_distance(p_asrt2.time_start,self.time_start) == 0
+                        and p_cn.tempvars_minimal_directed_distance(self.time_end,p_asrt2.time_end) == 0
+                        and p_cn.tempvars_minimal_directed_distance(p_asrt2.time_end,self.time_end) == 0)
                     or (p_cn.objvars_unified(self.sv_val, p_asrt2.sv_val_sec)
-                        and p_cn.m_stn.m_minimal_network[(self.time_start,p_asrt2.time_end)] == 0
-                        and p_cn.m_stn.m_minimal_network[(p_asrt2.time_end,self.time_start)] == 0)
+                        and p_cn.tempvars_minimal_directed_distance(self.time_start,p_asrt2.time_end) == 0
+                        and p_cn.tempvars_minimal_directed_distance(p_asrt2.time_end,self.time_start) == 0)
                     or (p_cn.objvars_unified(p_asrt2.sv_val, self.sv_val_sec)
-                        and p_cn.m_stn.m_minimal_network[(p_asrt2.time_start,self.time_end)] == 0
-                        and p_cn.m_stn.m_minimal_network[(self.time_end,p_asrt2.time_start)] == 0)
+                        and p_cn.tempvars_minimal_directed_distance(p_asrt2.time_start,self.time_end) == 0
+                        and p_cn.tempvars_minimal_directed_distance(self.time_end,p_asrt2.time_start) == 0)
                     ):
                         return False
                     else:
@@ -197,17 +204,17 @@ class Assertion(tuple):
 
             if b:
                 # if the assertions' temporal windows possibly intersect
-                if (p_cn.m_stn.m_minimal_network[(asrt_pers.time_start,asrt_trans.time_end)]
-                    * p_cn.m_stn.m_minimal_network[(asrt_trans.time_start,asrt_pers.time_end)] >= 0
+                if (p_cn.tempvars_minimal_directed_distance(asrt_pers.time_start,asrt_trans.time_end)
+                    * p_cn.tempvars_minimal_directed_distance(asrt_trans.time_start,asrt_pers.time_end) >= 0
                 ):
                     # if have the same (unified) values and are connected by the end of one another
                     # then there's no conflict
                     if ((p_cn.objvars_unified(asrt_trans.sv_val_sec, asrt_pers.sv_val)
-                        and p_cn.m_stn.m_minimal_network[(asrt_pers.time_start,asrt_trans.time_end)] == 0
-                        and p_cn.m_stn.m_minimal_network[(asrt_trans.time_end,asrt_pers.time_start)] == 0)
+                        and p_cn.tempvars_minimal_directed_distance(asrt_pers.time_start,asrt_trans.time_end) == 0
+                        and p_cn.tempvars_minimal_directed_distance(asrt_trans.time_end,asrt_pers.time_start) == 0)
                     or (p_cn.objvars_unified(asrt_pers.sv_val, asrt_trans.sv_val)
-                        and p_cn.m_stn.m_minimal_network[(asrt_trans.time_start,asrt_pers.time_end)] == 0
-                        and p_cn.m_stn.m_minimal_network[(asrt_pers.time_end,asrt_trans.time_start)] == 0)
+                        and p_cn.tempvars_minimal_directed_distance(asrt_trans.time_start,asrt_pers.time_end) == 0
+                        and p_cn.tempvars_minimal_directed_distance(asrt_pers.time_end,asrt_trans.time_start) == 0)
                     ):
                         return False
                     else:
@@ -218,32 +225,75 @@ class Assertion(tuple):
 #    m_sv_name:str
 #    m_assertions:typing.List[Assertion]
 
-class Action():
+class ActionAndMethodTemplate(tuple):
 
     __slots__ = []
     def __new__(cls,
-    p_action_name:str,
-    p_action_params_names:typing.Tuple[str,...],
-    p_action_params_vars:typing.Tuple[str,...],
-    p_assertions:typing.Set[Assertion]=set(),
-    p_constraints:typing.Set[typing.Tuple[ConstraintType,typing.Any]]=set()):
-
-        k = new_int_id()
-        ts = "_ts_act_{0}".format(str(k))
-        te = "_te_act_{0}".format(str(k))
-        return tuple.__new__(cls, (p_action_name, p_action_params_names, p_action_params_vars, ts, te, p_assertions, p_constraints))
+        p_name:str,
+        p_params_names:typing.Tuple[str,...],
+        p_assertions:typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[Assertion]]=(lambda ts,te,params: set()),
+        p_constraints:typing.Callable[[str,str,typing.Dict[str,str]],typing.Tuple[ConstraintType,typing.Any]]=(lambda ts,te,params: set()),
+    ):
+        return tuple.__new__(cls, (p_name, p_params_names, p_assertions, p_constraints))
 
     @property
-    def action_name(self) -> str:
+    def name(self) -> str:
         return tuple.__getitem__(self, 0)
 
     @property
-    def action_params_names(self) -> typing.Tuple[str,...]:
+    def params_names(self) -> typing.Tuple[str,...]:
         return tuple.__getitem__(self, 1)
 
     @property
-    def action_params_vars(self) -> typing.Tuple[str,...]:
+    def assertions_function(self) -> typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[Assertion]]:
         return tuple.__getitem__(self, 2)
+
+    @property
+    def constraints_function(self) -> typing.Callable[[str,str,typing.Dict[str,str]],typing.Tuple[ConstraintType,typing.Any]]:
+        return tuple.__getitem__(self, 3)
+
+    def __getitem__(self, item):
+        raise TypeError
+
+class Action(tuple):
+
+    __slots__ = []
+    def __new__(cls,
+        p_action_template:ActionAndMethodTemplate,
+        p_action_params:typing.Dict[str,str],
+        p_action_name:str="",
+        p_time_start:str="",
+        p_time_end:str="",
+    ):
+
+        k = new_int_id()
+        if p_action_name == "":
+            name = "{0}_{1}".format(p_action_template.name, str(k))
+        else:
+            name = p_action_name
+        if p_time_start == "":
+            ts = "_ts_act_{0}".format(str(k))
+        else:
+            ts = p_time_start
+        if p_time_end == "":
+            te = "_te_act_{0}".format(str(k))
+        else:
+            te = p_time_end
+        return tuple.__new__(cls, (
+            p_action_template,
+            p_action_params, 
+            name,
+            ts, te, 
+            p_action_template.assertions_function(ts,te,p_action_params), 
+            p_action_template.constraints_function(ts,te,p_action_params)))
+
+    @property
+    def action_name(self) -> str:
+        return tuple.__getitem__(self, 2)
+
+    @property
+    def action_params(self) -> typing.Dict[str,str]:
+        return tuple.__getitem__(self, 1)
 
     @property
     def time_start(self) -> str:
@@ -266,32 +316,45 @@ class Action():
     def __getitem__(self, item):
         raise TypeError
 
-class Method():
+class Method(tuple):
 
     __slots__ = []
     def __new__(cls,
-    p_method_name:str,
-    p_method_params_names:typing.Tuple[str,...],
-    p_method_params_vars:typing.Tuple[str,...],
-    p_assertions:typing.Set[Assertion]=set(),
-    p_constraints:typing.Set[typing.Tuple[ConstraintType,typing.Any]]=set()):
+        p_method_template:ActionAndMethodTemplate,
+        p_method_params:typing.Dict[str,str],
+        p_method_name:str="",
+        p_time_start:str="",
+        p_time_end:str="",
+    ):
 
         k = new_int_id()
-        ts = "_ts_meth_{0}".format(str(k))
-        te = "_te_meth_{0}".format(str(k))
-        return tuple.__new__(cls, (p_method_name, p_method_params_names, p_method_params_vars, ts, te, p_assertions, p_constraints))
+        if p_method_name == "":
+            name = "{0}_{1}".format(p_method_template.name, str(k))
+        else:
+            name = p_method_name
+        if p_time_start == "":
+            ts = "_ts_act_{0}".format(str(k))
+        else:
+            ts = p_time_start
+        if p_time_end == "":
+            te = "_te_act_{0}".format(str(k))
+        else:
+            te = p_time_end
+        return tuple.__new__(cls, (
+            p_method_template,
+            p_method_params, 
+            name,
+            ts, te, 
+            p_method_template.assertions_function(ts,te,p_method_params), 
+            p_method_template.constraints_function(ts,te,p_method_params)))
 
     @property
     def method_name(self) -> str:
-        return tuple.__getitem__(self, 0)
-
-    @property
-    def method_params_names(self) -> typing.Tuple[str,...]:
-        return tuple.__getitem__(self, 1)
-
-    @property
-    def method_params_vars(self) -> typing.Tuple[str,...]:
         return tuple.__getitem__(self, 2)
+
+    @property
+    def method_params(self) -> typing.Dict[str,str]:
+        return tuple.__getitem__(self, 1)
 
     @property
     def time_start(self) -> str:
@@ -305,10 +368,9 @@ class Method():
     def assertions(self) -> typing.Set[Assertion]:
         return tuple.__getitem__(self, 5)
     # actually subgoals ; Nau 2020: "can't make a change happen, can only create subgoals"
-    
+
     @property
     def constraints(self) -> typing.Set[typing.Tuple[ConstraintType,typing.Any]]:
         return tuple.__getitem__(self, 6)
 
-    def __getitem__(self, item):
-        raise TypeError
+

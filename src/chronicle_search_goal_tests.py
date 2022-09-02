@@ -4,7 +4,7 @@ sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-play
 from src.constraints.domain import Domain
 from src.constraints.constraints import ConstraintNetwork, ConstraintType
 
-from src.base import Assertion, AssertionType, Action, Method
+from src.base import ActionAndMethodTemplate, Assertion, AssertionType, Action, Method
 from src.chronicle import Chronicle
 from src.goal_node import GoalNode, GoalMode
 
@@ -37,8 +37,8 @@ def print_temporal_details1(u:str, v:str):
     print("details on {0} and {1} : ".format(u,v))
     print("   {2} <= '{1}' - '{0}' <= {3}".format(
         u,v,
-        main_chronicle.m_constraint_network.m_stn.m_minimal_network[(u,v)],
-        main_chronicle.m_constraint_network.m_stn.m_minimal_network[(v,u)]))
+        main_chronicle.m_constraint_network.m_stn.tempvars_minimal_directed_distance(u,v),
+        main_chronicle.m_constraint_network.m_stn.tempvars_minimal_directed_distance(v,u)))
 
 def init_situation1():
     main_chronicle.clear()
@@ -54,14 +54,11 @@ def init_situation1():
         "c_l03":Domain(p_initial_allowed_values=[-4]),
         "c_u03":Domain(p_initial_allowed_values=[25]),
         "c_l12":Domain(p_initial_allowed_values=[0]),
-        "c_u12":Domain(p_initial_allowed_values=[2]),
+        "c_u12":Domain(p_initial_allowed_values=[9]),
         "c_l23":Domain(p_initial_allowed_values=[-1]),
         "c_u23":Domain(p_initial_allowed_values=[5]),
     })
-    main_chronicle.m_constraint_network.m_stn.m_controllability["t0"] = True
-    main_chronicle.m_constraint_network.m_stn.m_controllability["t1"] = True
-    main_chronicle.m_constraint_network.m_stn.m_controllability["t2"] = True
-    main_chronicle.m_constraint_network.m_stn.m_controllability["t3"] = True
+    main_chronicle.m_constraint_network.declare_and_init_tempvars({"t0":True,"t1":True,"t2":True,"t3":True})
 
 def test1(verbose=False):
 
@@ -81,8 +78,8 @@ def test1(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_names=("param_robot",),
-        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_params_keys=("param_robot",),
+        p_sv_params_values=("objvar_robots_grp1",),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -99,8 +96,8 @@ def test1(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_names=("param_robot",),
-        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_params_keys=("param_robot",),
+        p_sv_params_values=("objvar_robots_grp1",),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -118,7 +115,7 @@ def test1(verbose=False):
         for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
-    main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     #main_chronicle.m_assertions[asrt1] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt1,GoalNode()).m_mode = GoalMode.SELECTED
@@ -126,19 +123,26 @@ def test1(verbose=False):
     #main_chronicle.m_assertions[asrt2] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt2,GoalNode()).m_mode = GoalMode.SELECTED
 
-    ts = time.perf_counter()
-    res = asrt1.is_causally_supported_by(asrt2, main_chronicle.m_constraint_network)
-    es = time.perf_counter()
-    print("---")
     if verbose:
-        print("is causally supported : {0}".format(res))
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
-        print("time : {0}".format(es-ts))
-    if not res:
-        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
-    else:
+
+    if not ok:
+        print("---")
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
-    print("---")
+        print("---")
+    else:
+        ts = time.perf_counter()
+        res = asrt1.is_causally_supported_by(asrt2, main_chronicle.m_constraint_network)
+        es = time.perf_counter()
+        print("---")
+        if verbose:
+            print("is causally supported : {0}".format(res))
+            print("time : {0}".format(es-ts))
+        if not res:
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
 
 
 def test2(verbose=False):
@@ -159,8 +163,8 @@ def test2(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_names=("param_robot",),
-        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_params_keys=("param_robot",),
+        p_sv_params_values=("objvar_robots_grp1",),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -177,8 +181,8 @@ def test2(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_names=("param_robot",),
-        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_params_keys=("param_robot",),
+        p_sv_params_values=("objvar_robots_grp1",),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -196,7 +200,7 @@ def test2(verbose=False):
         for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
-    main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     #main_chronicle.m_assertions[asrt1] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt1,GoalNode()).m_mode = GoalMode.SELECTED
@@ -204,19 +208,26 @@ def test2(verbose=False):
     #main_chronicle.m_assertions[asrt2] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt2,GoalNode()).m_mode = GoalMode.SELECTED
 
-    ts = time.perf_counter()
-    res = asrt2.is_causally_supported_by(asrt1, main_chronicle.m_constraint_network)
-    es = time.perf_counter()
-    print("---")
     if verbose:
-        print("is causally supported : {0}".format(res))
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
-        print("time : {0}".format(es-ts))
-    if not res:
-        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
-    else:
+
+    if not ok:
+        print("---")
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
-    print("---")
+        print("---")
+    else:
+        ts = time.perf_counter()
+        res = asrt2.is_causally_supported_by(asrt1, main_chronicle.m_constraint_network)
+        es = time.perf_counter()
+        print("---")
+        if verbose:
+            print("is causally supported : {0}".format(res))
+            print("time : {0}".format(es-ts))
+        if not res:
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
 
 def test3(verbose=False):
 
@@ -236,8 +247,8 @@ def test3(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_names=("param_robot",),
-        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_params_keys=("param_robot",),
+        p_sv_params_values=("objvar_robots_grp1",),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -254,8 +265,8 @@ def test3(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_names=("param_robot",),
-        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_params_keys=("param_robot",),
+        p_sv_params_values=("objvar_robots_grp1",),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -273,7 +284,7 @@ def test3(verbose=False):
         for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
-    main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     #main_chronicle.m_assertions[asrt1] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt1,GoalNode()).m_mode = GoalMode.SELECTED
@@ -281,19 +292,26 @@ def test3(verbose=False):
     #main_chronicle.m_assertions[asrt2] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt2,GoalNode()).m_mode = GoalMode.SELECTED
 
-    ts = time.perf_counter()
-    res = asrt2.is_causally_supported_by(asrt1, main_chronicle.m_constraint_network)
-    es = time.perf_counter()
-    print("---")
     if verbose:
-        print("is causally supported : {0}".format(res))
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
-        print("time : {0}".format(es-ts))
-    if res:
-        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
-    else:
+
+    if not ok:
+        print("---")
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
-    print("---")
+        print("---")
+    else:
+        ts = time.perf_counter()
+        res = asrt2.is_causally_supported_by(asrt1, main_chronicle.m_constraint_network)
+        es = time.perf_counter()
+        print("---")
+        if verbose:
+            print("is causally supported : {0}".format(res))
+            print("time : {0}".format(es-ts))
+        if res:
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
 
 def test4(verbose=False):
 
@@ -313,8 +331,8 @@ def test4(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_names=("param_robot",),
-        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_params_keys=("param_robot",),
+        p_sv_params_values=("objvar_robots_grp1",),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -331,8 +349,8 @@ def test4(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_names=("param_robot",),
-        p_sv_params_vars=("objvar_robots_grp2",),
+        p_sv_params_keys=("param_robot",),
+        p_sv_params_values=("objvar_robots_grp2",),
         p_sv_val="objvar_location_B",
         p_sv_val_sec=None,
     )
@@ -350,7 +368,7 @@ def test4(verbose=False):
         for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
-    main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     #main_chronicle.m_assertions[asrt1] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt1,GoalNode()).m_mode = GoalMode.SELECTED
@@ -358,19 +376,26 @@ def test4(verbose=False):
     #main_chronicle.m_assertions[asrt2] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt2,GoalNode()).m_mode = GoalMode.SELECTED
 
-    ts = time.perf_counter()
-    res = asrt2.is_causally_supported_by(asrt1, main_chronicle.m_constraint_network)
-    es = time.perf_counter()
-    print("---")
     if verbose:
-        print("is causally supported : {0}".format(res))
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
-        print("time : {0}".format(es-ts))
-    if not res:
-        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
-    else:
+
+    if not ok:
+        print("---")
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
-    print("---")
+        print("---")
+    else:
+        ts = time.perf_counter()
+        res = asrt2.is_causally_supported_by(asrt1, main_chronicle.m_constraint_network)
+        es = time.perf_counter()
+        print("---")
+        if verbose:
+            print("is causally supported : {0}".format(res))
+            print("time : {0}".format(es-ts))
+        if not res:
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
 
 def test5(verbose=False):
 
@@ -390,8 +415,8 @@ def test5(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.TRANSITION,
         p_sv_name="sv_location",
-        p_sv_params_names=("param_robot",),
-        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_params_keys=("param_robot",),
+        p_sv_params_values=("objvar_robots_grp1",),
         p_sv_val="objvar_location_B",
         p_sv_val_sec="objvar_location_A",
     )
@@ -408,8 +433,8 @@ def test5(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_names=("param_robot",),
-        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_params_keys=("param_robot",),
+        p_sv_params_values=("objvar_robots_grp1",),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -427,7 +452,7 @@ def test5(verbose=False):
         for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
-    main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     #main_chronicle.m_assertions[asrt1] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt1,GoalNode()).m_mode = GoalMode.SELECTED
@@ -435,19 +460,26 @@ def test5(verbose=False):
     #main_chronicle.m_assertions[asrt2] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt2,GoalNode()).m_mode = GoalMode.SELECTED
 
-    ts = time.perf_counter()
-    res = asrt2.is_causally_supported_by(asrt1, main_chronicle.m_constraint_network)
-    es = time.perf_counter()
-    print("---")
     if verbose:
-        print("is causally supported : {0}".format(res))
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
-        print("time : {0}".format(es-ts))
-    if res:
-        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
-    else:
+
+    if not ok:
+        print("---")
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
-    print("---")
+        print("---")
+    else:
+        ts = time.perf_counter()
+        res = asrt2.is_causally_supported_by(asrt1, main_chronicle.m_constraint_network)
+        es = time.perf_counter()
+        print("---")
+        if verbose:
+            print("is causally supported : {0}".format(res))
+            print("time : {0}".format(es-ts))
+        if res:
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
 
 def test6(verbose=False):
 
@@ -467,8 +499,8 @@ def test6(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_names=("param_robot",),
-        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_params_keys=("param_robot",),
+        p_sv_params_values=("objvar_robots_grp1",),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -485,8 +517,8 @@ def test6(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_names=("param_robot",),
-        p_sv_params_vars=("objvar_robots_grp1",),
+        p_sv_params_keys=("param_robot",),
+        p_sv_params_values=("objvar_robots_grp1",),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -504,7 +536,7 @@ def test6(verbose=False):
         for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
-    main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     #main_chronicle.m_assertions[asrt1] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt1,GoalNode()).m_mode = GoalMode.SELECTED
@@ -512,23 +544,51 @@ def test6(verbose=False):
     #main_chronicle.m_assertions[asrt2] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt2,GoalNode()).m_mode = GoalMode.SELECTED
 
-    ts = time.perf_counter()
-    res = asrt2.is_causally_supported_by(asrt1, main_chronicle.m_constraint_network)
-    es = time.perf_counter()
-    print("---")
     if verbose:
-        print("is causally supported : {0}".format(res))
-        print("time : {0}".format(es-ts))
-    if not res:
-        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
-    else:
-        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
-    print("---")
+        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
 
+    if not ok:
+        print("---")
+        print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
+    else:
+        ts = time.perf_counter()
+        res = asrt2.is_causally_supported_by(asrt1, main_chronicle.m_constraint_network)
+        es = time.perf_counter()
+        print("---")
+        if verbose:
+            print("is causally supported : {0}".format(res))
+            print("time : {0}".format(es-ts))
+        if not res:
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
 
 def test10(verbose=False):
 
     init_situation1()
+
+    action_template = ActionAndMethodTemplate(
+        p_name="action_move",
+        p_params_names=("p_robot", "p_destination_location"),
+        p_assertions=lambda ts,te,params: set([
+            Assertion(
+                p_type=AssertionType.TRANSITION,
+                p_sv_name="sv_location",
+                p_sv_params_keys=("p_robot",),
+                p_sv_params_values=(params["p_robot"],),
+                p_sv_val=Domain._ANY_VALUE_VAR,
+                p_sv_val_sec=params["p_destination_location"],
+                p_time_start=ts,
+                p_time_end=te,
+        )]),
+        p_constraints=lambda ts,te,params: set([
+            (ConstraintType.TEMPORAL,(ts,te,-4,False)),
+            (ConstraintType.TEMPORAL,(te,ts,8,False)),
+        ])
+    )
+
     constrs = []
     constrs.extend([
         (ConstraintType.TEMPORAL,("t0", "t1", "c_l01", False)),
@@ -542,14 +602,12 @@ def test10(verbose=False):
     ])
 
     asrt1 = Assertion(
-        m_type=AssertionType.PERSISTENCE,
-        m_sv_name="sv_location",
-        m_sv_params_names=("param_robot",),
-        m_sv_params_vars=("objvar_robots_grp1",),
-        m_time_start="t0",
-        m_time_end="t1",
-        m_sv_val="objvar_location_A",
-        m_sv_val_sec=None,
+        p_type=AssertionType.PERSISTENCE,
+        p_sv_name="sv_location",
+        p_sv_params_keys=("p_robot",),
+        p_sv_params_values=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_A",
+        p_sv_val_sec=None,
     )
     constrs.extend([
 #        (ConstraintType.TEMPORAL,("t0", asrt1.time_start, 0, False)),
@@ -562,14 +620,12 @@ def test10(verbose=False):
     ])
     
     asrt2 = Assertion(
-        m_type=AssertionType.PERSISTENCE,
-        m_sv_name="sv_location",
-        m_sv_params_names=("param_robot",),
-        m_sv_params_vars=("objvar_robots_grp1",),
-        m_time_start="t2",
-        m_time_end="t3",
-        m_sv_val="objvar_location_B",
-        m_sv_val_sec=None,
+        p_type=AssertionType.PERSISTENCE,
+        p_sv_name="sv_location",
+        p_sv_params_keys=("p_robot",),
+        p_sv_params_values=("objvar_robots_grp1",),
+        p_sv_val="objvar_location_B",
+        p_sv_val_sec=None,
     )
     constrs.extend([
 #        (ConstraintType.TEMPORAL,("t0", asrt2.time_start, 0, False)),
@@ -581,63 +637,58 @@ def test10(verbose=False):
         (ConstraintType.TEMPORAL,(asrt2.time_start, asrt2.time_end, 0, asrt2.type == AssertionType.TRANSITION)),
     ])
 
-    main_chronicle.m_constraint_network.declare_and_init_objvars({
-        "c_any":Domain(p_initial_allowed_values=[Domain._ANY_VALUE]),
-        "my_robot":Domain(p_initial_allowed_values=["robot1"]),
-        "my_destination":Domain(p_initial_allowed_values=["location3"]),
-    })
-    main_chronicle.m_constraint_network.m_stn.m_controllability["ts_action1"] = True
-    main_chronicle.m_constraint_network.m_stn.m_controllability["te_action1"] = True
-
     action1 = Action(
-        m_action_name="a_move",
-        m_action_params_names=("param_robot", "param_destination_location"),
-        m_action_params_vars=("my_robot","my_destination"),
-        m_time_start="ts_action1",
-        m_time_end="te_action1",
-        m_assertions=set([
-            Assertion(
-                m_type=AssertionType.TRANSITION,
-                m_sv_name="sv_location",
-                m_sv_params_names=("param_robot",),
-                m_sv_params_vars=("my_robot",),
-                m_sv_val="c_any",
-                m_sv_val_sec="my_destination",
-                m_time_start="ts_action1",
-                m_time_end="te_action1"
-        )]),
-        m_constraints=set([
-            (ConstraintType.TEMPORAL,("t1","ts_action1",0,False)),
-            (ConstraintType.TEMPORAL,("ts_action1","te_action1",-4,False)),
-            (ConstraintType.TEMPORAL,("te_action1","ts_action1",8,False)),
-            (ConstraintType.TEMPORAL,("te_action1","t2",0,False)),
-        ])
+        p_action_template=action_template,
+        p_action_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_action_name="",
+        p_time_start="",
+        p_time_end=""
     )
+    main_chronicle.m_constraint_network.declare_and_init_objvars({
+        "my_robot":Domain(p_initial_allowed_values=["robot1","robot2","robot3"]),
+        "my_destination":Domain(p_initial_allowed_values=["location1", "location2", "location3"])
+    })
+
+    constrs.extend([
+        (ConstraintType.UNIFICATION,(action1.action_params["p_robot"],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.action_params["p_destination_location"],"objvar_location_B")),
+        (ConstraintType.TEMPORAL,("t1",action1.time_start,0,False)),
+        (ConstraintType.TEMPORAL,(action1.time_start,"t1",0,False)),
+        (ConstraintType.TEMPORAL,("t2",action1.time_end,0,False)),
+        (ConstraintType.TEMPORAL,(action1.time_end,"t2",0,False))
+    ])
 
     if verbose:
         for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
-    main_chronicle.m_constraint_network.propagate_constraints(constrs)
-
-    #main_chronicle.m_assertions[asrt1] = False
+    main_chronicle.m_assertions[asrt1] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt1,GoalNode()).m_mode = GoalMode.SELECTED
-
-    #main_chronicle.m_assertions[asrt2] = False
+    main_chronicle.m_assertions[asrt2] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt2,GoalNode()).m_mode = GoalMode.SELECTED
 
-    ts = time.perf_counter()
-    res = main_chronicle.is_action_or_method_applicable(action1, "t1")
-    es = time.perf_counter()
-    print("---")
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
+
     if verbose:
-        print("(supportee, supporter) pairs : {0}".format(res))
-        print("time : {0}".format(es-ts))
-    if len(res) == 2:
-        print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
-    else:
+        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
+
+    if not ok:
+        print("---")
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
-    print("---")
+        print("---")
+    else:
+        ts = time.perf_counter()
+        res = main_chronicle.is_action_or_method_applicable(action1, "t1")
+        es = time.perf_counter()
+        print("---")
+        if verbose:
+            print("(supportee, supporter) pairs : {0}".format(res))
+            print("time : {0}".format(es-ts))
+        if len(res) == 2:
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+        print("---")
 
 
 test1()
@@ -646,3 +697,4 @@ test3()
 test4()
 test5()
 test6()
+test10()

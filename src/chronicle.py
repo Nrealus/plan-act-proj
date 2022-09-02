@@ -95,10 +95,12 @@ class Chronicle():
         # will facilitate action insertion, by directly providing the assertions to become supported, instead of performing a new search again
         res = []#False
         # the action/method's starting time must be "now" (p_time)
+        if not self.m_constraint_network.propagate_constraints(p_act_or_meth.constraints):
+            return []
         if (self.m_constraint_network.propagate_constraints([
             (ConstraintType.TEMPORAL,(p_act_or_meth.time_start,p_time,0,False)),
             (ConstraintType.TEMPORAL,(p_time,p_act_or_meth.time_start,0,False)),
-            ],p_just_checking_no_propagation=True) 
+            ],p_dont_apply_and_push=True) 
         ):
             for i_act_or_meth_asrt in p_act_or_meth.assertions:
                 for i_chronicle_asrt in self.m_assertions:
@@ -107,20 +109,28 @@ class Chronicle():
                     # the chronicle must support all action/method's assertions which start at the same time as it
                     #if not (i_act_or_meth_asrt in self.m_causal_network or i_act_or_meth_asrt.is_causally_supported_by(i_chronicle_asrt, p_cn)):
                     #    return False
-                    if (i_act_or_meth_asrt.is_causally_supported_by(i_chronicle_asrt, self.m_constraint_network)
-                        and self.m_constraint_network.propagate_constraints([
-                            (ConstraintType.TEMPORAL,(i_act_or_meth_asrt.time_start,p_time,0,False)),
-                            (ConstraintType.TEMPORAL,(p_time,i_act_or_meth_asrt.time_start,0,False)),
-                            ],p_just_checking_no_propagation=True)
-                    ):
-                        res.append((i_act_or_meth_asrt, i_chronicle_asrt))#, False))
-                    else:
-                        return []
+                    b = True
+                    for (supportee, _) in res:
+                        if supportee == i_act_or_meth_asrt:
+                            b = False
+                            break
+                    if b:
+                        if (i_act_or_meth_asrt.is_causally_supported_by(i_chronicle_asrt, self.m_constraint_network)
+                            and self.m_constraint_network.propagate_constraints([
+                                (ConstraintType.TEMPORAL,(i_act_or_meth_asrt.time_start,p_time,0,False)),
+                                (ConstraintType.TEMPORAL,(p_time,i_act_or_meth_asrt.time_start,0,False)),
+                                ],p_dont_apply_and_push=True)
+                        ):
+                            res.append((i_act_or_meth_asrt, i_chronicle_asrt))#, False))
+                        else:
+                            self.m_constraint_network.backtrack()
+                            return []
                     # the action/method must have at least one assertion supporting an unsupported one of the chronicle
                     #if res == False and i_chronicle_asrt.is_causally_supported_by(i_act_or_meth_asrt, p_cn):
                     #   res = True
                     if i_chronicle_asrt.is_causally_supported_by(i_act_or_meth_asrt, self.m_constraint_network):
                         res.append((i_chronicle_asrt, i_act_or_meth_asrt))#, True))
+        self.m_constraint_network.backtrack()
         return res
 
     def get_induced_conflicts(self, p_new_assertions:typing.Iterable[Assertion]) -> typing.Set[typing.Tuple[Assertion,Assertion]]:
