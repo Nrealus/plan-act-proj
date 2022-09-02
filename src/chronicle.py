@@ -104,12 +104,11 @@ class Chronicle():
         ):
             for i_act_or_meth_asrt in p_act_or_meth.assertions:
                 for i_chronicle_asrt in self.m_assertions:
+                    # just in case
                     if i_act_or_meth_asrt == i_chronicle_asrt:
                         break
                     # the chronicle must support all action/method's assertions which start at the same time as it
-                    #if not (i_act_or_meth_asrt in self.m_causal_network or i_act_or_meth_asrt.is_causally_supported_by(i_chronicle_asrt, p_cn)):
-                    #    return False
-                    b = True
+                    b1 = True
                     for (supportee, _) in res:
                         if supportee == i_act_or_meth_asrt:
                             b = False
@@ -122,12 +121,11 @@ class Chronicle():
                                 ],p_dont_apply_and_push=True)
                         ):
                             res.append((i_act_or_meth_asrt, i_chronicle_asrt))#, False))
+                            continue
                         else:
                             self.m_constraint_network.backtrack()
                             return []
                     # the action/method must have at least one assertion supporting an unsupported one of the chronicle
-                    #if res == False and i_chronicle_asrt.is_causally_supported_by(i_act_or_meth_asrt, p_cn):
-                    #   res = True
                     if i_chronicle_asrt.is_causally_supported_by(i_act_or_meth_asrt, self.m_constraint_network):
                         res.append((i_chronicle_asrt, i_act_or_meth_asrt))#, True))
         self.m_constraint_network.backtrack()
