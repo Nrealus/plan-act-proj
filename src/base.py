@@ -118,10 +118,7 @@ class Assertion(tuple):
         else:
             return False
         # check if the start timepoint of this assertion and end timepoint of the input assertion are the same
-        if (self.time_start == p_other_assertion.time_end
-            or (p_cn.tempvars_minimal_directed_distance(self.time_start, p_other_assertion.time_end) == 0
-                and p_cn.tempvars_minimal_directed_distance(p_other_assertion.time_end, self.time_start) == 0)
-        ):
+        if p_cn.tempvars_unified(self.time_start, p_other_assertion.time_end):
             # check if the values at the end of the specified assertion and at the start of this assertion are the same
             if ((p_other_assertion.type == AssertionType.PERSISTENCE and p_cn.objvars_unified(p_other_assertion.sv_val, self.sv_val))
                 or (p_other_assertion.type == AssertionType.TRANSITION and p_cn.objvars_unified(p_other_assertion.sv_val_sec, self.sv_val))
@@ -129,7 +126,7 @@ class Assertion(tuple):
                 return True
         return False
 
-    def check_conflict(self, p_asrt2:Assertion, p_cn:ConstraintNetwork):
+    def check_conflict(self, p_other_assertion:Assertion, p_cn:ConstraintNetwork):
         """
         Determines whether this assertion is conflicting with the specified input assertion, based on the specified constraint network
         Used to determine (potential) conflicts in a chronicle (for search purposes)
@@ -145,48 +142,48 @@ class Assertion(tuple):
             None
         """
         # an assertion can't be conflicting with itself
-        if self == p_asrt2:
+        if self == p_other_assertion:
             return False
         # check if the head of this assertion and the specified one is different
-        elif self.sv_name == p_asrt2.sv_name and self.sv_params_names == p_asrt2.sv_params_names:
+        elif self.sv_name == p_other_assertion.sv_name and self.sv_params_names == p_other_assertion.sv_params_names:
             b = True
             for i in range(len(self.sv_params_values)):
-                if not p_cn.objvars_unifiable(self.sv_params_values[i],p_asrt2.sv_params_values[i]):
+                if not p_cn.objvars_unifiable(self.sv_params_values[i],p_other_assertion.sv_params_values[i]):
                     return False
         #else:
         #    warnings.warn("shouldn't happen...!!!!")
 
-        if self.type == AssertionType.PERSISTENCE and p_asrt2.type == AssertionType.PERSISTENCE:
+        if self.type == AssertionType.PERSISTENCE and p_other_assertion.type == AssertionType.PERSISTENCE:
 
-            if b and p_cn.objvars_separable(self.sv_val, p_asrt2.sv_val):
+            if b and p_cn.objvars_separable(self.sv_val, p_other_assertion.sv_val):
                 # if the assertions' temporal windows possibly intersect
-                if (p_cn.tempvars_minimal_directed_distance(self.time_start,p_asrt2.time_end)
-                    * p_cn.tempvars_minimal_directed_distance(p_asrt2.time_start,self.time_end) >= 0
+                if (self.time_start == p_other_assertion.time_end
+                    or p_other_assertion.time_start == self.time_end
+                    or p_cn.tempvars_minimal_directed_distance(self.time_start,p_other_assertion.time_end)
+                    * p_cn.tempvars_minimal_directed_distance(p_other_assertion.time_start,self.time_end) >= 0
                 ):
                     return True
             return False
 
-        elif self.type == AssertionType.TRANSITION and p_asrt2.type == AssertionType.TRANSITION:
+        elif self.type == AssertionType.TRANSITION and p_other_assertion.type == AssertionType.TRANSITION:
 
             if b:
                 # if the assertions' temporal windows possibly intersect
-                if (p_cn.tempvars_minimal_directed_distance(self.time_start,p_asrt2.time_end)
-                    * p_cn.tempvars_minimal_directed_distance(p_asrt2.time_start,self.time_end) >= 0
+                if (self.time_start == p_other_assertion.time_end
+                    or p_other_assertion.time_start == self.time_end
+                    or p_cn.tempvars_minimal_directed_distance(self.time_start,p_other_assertion.time_end)
+                    * p_cn.tempvars_minimal_directed_distance(p_other_assertion.time_start,self.time_end) >= 0
                 ):
                     # if the transition statements have the same (unified) values and same start and end timepoints
                     # or have the same (unified) values and are connected by the end of one another
                     # then there's no conflict
-                    if ((p_cn.objvars_unified(self.sv_val, p_asrt2.sv_val) and p_cn.objvars_unified(self.sv_val_sec, p_asrt2.sv_val_sec)
-                        and p_cn.tempvars_minimal_directed_distance(self.time_start,p_asrt2.time_start) == 0
-                        and p_cn.tempvars_minimal_directed_distance(p_asrt2.time_start,self.time_start) == 0
-                        and p_cn.tempvars_minimal_directed_distance(self.time_end,p_asrt2.time_end) == 0
-                        and p_cn.tempvars_minimal_directed_distance(p_asrt2.time_end,self.time_end) == 0)
-                    or (p_cn.objvars_unified(self.sv_val, p_asrt2.sv_val_sec)
-                        and p_cn.tempvars_minimal_directed_distance(self.time_start,p_asrt2.time_end) == 0
-                        and p_cn.tempvars_minimal_directed_distance(p_asrt2.time_end,self.time_start) == 0)
-                    or (p_cn.objvars_unified(p_asrt2.sv_val, self.sv_val_sec)
-                        and p_cn.tempvars_minimal_directed_distance(p_asrt2.time_start,self.time_end) == 0
-                        and p_cn.tempvars_minimal_directed_distance(self.time_end,p_asrt2.time_start) == 0)
+                    if ((p_cn.objvars_unified(self.sv_val, p_other_assertion.sv_val) and p_cn.objvars_unified(self.sv_val_sec, p_other_assertion.sv_val_sec)
+                        and p_cn.tempvars_unified(self.time_start,p_other_assertion.time_start)
+                        and p_cn.tempvars_unified(self.time_end,p_other_assertion.time_end))
+                    or (p_cn.objvars_unified(self.sv_val, p_other_assertion.sv_val_sec)
+                        and p_cn.tempvars_unified(self.time_start,p_other_assertion.time_end))
+                    or (p_cn.objvars_unified(p_other_assertion.sv_val, self.sv_val_sec)
+                        and p_cn.tempvars_unified(p_other_assertion.time_start,self.time_end))
                     ):
                         return False
                     else:
@@ -197,24 +194,24 @@ class Assertion(tuple):
 
             if self.type == AssertionType.PERSISTENCE:
                 asrt_pers = self
-                asrt_trans = p_asrt2
+                asrt_trans = p_other_assertion
             else:
-                asrt_pers = p_asrt2
+                asrt_pers = p_other_assertion
                 asrt_trans = self
 
             if b:
                 # if the assertions' temporal windows possibly intersect
-                if (p_cn.tempvars_minimal_directed_distance(asrt_pers.time_start,asrt_trans.time_end)
+                if (asrt_pers.time_start == asrt_trans.time_end
+                    or asrt_trans.time_start == asrt_pers.time_end
+                    or p_cn.tempvars_minimal_directed_distance(asrt_pers.time_start,asrt_trans.time_end)
                     * p_cn.tempvars_minimal_directed_distance(asrt_trans.time_start,asrt_pers.time_end) >= 0
                 ):
                     # if have the same (unified) values and are connected by the end of one another
                     # then there's no conflict
                     if ((p_cn.objvars_unified(asrt_trans.sv_val_sec, asrt_pers.sv_val)
-                        and p_cn.tempvars_minimal_directed_distance(asrt_pers.time_start,asrt_trans.time_end) == 0
-                        and p_cn.tempvars_minimal_directed_distance(asrt_trans.time_end,asrt_pers.time_start) == 0)
+                        and p_cn.tempvars_unified(asrt_pers.time_start,asrt_trans.time_end))
                     or (p_cn.objvars_unified(asrt_pers.sv_val, asrt_trans.sv_val)
-                        and p_cn.tempvars_minimal_directed_distance(asrt_trans.time_start,asrt_pers.time_end) == 0
-                        and p_cn.tempvars_minimal_directed_distance(asrt_pers.time_end,asrt_trans.time_start) == 0)
+                        and p_cn.tempvars_unified(asrt_trans.time_start,asrt_pers.time_end))
                     ):
                         return False
                     else:

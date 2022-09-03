@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from xml.dom import minicompat
 sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-playground7")
 
 import typing
@@ -93,42 +94,44 @@ class Chronicle():
         # idea : instead of true/false, return the (supportee (chronicle assertion), supporter (action assertion), order)
         # order : true if supportee is from chronicle, and supporter is from action/method
         # will facilitate action insertion, by directly providing the assertions to become supported, instead of performing a new search again
-        res = []#False
+        res = []
+        backtracks_num = 1
         # the action/method's starting time must be "now" (p_time)
         if not self.m_constraint_network.propagate_constraints(p_act_or_meth.constraints):
             return []
-        if (self.m_constraint_network.propagate_constraints([
-            (ConstraintType.TEMPORAL,(p_act_or_meth.time_start,p_time,0,False)),
-            (ConstraintType.TEMPORAL,(p_time,p_act_or_meth.time_start,0,False)),
-            ],p_dont_apply_and_push=True) 
-        ):
+        if self.m_constraint_network.tempvars_unified(p_act_or_meth.time_start,p_time):
+            b1 = False
             for i_act_or_meth_asrt in p_act_or_meth.assertions:
+                b2 = False
                 for i_chronicle_asrt in self.m_assertions:
                     # just in case
                     if i_act_or_meth_asrt == i_chronicle_asrt:
                         break
                     # the chronicle must support all action/method's assertions which start at the same time as it
-                    b = True
-                    for (supportee, _) in res:
-                        if supportee == i_act_or_meth_asrt:
-                            b = False
+                    if (not b2 and i_act_or_meth_asrt.is_causally_supported_by(i_chronicle_asrt, self.m_constraint_network)
+                        and self.m_constraint_network.tempvars_unified(i_act_or_meth_asrt.time_start,p_time)
+                    ):
+                        res.append((i_act_or_meth_asrt, i_chronicle_asrt))
+                        b2 = True
+                        #backtracks_num += 1
+                        if b1:
                             break
-                    if b:
-                        if (i_act_or_meth_asrt.is_causally_supported_by(i_chronicle_asrt, self.m_constraint_network)
-                            and self.m_constraint_network.propagate_constraints([
-                                (ConstraintType.TEMPORAL,(i_act_or_meth_asrt.time_start,p_time,0,False)),
-                                (ConstraintType.TEMPORAL,(p_time,i_act_or_meth_asrt.time_start,0,False)),
-                                ],p_dont_apply_and_push=True)
-                        ):
-                            res.append((i_act_or_meth_asrt, i_chronicle_asrt))#, False))
-                            continue
-                        else:
-                            self.m_constraint_network.backtrack()
-                            return []
                     # the action/method must have at least one assertion supporting an unsupported one of the chronicle
-                    if i_chronicle_asrt.is_causally_supported_by(i_act_or_meth_asrt, self.m_constraint_network):
-                        res.append((i_chronicle_asrt, i_act_or_meth_asrt))#, True))
-        self.m_constraint_network.backtrack()
+                    if not b1 and i_chronicle_asrt.is_causally_supported_by(i_act_or_meth_asrt, self.m_constraint_network):
+                        res.append((i_chronicle_asrt, i_act_or_meth_asrt))
+                        b1 = True
+                        if b2:
+                            break
+                if not b2:
+                    for _ in range(backtracks_num):
+                        self.m_constraint_network.backtrack()
+                    return []
+            if not b1:
+                for _ in range(backtracks_num):
+                    self.m_constraint_network.backtrack()
+                return []
+        for _ in range(backtracks_num):
+            self.m_constraint_network.backtrack()
         return res
 
     def get_induced_conflicts(self, p_new_assertions:typing.Iterable[Assertion]) -> typing.Set[typing.Tuple[Assertion,Assertion]]:
