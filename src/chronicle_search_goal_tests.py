@@ -653,7 +653,6 @@ def test10(verbose=False):
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
-        print(main_chronicle.m_constraint_network.tempvars_minimal_directed_distance("t1","t2"))
 
     if not ok:
         print("---")
@@ -761,7 +760,6 @@ def test11(verbose=False):
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
-        print(main_chronicle.m_constraint_network.tempvars_minimal_directed_distance("t1","t2"))
 
     if not ok:
         print("---")
@@ -883,7 +881,6 @@ def test12(verbose=False):
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
-        print(main_chronicle.m_constraint_network.tempvars_minimal_directed_distance("t1","t2"))
 
     if not ok:
         print("---")
