@@ -52,7 +52,7 @@ class SearchNode():
 
     monitor_action_template = ActionAndMethodTemplate(
         p_name="action_monitor_assertion",
-        p_params_names="assertion",
+        p_params_names="p_assertion",
         p_constraints=lambda ts,te,_:[
             (ConstraintType.TEMPORAL, (ts,te,0,False))
         ]
@@ -133,7 +133,7 @@ class SearchNode():
 
                     new_action = Action(
                         p_action_template=SearchNode.monitor_action_template,
-                        p_action_params={"assertion":self.m_flaw_node_info.m_assertion1},
+                        p_action_params={"p_assertion":self.m_flaw_node_info.m_assertion1},
                         p_time_start=self.m_flaw_node_info.m_assertion1.time_start,
                         p_time_end=self.m_flaw_node_info.m_assertion1.time_end,
                     )
@@ -164,7 +164,7 @@ class SearchNode():
 
                         new_action2 = Action(
                             p_action_template=SearchNode.monitor_action_template,
-                            p_action_params={"assertion":ri.m_direct_support_assertion},
+                            p_action_params={"p_assertion":ri.m_direct_support_assertion},
                             p_time_start=ri.m_direct_support_assertion.time_start,
                             p_time_end=ri.m_direct_support_assertion.time_end,
                         )
