@@ -8,7 +8,7 @@ import typing
 from enum import Enum
 from src.utility.new_int_id import new_int_id
 from src.constraints.constraints import ConstraintNetwork, ConstraintType
-from src.base import Assertion, Action, Method
+from src.base import ActionAndMethodTemplate, Assertion, Action, Method
 from src.chronicle import Chronicle
 from src.goal_node import GoalMode, GoalNode
 
@@ -49,6 +49,14 @@ class EveMoveInfo():
     m_selected_uncontrollable_timepoints:typing.List[str]
 
 class SearchNode():
+
+    monitor_action_template = ActionAndMethodTemplate(
+        p_name="action_monitor_assertion",
+        p_params_names="assertion",
+        p_constraints=lambda ts,te,_:[
+            (ConstraintType.TEMPORAL, (ts,te,0,False))
+        ]
+    )
 
     def __init__(self,
         p_node_type:SearchNodeType,
@@ -124,13 +132,10 @@ class SearchNode():
                 elif ri.m_type == ResolverType.EXISTING_DIRECT_PERSISTENCE_SUPPORT_NOW or ri.m_type == ResolverType.NEW_DIRECT_PERSISTENCE_SUPPORT_NOW:
 
                     new_action = Action(
-                        m_action_name="monitor_assertion_{0}".format(str(new_int_id())),
-                        m_action_params_names="assertion",
-                        m_action_params_vars=self.m_flaw_node_info.m_assertion1,
-                        m_time_start=self.m_flaw_node_info.m_assertion1.time_start,
-                        m_time_end=self.m_flaw_node_info.m_assertion1.time_end,
-                        m_assertions=set(), # self.m_flaw_node_info.m_assertion1.m_assertions
-                        m_constraints=set(), # self.m_flaw_node_info.m_assertion1.m_constraints
+                        p_action_template=SearchNode.monitor_action_template,
+                        p_action_params={"assertion":self.m_flaw_node_info.m_assertion1},
+                        p_time_start=self.m_flaw_node_info.m_assertion1.time_start,
+                        p_time_end=self.m_flaw_node_info.m_assertion1.time_end,
                     )
                     if transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent is None:
                         parent = None
@@ -158,13 +163,10 @@ class SearchNode():
                     if ri.m_direct_support_assertion_supporter is not None:
 
                         new_action2 = Action(
-                            m_action_name="monitor_assertion_{0}".format(str(new_int_id())),
-                            m_action_params_names="assertion",
-                            m_action_params_vars=ri.m_direct_support_assertion,
-                            m_time_start=ri.m_direct_support_assertion.time_start,
-                            m_time_end=ri.m_direct_support_assertion.time_end,
-                            m_assertions=set(), # ri.m_direct_support_assertion.m_assertions
-                            m_constraints=set(), # ri.m_direct_support_assertion.m_constraints
+                            p_action_template=SearchNode.monitor_action_template,
+                            p_action_params={"assertion":ri.m_direct_support_assertion},
+                            p_time_start=ri.m_direct_support_assertion.time_start,
+                            p_time_end=ri.m_direct_support_assertion.time_end,
                         )
                         transformed_chronicle.m_plan[new_action2] = parent # maybe new_action?
 
@@ -272,7 +274,7 @@ class SearchNode():
                             #if (transformed_chronicle.m_constraint_network.propagate_constraints([
                             #        (ConstraintType.TEMPORAL, (ctr_tp, asrt.m_time_start, 0, False)),
                             #        (ConstraintType.TEMPORAL, (asrt.m_time_start, ctr_tp, 0, False)),
-                            #    ], p_just_checking_no_propagation=True)
+                            #    ], p_apply_and_push=True)
                             #):
                         transformed_chronicle.m_constraint_network.propagate_constraints([
                             (ConstraintType.TEMPORAL, (ctr_tp, "ref_tp", self.m_time, False)),
