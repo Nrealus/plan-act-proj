@@ -28,17 +28,16 @@ class ResolverType(Enum):
 class FlawNodeInfo():
     m_assertion1:Assertion
     m_assertion2:Assertion
-    # if assertion2 is None, then it's an unsupportd assertion / open goal flaw
-    # if not, then conflict assertion
-    # if more complicated flaws are introduced, a more detailed / general representation may be needed
+    # if assertion2 is None, then the flaw is an unsupportd assertion / open goal flaw
+    # if not, then the flaw is a (possibly) conflicting assertions flaw
 
 class ResolverNodeInfo():
     m_type:ResolverType
     m_direct_support_assertion:Assertion
     m_direct_support_assertion_supporter:Assertion
-    m_constraints:typing.List[typing.Tuple[ConstraintType,typing.Any]]
+    m_constraints:typing.Set[typing.Tuple[ConstraintType,typing.Any]]
     m_action_or_method_instance:Action|Method
-    m_act_or_meth_assertion_support_info:typing.List[typing.Tuple[Assertion,Assertion]]#,bool]]
+    m_act_or_meth_assertion_support_info:typing.Set[typing.Tuple[Assertion,Assertion]]
 
 class CharlieMoveInfo():
     m_selected_controllable_timepoints:typing.List[str]
@@ -64,8 +63,6 @@ class SearchNode():
         p_time:float,
         p_state:object,
         p_chronicle:Chronicle,
-        #p_constraints:object,
-        #p_goal_memory:List[GoalMemoryElement]
         p_flaw_node_info:FlawNodeInfo=None,
         p_resolver_node_info:ResolverNodeInfo=None,
         p_charlie_move_info:CharlieMoveInfo=None,
@@ -78,7 +75,6 @@ class SearchNode():
         self.m_time:float = p_time
         self.m_state:object = p_state
         self.m_chronicle:Chronicle = p_chronicle
-        #self.m_constraints = None#p_constraints # constr net, i guess
         #self.scheduled_time_points ?
         #other variables than time points ? maybe already accounted for in constr net ?
 
@@ -121,66 +117,97 @@ class SearchNode():
             resolvers = self.select_resolvers() # order/priority can depend on search strategy
             for ri in resolvers:
                 
+                # The chronicle of the child search node that is being created 
                 transformed_chronicle = deepcopy(old_chronicle)
             
-                resolvers = self.select_resolvers() # order/priority can depend on search strategy
                 if ri.m_type == ResolverType.CONFLICT_SEPARATION:
 
+                    # Apply constraints resolving the flaw to the chronicle of the child search node currently being built
                     transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
+                    # Remove the adressed conflict from the collection of current conflicts in the chronicle of the child search node currently being built
                     transformed_chronicle.m_conflicts.remove((self.m_flaw_node_info.m_assertion1,self.m_flaw_node_info.m_assertion2))
 
                 elif ri.m_type == ResolverType.EXISTING_DIRECT_PERSISTENCE_SUPPORT_NOW or ri.m_type == ResolverType.NEW_DIRECT_PERSISTENCE_SUPPORT_NOW:
 
+                    # A "dummy action" considered to be the expansion of the goal corresponding to the addressed unsupported assertion
+                    # Indeed, in accordance with the goal lifecycle, before a goal can be set to the "dispatched" mode,
+                    # it needs to be in the "committed" mode, which represents the fact that a means to 
+                    # achieve this goal (plan : action, method...) was found and committed to.
+                    # Direct support of a previously unsupported assertion is a way to achieve (or guarantee/promise the achievement of) the
+                    # goal corresponding to that assertion. To represent that in the *plan* (i.e. course of *action*, not just chronicle) we 
+                    # make use of actions which are supposed to achieve / maintain the "promise" made in the chronicle.
+                    # Which actually corresponds to the monitoring function of planning and acting.
+                    # In conclusion - this action will have to monitor whether the newly directly supported assertion is indeed respected during execution
+                    # It is this action that will be triggered when the goal/assertion will be dispatched
                     new_action = Action(
                         p_action_template=SearchNode.monitor_action_template,
                         p_action_params={"p_assertion":self.m_flaw_node_info.m_assertion1},
                         p_time_start=self.m_flaw_node_info.m_assertion1.time_start,
                         p_time_end=self.m_flaw_node_info.m_assertion1.time_end,
                     )
-                    if transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent is None:
-                        parent = None
-                    else:
-                        if transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent.m_committed_expansion is not None:
-                            parent = transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent.m_committed_expansion.m_action_or_method_instance
-                            # None still possible                                
+                    # Finding this new action's hierarchical place in the plan (parent (method) following the plan decomposition) 
+                    parent = None
+                    if not transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent is None:
+                        if not transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent.m_committed_expansion is None:
+                            parent = transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent.m_committed_expansion
+                    # Adding the action to the plan in the chronicle of the child search node currently being built
+                    # Notice that the line above can still give a None parent
                     transformed_chronicle.m_plan[new_action] = parent
 
-                    # an action that will have to monitor whether the assertion is indeed respected during execution
-                    # it is this action that will be triggered when the goal/assertion will be dispatched
+                    # Transitioning the goal corresponding to the flawed assertion in this search node's chronicle to "expanded" mode
+                    # with this action as a possible expansion
+                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.EXPANDED
+                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_possible_expansions.append(new_action)
 
+                    # Setting the assertion from unsupported to supported and adding its supporter to the causal network
+                    # in the chronicle of the child search node currently being built
                     transformed_chronicle.m_assertions[self.m_flaw_node_info.m_assertion1] = True
                     transformed_chronicle.m_causal_network[self.m_flaw_node_info.m_assertion1] = ri.m_direct_support_assertion
-
-                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.COMMITTED
-                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_possible_expansions = [ri]
-                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = ri
                     
-                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.EXPANDED
-                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_possible_expansions.append(ri)
-
-                    # it is indeed None in the case of direct support from an existing persistence assertion, where only constraints are actually added
-                    # (this is adressed right above)
+                    # Transitioning the goal corresponding to the flawed assertion to "committed" mode with the action introduced above as its committed expansion
+                    # in the chronicle of the child search node currently being built
+                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.COMMITTED
+                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_possible_expansions = [new_action]
+                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = new_action
+                    
+                    # The following code deals with the case where the direct supporter used was not already present in the chronicle
+                    # and was created specifically to resolve the flaw. This newly created direct supporter must be, in turn, directly supported
+                    # itself by a persistence assertion already present in the chronicle (ri.m_direct_support_assertion_supporter).
+                    # As such, if it is None, direct_support_assertion must have necessarily been already present in the chronicle.
+                    # And if it isn't, it needs to be managed (support from ri.m_direct_support_assertion_supporter, status of the corresponding goal)
                     if ri.m_direct_support_assertion_supporter is not None:
 
+                        # Same as above, but addresses the supporter of the introduced direct supporter of the flawed unsupported assertion.
                         new_action2 = Action(
                             p_action_template=SearchNode.monitor_action_template,
                             p_action_params={"p_assertion":ri.m_direct_support_assertion},
                             p_time_start=ri.m_direct_support_assertion.time_start,
                             p_time_end=ri.m_direct_support_assertion.time_end,
                         )
-                        transformed_chronicle.m_plan[new_action2] = parent # maybe new_action?
+                        # Same parent as for the direct supporter - the idea is that both these actions stem from the same decision
+                        transformed_chronicle.m_plan[new_action2] = parent
 
+                        # Not adressing ri.m_direct_support_assertion_supporter in this search node's chronicle,
+                        # as in this case the ri.m_direct_support_assertion was newly created and not present in this search node's chronicle,
+                        # which means that the goal corresponding to it simply doesn't exist yet.
+                        # It exists in the chronicle of the child search node currently being built,
+                        # where it is introduced in directly "committed" mode (see below)
+
+                        # Same as in the above part
                         transformed_chronicle.m_assertions[ri.m_direct_support_assertion] = True
                         transformed_chronicle.m_causal_network[ri.m_direct_support_assertion] = ri.m_direct_support_assertion_supporter
-                        # the assertion supporting the introduced direct supporter (for the flawed assertion)
 
+                        # Same as in the above part
                         transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion] = GoalNode()
                         transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_mode = GoalMode.COMMITTED
                         transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_parent = transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1]
-                        transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_possible_expansions = [ri]
-                        transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_committed_expansion = ri
+                        transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_possible_expansions = [new_action2]
+                        transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_committed_expansion = new_action2
 
+                    # Apply the constraints introduced to allow the suggested direct supporter to be one
                     transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
+                    # Update the collection of current conflicts in the chronicle of the child search node currently being built
+                    # with all the conflicts which may have appeared after the application of these constraints and possilby new direct supporter assertion
                     transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts([ri.m_direct_support_assertion]))
 
                 elif ri.m_type == ResolverType.METHOD_INSERTION_NOW or ri.m_type == ResolverType.ACTION_INSERTION_NOW:
@@ -193,50 +220,65 @@ class SearchNode():
                     # the supporter of the flawed assertion will come from a further decomposition (by a method/action) of one of the method's subgoal assertions.
                     # in that case, the supporter origin (see above) will have to be update to the new decomposing method/action.
                     #transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.COMMITTED
-                    #transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = ri.m_act_or_meth_instance                    
+                    #transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = ri.m_act_or_meth_instance
 
-                    if transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent is None:
-                        parent = None
-                    else:
-                        if transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent.m_committed_expansion is not None:
-                            parent = transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent.m_committed_expansion.m_action_or_method_instance
-                            # None still possible                                
+                    # Finding the hierarchical place in the plan (parent (method) following the plan decomposition)
+                    # of the action/method suggested by this resolver
+                    parent = None
+                    if not transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent is None:
+                        if not transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent.m_committed_expansion is None:
+                            parent = transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_parent.m_committed_expansion
+                    # Adding the action/method to the plan in the chronicle of the child search node currently being built
+                    # Notice that the line above can still give a None parent
                     transformed_chronicle.m_plan[ri.m_action_or_method_instance] = parent
 
-                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.COMMITTED
-                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_possible_expansions = [ri]
-                    transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = ri
-
+                    # Transitioning the goal corresponding to the flawed assertion in this search node's chronicle to "expanded" mode
+                    # with action/method suggested in the resolver as a possible expansion
                     self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.EXPANDED
-                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_possible_expansions.append(ri)
+                    self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_possible_expansions.append(ri.m_action_or_method_instance)
 
+                    # Transitioning the goal corresponding to the flawed assertion to "committed" mode with the action introduced above as its committed expansion
+                    # in the chronicle of the child search node currently being built is done at the end of the 2nd next loop,
+                    # as the flawed unsupported assertion must be one of the assertions supported by the action/method.
+
+                    # Update the chronicle of the child search node currently being built by adding the assertions of the action/method chosen in the resolver to it
                     for i_asrt in ri.m_action_or_method_instance.assertions:
-                            
+                        
                         transformed_chronicle.m_assertions[i_asrt] = False
 
                         transformed_chronicle.m_goal_nodes[i_asrt] = GoalNode()
                         transformed_chronicle.m_goal_nodes[i_asrt].m_mode = GoalMode.SELECTED
                         transformed_chronicle.m_goal_nodes[i_asrt].m_parent = transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1]
 
+                    # Manage the assertion supports which made the action/method applicable in the first place
+                    # (i.e. set the supported assertions from unsupported to supported and add their supporter in the causal network)
                     for (i_asrt_supportee, i_asrt_supporter) in ri.m_act_or_meth_assertion_support_info:
 
-                        # NOTE: support is guaranteed only for those assertions of the action which start at the same time as it !!
-                        # others may not have guaranteed supporter ! which is why we first need to set to false and selected in the previous loop
+                        # All of the assertions of the action/method, starting at the same time as it, have to be supported by the chronicle
+                        # But those that do not start at the same time as it (and as such don't have to be supported by the chronicle)
+                        # still need to be introduced, which is done in the loop above. 
                         transformed_chronicle.m_assertions[i_asrt_supportee] = True
                         transformed_chronicle.m_causal_network[i_asrt_supportee] = i_asrt_supporter
-
+                                
+                        # Also, at least one of the chronicle's assertions must be supported by an assertion from the action/method
+                        # (The flawed unsupported assertion is (must) be one of them)
+                        # These assertions and the corresponding goals are managed below
                         if i_asrt_supportee in ri.m_action_or_method_instance.assertions:
                             asrt = i_asrt_supportee
-                        else: # either already in chronicle or introduced by action/method
+                        else:
                             asrt = i_asrt_supporter
-
                         if asrt != self.m_flaw_node_info.m_assertion1:
                             transformed_chronicle.m_goal_nodes[asrt].m_mode = GoalMode.COMMITTED
                             transformed_chronicle.m_goal_nodes[asrt].m_parent = transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1]
-                            transformed_chronicle.m_goal_nodes[asrt].m_possible_expansions = [ri]
-                            transformed_chronicle.m_goal_nodes[asrt].m_committed_expansion = ri
+                            transformed_chronicle.m_goal_nodes[asrt].m_possible_expansions = [ri.m_action_or_method_instance]
+                            transformed_chronicle.m_goal_nodes[asrt].m_committed_expansion = ri.m_action_or_method_instance
 
+                    # Apply the constraints introduced of the action/method and also any other constraints that may be in the resolver
+                    # (NOTE: can there be any other ? think about it, and if yes - an example ?)
+                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_action_or_method_instance.constraints)
                     transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
+                    # Update the collection of current conflicts in the chronicle of the child search node currently being built
+                    # with all the conflicts which may have appeared after the application of the action/method
                     transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts(ri.m_action_or_method_instance.assertions))
 
                 # decision could be made using search control on whether to follow with a flaw or charlie child (or both)

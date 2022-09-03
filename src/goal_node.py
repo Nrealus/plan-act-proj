@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import sys
 sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-playground7")
 
 from enum import Enum
 import typing
-from src.base import Assertion
+from src.base import Assertion, Action, Method
 
 class GoalMode(Enum):
     FORMULATED = 0
@@ -22,7 +24,7 @@ class GoalNode():
         #self.m_constraint_network:ConstraintNetwork = ConstraintNetwork()
         self.m_mode:GoalMode = GoalMode.FORMULATED
         self.m_parent:GoalNode = None
-        self.m_possible_expansions:typing.List = []
-        self.m_committed_expansion = None
+        self.m_possible_expansions:typing.List[Action|Method] = []
+        self.m_committed_expansion:Action|Method = None
         self.m_metrics:typing.Dict = {}
 
