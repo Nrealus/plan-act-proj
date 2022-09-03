@@ -72,7 +72,11 @@ class Chronicle():
         #self.m_constraint_network.m_bcn.clear()
         #self.m_constraint_network.m_stn.clear()
 
-    def is_action_or_method_applicable(self, p_act_or_meth:Action|Method, p_time:str) -> typing.Iterable[typing.Tuple[Assertion,Assertion]]:#,bool]]:
+    def is_action_or_method_applicable(self,
+        p_act_or_meth:Action|Method,
+        p_time:str,
+        p_assertion_to_support:Assertion=None
+    ) -> typing.Iterable[typing.Tuple[Assertion,Assertion]]:#,bool]]:
         """
         Determines whether a (specified) action/method is applicable to this chronicle at a specified time.
         Used for planning search purposes.
@@ -81,6 +85,9 @@ class Chronicle():
                 The action/method whose applicability to check for 
             p_time (str):
                 Time at which to test for the applicability of the specified action/method
+            p_assertion_to_support (Assertion):
+                Assertion that must be supported by the action in order to applicable.
+                None by default.
         Returns:
             If the action/method is not applicable - an empty list []
             If it is applicable - a list of (supportee, supporter) pairs of Assertions which would be established in the chronicle when applying the action/method
@@ -100,6 +107,7 @@ class Chronicle():
             return []
         if self.m_constraint_network.tempvars_unified(p_act_or_meth.time_start,p_time):
             b1 = False
+            b3 = (p_assertion_to_support == None)
             for i_act_or_meth_asrt in p_act_or_meth.assertions:
                 b2 = False
                 for i_chronicle_asrt in self.m_assertions:
@@ -120,13 +128,15 @@ class Chronicle():
                     if not b1 and i_chronicle_asrt.is_causally_supported_by(i_act_or_meth_asrt, self.m_constraint_network):
                         res.append((i_chronicle_asrt, i_act_or_meth_asrt))
                         b1 = True
+                        if not b3 and i_chronicle_asrt == p_assertion_to_support:
+                            b3 = True
                         if b2:
                             break
                 if not b2:
                     for _ in range(backtracks_num):
                         self.m_constraint_network.backtrack()
                     return []
-            if not b1:
+            if not b1 or not b3:
                 for _ in range(backtracks_num):
                     self.m_constraint_network.backtrack()
                 return []
