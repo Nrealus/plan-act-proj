@@ -115,7 +115,8 @@ class Chronicle():
                         #backtracks_num += 1
                         if b1:
                             break
-                    # the action/method must have at least one assertion supporting an unsupported one of the chronicle
+                    # the action/method must have at least one assertion (any, not necessarily starting at the same as it)
+                    # supporting an unsupported assertion already present in the chronicle
                     if not b1 and i_chronicle_asrt.is_causally_supported_by(i_act_or_meth_asrt, self.m_constraint_network):
                         res.append((i_chronicle_asrt, i_act_or_meth_asrt))
                         b1 = True
