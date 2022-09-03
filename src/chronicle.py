@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-from xml.dom import minicompat
 sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-playground7")
 
 import typing
