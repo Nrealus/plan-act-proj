@@ -597,7 +597,7 @@ class BCN():
                 #        for cstr in p_stn.m_involved_objvars[var1]:
                 #            # actually important, can't just get away with evaluating the max in stn. in case the max goes up, need to enforce previous, more restrictive max
                 #            # htb : "helper temporal bound"
-                #            #_htb_var = "_htb_{0}".format(hex(new_int_id()))
+                #            #_htb_var = "__htb_{0}".format(hex(new_int_id()))
                 #            #self.m_domains[_htb_var] = {self.m_domains[var1].max_value()}
                 #            #if not p_stn._propagate([(cstr[0],cstr[1],_htb_var)],self):
                 #            #    return False
@@ -753,7 +753,7 @@ class STN():
                     break
                 # create a helper constant variable (singleton domain) in the bcn and use it instead
                 # "hcov" stands for "helper constant object variable"
-                var = "_hcov_{0}".format(new_int_id())
+                var = "__hcov_{0}".format(new_int_id())
                 p_bcn.m_domains[var] = Domain(DomainType.DISCRETE, [bound])
 
             self.m_controllability.setdefault(t1,True)# will deal with controllability later

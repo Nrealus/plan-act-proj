@@ -607,15 +607,15 @@ def test10(verbose=False):
     )
 
     action1 = Action(
-        p_action_template=action_template,
-        p_action_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
-        p_action_name="",
+        p_template=action_template,
+        p_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_name="",
         p_time_start="t1",
         p_time_end="t2"
     )
     constrs.extend([
-        (ConstraintType.UNIFICATION,(action1.action_params["p_robot"],"objvar_robots_grp1")),
-        (ConstraintType.UNIFICATION,(action1.action_params["p_destination_location"],"objvar_location_B")),
+        (ConstraintType.UNIFICATION,(action1.params["p_robot"],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.params["p_destination_location"],"objvar_location_B")),
     ])
     
     asrt1 = Assertion(
@@ -714,15 +714,15 @@ def test11(verbose=False):
     )
 
     action1 = Action(
-        p_action_template=action_template,
-        p_action_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
-        p_action_name="",
+        p_template=action_template,
+        p_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_name="",
         p_time_start="t1",
         p_time_end="t2"
     )
     constrs.extend([
-        (ConstraintType.UNIFICATION,(action1.action_params["p_robot"],"objvar_robots_grp1")),
-        (ConstraintType.UNIFICATION,(action1.action_params["p_destination_location"],"objvar_location_B")),
+        (ConstraintType.UNIFICATION,(action1.params["p_robot"],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.params["p_destination_location"],"objvar_location_B")),
     ])
     
     asrt1 = Assertion(
@@ -821,15 +821,15 @@ def test12(verbose=False):
     )
 
     action1 = Action(
-        p_action_template=action_template,
-        p_action_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
-        p_action_name="",
+        p_template=action_template,
+        p_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_name="",
         p_time_start="",
         p_time_end=""
     )
     constrs.extend([
-        (ConstraintType.UNIFICATION,(action1.action_params["p_robot"],"objvar_robots_grp1")),
-        (ConstraintType.UNIFICATION,(action1.action_params["p_destination_location"],"objvar_location_B")),
+        (ConstraintType.UNIFICATION,(action1.params["p_robot"],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.params["p_destination_location"],"objvar_location_B")),
         (ConstraintType.TEMPORAL,(action1.time_start, "t1", 0, False)),
         (ConstraintType.TEMPORAL,("t1", action1.time_start, 0, False)),
         (ConstraintType.TEMPORAL,(action1.time_end, "t2", 0, False)),
@@ -942,16 +942,16 @@ def test13(verbose=False):
     )
 
     action1 = Action(
-        p_action_template=action_template,
-        p_action_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
-        p_action_name="",
+        p_template=action_template,
+        p_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_name="",
         p_time_start="t1",
         p_time_end="t2"
     )
 
     constrs.extend([
-        (ConstraintType.UNIFICATION,(action1.action_params["p_robot"],"objvar_robots_grp1")),
-        (ConstraintType.UNIFICATION,(action1.action_params["p_destination_location"],"objvar_location_B")),
+        (ConstraintType.UNIFICATION,(action1.params["p_robot"],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.params["p_destination_location"],"objvar_location_B")),
     ])
 
     asrt1 = Assertion(
@@ -1060,9 +1060,9 @@ def test14(verbose=False):
     )
 
     action1 = Action(
-        p_action_template=action_template,
-        p_action_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
-        p_action_name="",
+        p_template=action_template,
+        p_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_name="",
         p_time_start="",
         p_time_end=""
     )
