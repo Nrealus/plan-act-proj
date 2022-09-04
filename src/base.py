@@ -51,11 +51,11 @@ class Assertion(tuple):
         # create (supposed to be) unique timepoint variable names corresponding to the start and end of this assertion
         k = new_int_id()
         if p_time_start == "":
-            ts = "_ts_asrt_{0}".format(str(k))
+            ts = "__ts_asrt_{0}".format(str(k))
         else:
             ts = p_time_start
         if p_time_end == "":
-            te = "_te_asrt_{0}".format(str(k))
+            te = "__te_asrt_{0}".format(str(k))
         else:
             te = p_time_end
         return tuple.__new__(cls, (p_type, p_sv_name, p_sv_params_keys, p_sv_params_values, ts, te, p_sv_val, p_sv_val_sec))
@@ -246,7 +246,7 @@ class ActionAndMethodTemplate(tuple):
         return tuple.__getitem__(self, 2)
 
     @property
-    def constraints_function(self) -> typing.Callable[[str,str,typing.Dict[str,str]],typing.Tuple[ConstraintType,typing.Any]]:
+    def constraints_function(self) -> typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[typing.Tuple[ConstraintType,typing.Any]]]:
         return tuple.__getitem__(self, 3)
 
     def __getitem__(self, item):
@@ -256,40 +256,45 @@ class Action(tuple):
 
     __slots__ = []
     def __new__(cls,
-        p_action_template:ActionAndMethodTemplate,
-        p_action_params:typing.Dict[str,str],
-        p_action_name:str="",
+        p_template:ActionAndMethodTemplate,
+        p_params:typing.Dict[str,str],
+        p_name:str="",
         p_time_start:str="",
         p_time_end:str="",
     ):
 
         k = new_int_id()
-        if p_action_name == "":
-            name = "{0}_{1}".format(p_action_template.name, str(k))
+        if p_name == "":
+            name = "{0}_{1}".format(p_template.name, str(k))
         else:
-            name = p_action_name
+            name = p_name
         if p_time_start == "":
-            ts = "_ts_act_{0}".format(str(k))
+            ts = "__ts_act_{0}".format(str(k))
         else:
             ts = p_time_start
         if p_time_end == "":
-            te = "_te_act_{0}".format(str(k))
+            te = "__te_act_{0}".format(str(k))
         else:
             te = p_time_end
+
         return tuple.__new__(cls, (
-            p_action_template,
-            p_action_params.items(), 
+            p_template,
+            p_params.items(), 
             name,
             ts, te, 
-            p_action_template.assertions_function(ts,te,p_action_params), 
-            p_action_template.constraints_function(ts,te,p_action_params)))
+            p_template.assertions_function(ts,te,p_params), 
+            p_template.constraints_function(ts,te,p_params)))
 
     @property
-    def action_name(self) -> str:
+    def template(self) -> ActionAndMethodTemplate:
+        return tuple.__getitem__(self, 0)
+
+    @property
+    def name(self) -> str:
         return tuple.__getitem__(self, 2)
 
     @property
-    def action_params(self) -> typing.Dict[str,str]:
+    def params(self) -> typing.Dict[str,str]:
         return dict(tuple.__getitem__(self, 1))
 
     @property
@@ -317,40 +322,44 @@ class Method(tuple):
 
     __slots__ = []
     def __new__(cls,
-        p_method_template:ActionAndMethodTemplate,
-        p_method_params:typing.Dict[str,str],
-        p_method_name:str="",
+        p_template:ActionAndMethodTemplate,
+        p_params:typing.Dict[str,str],
+        p_name:str="",
         p_time_start:str="",
         p_time_end:str="",
     ):
 
         k = new_int_id()
-        if p_method_name == "":
-            name = "{0}_{1}".format(p_method_template.name, str(k))
+        if p_name == "":
+            name = "{0}_{1}".format(p_template.name, str(k))
         else:
-            name = p_method_name
+            name = p_name
         if p_time_start == "":
-            ts = "_ts_act_{0}".format(str(k))
+            ts = "__ts_act_{0}".format(str(k))
         else:
             ts = p_time_start
         if p_time_end == "":
-            te = "_te_act_{0}".format(str(k))
+            te = "__te_act_{0}".format(str(k))
         else:
             te = p_time_end
         return tuple.__new__(cls, (
-            p_method_template,
-            p_method_params.items(), 
+            p_template,
+            p_params.items(), 
             name,
             ts, te, 
-            p_method_template.assertions_function(ts,te,p_method_params), 
-            p_method_template.constraints_function(ts,te,p_method_params)))
+            p_template.assertions_function(ts,te,p_params), 
+            p_template.constraints_function(ts,te,p_params)))
 
     @property
-    def method_name(self) -> str:
+    def template(self) -> ActionAndMethodTemplate:
+        return tuple.__getitem__(self, 0)
+
+    @property
+    def name(self) -> str:
         return tuple.__getitem__(self, 2)
 
     @property
-    def method_params(self) -> typing.Dict[str,str]:
+    def params(self) -> typing.Dict[str,str]:
         return dict(tuple.__getitem__(self, 1))
 
     @property
