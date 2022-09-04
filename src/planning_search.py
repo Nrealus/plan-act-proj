@@ -51,7 +51,7 @@ class SearchNode():
 
     monitor_action_template = ActionAndMethodTemplate(
         p_name="action_monitor_assertion",
-        p_params_names="p_assertion",
+        p_params_names=("p_assertion",),
         p_constraints=lambda ts,te,_:[
             (ConstraintType.TEMPORAL, (ts,te,0,False))
         ]
@@ -140,8 +140,8 @@ class SearchNode():
                     # In conclusion - this action will have to monitor whether the newly directly supported assertion is indeed respected during execution
                     # It is this action that will be triggered when the goal/assertion will be dispatched
                     new_action = Action(
-                        p_action_template=SearchNode.monitor_action_template,
-                        p_action_params={"p_assertion":self.m_flaw_node_info.m_assertion1},
+                        p_template=SearchNode.monitor_action_template,
+                        p_params={"p_assertion":self.m_flaw_node_info.m_assertion1},
                         p_time_start=self.m_flaw_node_info.m_assertion1.time_start,
                         p_time_end=self.m_flaw_node_info.m_assertion1.time_end,
                     )
@@ -153,7 +153,7 @@ class SearchNode():
                     # Adding the action to the plan in the chronicle of the child search node currently being built
                     # Notice that the line above can still give a None parent
                     transformed_chronicle.m_plan[new_action] = parent
-
+                    
                     # Transitioning the goal corresponding to the flawed assertion in this search node's chronicle to "expanded" mode
                     # with this action as a possible expansion
                     self.m_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.EXPANDED
@@ -179,8 +179,8 @@ class SearchNode():
 
                         # Same as above, but addresses the supporter of the introduced direct supporter of the flawed unsupported assertion.
                         new_action2 = Action(
-                            p_action_template=SearchNode.monitor_action_template,
-                            p_action_params={"p_assertion":ri.m_direct_support_assertion},
+                            p_template=SearchNode.monitor_action_template,
+                            p_params={"p_assertion":ri.m_direct_support_assertion},
                             p_time_start=ri.m_direct_support_assertion.time_start,
                             p_time_end=ri.m_direct_support_assertion.time_end,
                         )
@@ -211,17 +211,7 @@ class SearchNode():
                     transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts([ri.m_direct_support_assertion]))
 
                 elif ri.m_type == ResolverType.METHOD_INSERTION_NOW or ri.m_type == ResolverType.ACTION_INSERTION_NOW:
-
-                    # NOTE : DON'T SET THE FLAWED UNSUPPORTED ASSERTION TO "SUPPORTED" !
-                    # if an action was inserted, setting the flawed unsupported assertion to supported will be done in the 2nd loop below.
-                    # if a method was inserted, it could also have a subgoal ((unsupported) persistence assertion) supporting the flawed assertion, 
-                    # which would be dealt with the same way as with an action (below)
-                    # if the inserted method doesn't have a subgoal "directly" supporting the flawed assertion, we still commit (see above) to the fact that
-                    # the supporter of the flawed assertion will come from a further decomposition (by a method/action) of one of the method's subgoal assertions.
-                    # in that case, the supporter origin (see above) will have to be update to the new decomposing method/action.
-                    #transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_mode = GoalMode.COMMITTED
-                    #transformed_chronicle.m_goal_nodes[self.m_flaw_node_info.m_assertion1].m_committed_expansion = ri.m_act_or_meth_instance
-
+                    
                     # Finding the hierarchical place in the plan (parent (method) following the plan decomposition)
                     # of the action/method suggested by this resolver
                     parent = None
@@ -277,6 +267,26 @@ class SearchNode():
                     # (NOTE: can there be any other ? think about it, and if yes - an example ?)
                     transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_action_or_method_instance.constraints)
                     transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
+
+                    # Propagating the instantiation variable for the action/method
+                    # Done here and not earlier (e.g. when adding the action/method to the plan)
+                    # as other constraints should be propagated first (in order to use the correct )
+                    _name = ri.m_action_or_method_instance.name
+                    _params = ri.m_action_or_method_instance.template.params_names
+                    transformed_chronicle.m_constraint_network.propagate_constraints([
+                        (ConstraintType.GENERAL_RELATION,
+                            ("__actmethinst_{0}{1}_rel".format(_name, _params),
+                            ["__actmethinst_{0}{1}_param_{2}".format(_name,_params,_p) for _p in list(_params)]
+                                + ["__actmethinst_{0}{1}_id".format(_name, _params)],
+                            [list(transformed_chronicle.m_constraint_network.objvar_domain(_v).get_values())
+                                + [new_int_id()] for _v in ri.m_action_or_method_instance.params.values()]
+                            )
+                        )
+                    ])
+                    # !! TODO !!: the above approach to general relations assumes an explicit discrete domains representation...
+                    # As we cannot really represent all of the possible values for such variables/table columns explicitly,
+                    # we will *NEED* better variable domain representations for that very soon.
+
                     # Update the collection of current conflicts in the chronicle of the child search node currently being built
                     # with all the conflicts which may have appeared after the application of the action/method
                     transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts(ri.m_action_or_method_instance.assertions))
