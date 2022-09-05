@@ -100,7 +100,10 @@ class ConstraintNetwork():
         Returns:
            The domain (Domain) of the specified object variable 
         """
-        return self.m_bcn.m_domains[p_var]
+        if p_var in self.m_bcn.m_domains:
+            return self.m_bcn.m_domains[p_var]
+        else:
+            return None
 
     def objvars_unified(self, p_var1:str, p_var2:str) -> bool:
         """
