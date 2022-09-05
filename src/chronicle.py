@@ -101,7 +101,6 @@ class Chronicle():
         # order : true if supportee is from chronicle, and supporter is from action/method
         # will facilitate action insertion, by directly providing the assertions to become supported, instead of performing a new search again
         res = []
-        backtracks_num = 1
         # the action/method's starting time must be "now" (p_time)
         if not self.m_constraint_network.propagate_constraints(p_act_or_meth.constraints):
             return []
@@ -120,7 +119,6 @@ class Chronicle():
                     ):
                         res.append((i_act_or_meth_asrt, i_chronicle_asrt))
                         b2 = True
-                        #backtracks_num += 1
                         if b1:
                             break
                     # the action/method must have at least one assertion (any, not necessarily starting at the same as it)
@@ -133,15 +131,12 @@ class Chronicle():
                         if b2:
                             break
                 if not b2:
-                    for _ in range(backtracks_num):
-                        self.m_constraint_network.backtrack()
+                    self.m_constraint_network.backtrack()
                     return []
             if not b1 or not b3:
-                for _ in range(backtracks_num):
-                    self.m_constraint_network.backtrack()
+                self.m_constraint_network.backtrack()
                 return []
-        for _ in range(backtracks_num):
-            self.m_constraint_network.backtrack()
+        self.m_constraint_network.backtrack()
         return res
 
     def get_induced_conflicts(self, p_new_assertions:typing.Iterable[Assertion]) -> typing.Set[typing.Tuple[Assertion,Assertion]]:
