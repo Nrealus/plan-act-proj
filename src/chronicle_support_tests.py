@@ -587,9 +587,13 @@ def test10(verbose=False):
     })
 
     action_template = ActionAndMethodTemplate(
+        p_type=ActionAndMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params_names=("p_robot", "p_destination_location"),
-        p_assertions=lambda ts,te,params: set([
+        p_params={
+            "p_robot":"all_robots_objvar",
+            "p_destination_location":"all_destinations_objvar"
+        },
+        p_assertions_func=lambda ts,te,params: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
@@ -600,7 +604,7 @@ def test10(verbose=False):
                 p_time_start=ts,
                 p_time_end=te,
         )]),
-        p_constraints=lambda ts,te,params: set([
+        p_constraints_func=lambda ts,te,params: set([
             (ConstraintType.TEMPORAL,(ts,te,-6,False)),
             (ConstraintType.TEMPORAL,(te,ts,6,False)),
         ])
@@ -608,14 +612,14 @@ def test10(verbose=False):
 
     action1 = Action(
         p_template=action_template,
-        p_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_args={"p_robot": "my_robot", "p_destination_location":"my_destination"},
         p_name="",
         p_time_start="t1",
         p_time_end="t2"
     )
     constrs.extend([
-        (ConstraintType.UNIFICATION,(action1.params["p_robot"],"objvar_robots_grp1")),
-        (ConstraintType.UNIFICATION,(action1.params["p_destination_location"],"objvar_location_B")),
+        (ConstraintType.UNIFICATION,(action1.args["p_robot"],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.args["p_destination_location"],"objvar_location_B")),
     ])
     
     asrt1 = Assertion(
@@ -694,9 +698,13 @@ def test11(verbose=False):
     })
 
     action_template = ActionAndMethodTemplate(
+        p_type=ActionAndMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params_names=("p_robot", "p_destination_location"),
-        p_assertions=lambda ts,te,params: set([
+        p_params={
+            "p_robot":"all_robots_objvar",
+            "p_destination_location":"all_destinations_objvar"
+        },
+        p_assertions_func=lambda ts,te,params: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
@@ -707,7 +715,7 @@ def test11(verbose=False):
                 p_time_start=ts,
                 p_time_end=te,
         )]),
-        p_constraints=lambda ts,te,params: set([
+        p_constraints_func=lambda ts,te,params: set([
             (ConstraintType.TEMPORAL,(ts,te,-6,False)),
             (ConstraintType.TEMPORAL,(te,ts,6,False)),
         ])
@@ -715,14 +723,14 @@ def test11(verbose=False):
 
     action1 = Action(
         p_template=action_template,
-        p_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_args={"p_robot": "my_robot", "p_destination_location":"my_destination"},
         p_name="",
         p_time_start="t1",
         p_time_end="t2"
     )
     constrs.extend([
-        (ConstraintType.UNIFICATION,(action1.params["p_robot"],"objvar_robots_grp1")),
-        (ConstraintType.UNIFICATION,(action1.params["p_destination_location"],"objvar_location_B")),
+        (ConstraintType.UNIFICATION,(action1.args["p_robot"],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.args["p_destination_location"],"objvar_location_B")),
     ])
     
     asrt1 = Assertion(
@@ -801,9 +809,13 @@ def test12(verbose=False):
     })
 
     action_template = ActionAndMethodTemplate(
+        p_type=ActionAndMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params_names=("p_robot", "p_destination_location"),
-        p_assertions=lambda ts,te,params: set([
+        p_params={
+            "p_robot":"all_robots_objvar",
+            "p_destination_location":"all_destinations_objvar"
+        },
+        p_assertions_func=lambda ts,te,params: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
@@ -814,7 +826,7 @@ def test12(verbose=False):
                 p_time_start=ts,
                 p_time_end=te,
         )]),
-        p_constraints=lambda ts,te,params: set([
+        p_constraints_func=lambda ts,te,params: set([
             (ConstraintType.TEMPORAL,(ts,te,-6,False)),
             (ConstraintType.TEMPORAL,(te,ts,6,False)),
         ])
@@ -822,14 +834,14 @@ def test12(verbose=False):
 
     action1 = Action(
         p_template=action_template,
-        p_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_args={"p_robot": "my_robot", "p_destination_location":"my_destination"},
         p_name="",
         p_time_start="",
         p_time_end=""
     )
     constrs.extend([
-        (ConstraintType.UNIFICATION,(action1.params["p_robot"],"objvar_robots_grp1")),
-        (ConstraintType.UNIFICATION,(action1.params["p_destination_location"],"objvar_location_B")),
+        (ConstraintType.UNIFICATION,(action1.args["p_robot"],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.args["p_destination_location"],"objvar_location_B")),
         (ConstraintType.TEMPORAL,(action1.time_start, "t1", 0, False)),
         (ConstraintType.TEMPORAL,("t1", action1.time_start, 0, False)),
         (ConstraintType.TEMPORAL,(action1.time_end, "t2", 0, False)),
@@ -922,9 +934,13 @@ def test13(verbose=False):
     })
 
     action_template = ActionAndMethodTemplate(
+        p_type=ActionAndMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params_names=("p_robot", "p_destination_location"),
-        p_assertions=lambda ts,te,params: set([
+        p_params={
+            "p_robot":"all_robots_objvar",
+            "p_destination_location":"all_destinations_objvar"
+        },
+        p_assertions_func=lambda ts,te,params: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
@@ -935,7 +951,7 @@ def test13(verbose=False):
                 p_time_start=ts,
                 p_time_end=te,
         )]),
-        p_constraints=lambda ts,te,params: set([
+        p_constraints_func=lambda ts,te,params: set([
             (ConstraintType.TEMPORAL,(ts,te,-1,False)),
             (ConstraintType.TEMPORAL,(te,ts,4,False)),
         ])
@@ -943,15 +959,15 @@ def test13(verbose=False):
 
     action1 = Action(
         p_template=action_template,
-        p_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_args={"p_robot": "my_robot", "p_destination_location":"my_destination"},
         p_name="",
         p_time_start="t1",
         p_time_end="t2"
     )
 
     constrs.extend([
-        (ConstraintType.UNIFICATION,(action1.params["p_robot"],"objvar_robots_grp1")),
-        (ConstraintType.UNIFICATION,(action1.params["p_destination_location"],"objvar_location_B")),
+        (ConstraintType.UNIFICATION,(action1.args["p_robot"],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.args["p_destination_location"],"objvar_location_B")),
     ])
 
     asrt1 = Assertion(
@@ -1040,9 +1056,13 @@ def test14(verbose=False):
     })
 
     action_template = ActionAndMethodTemplate(
+        p_type=ActionAndMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params_names=("p_robot", "p_destination_location"),
-        p_assertions=lambda ts,te,params: set([
+        p_params={
+            "p_robot":"all_robots_objvar",
+            "p_destination_location":"all_destinations_objvar"
+        },
+        p_assertions_func=lambda ts,te,params: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
@@ -1053,7 +1073,7 @@ def test14(verbose=False):
                 p_time_start=ts,
                 p_time_end=te,
         )]),
-        p_constraints=lambda ts,te,params: set([
+        p_constraints_func=lambda ts,te,params: set([
             (ConstraintType.TEMPORAL,(ts,te,-1,False)),
             (ConstraintType.TEMPORAL,(te,ts,4,False)),
         ])
@@ -1061,7 +1081,7 @@ def test14(verbose=False):
 
     action1 = Action(
         p_template=action_template,
-        p_params={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_args={"p_robot": "my_robot", "p_destination_location":"my_destination"},
         p_name="",
         p_time_start="",
         p_time_end=""

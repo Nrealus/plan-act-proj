@@ -69,7 +69,7 @@ class Assertion(tuple):
         return tuple.__getitem__(self, 1)
 
     @property
-    def sv_params_names(self) -> typing.Tuple[str,...]:
+    def sv_params_keys(self) -> typing.Tuple[str,...]:
         return tuple.__getitem__(self, 2)
 
     @property
@@ -111,7 +111,7 @@ class Assertion(tuple):
             None
         """
         # check if the head of this assertion and the specified one is different
-        if (self.sv_name == p_other_assertion.sv_name and self.sv_params_names == p_other_assertion.sv_params_names):
+        if (self.sv_name == p_other_assertion.sv_name and self.sv_params_keys == p_other_assertion.sv_params_keys):
             for i in range(len(self.sv_params_values)):
                 if p_cn.objvars_separable(self.sv_params_values[i],p_other_assertion.sv_params_values[i]):
                     return False
@@ -145,7 +145,7 @@ class Assertion(tuple):
         if self == p_other_assertion:
             return False
         # check if the head of this assertion and the specified one is different
-        elif self.sv_name == p_other_assertion.sv_name and self.sv_params_names == p_other_assertion.sv_params_names:
+        elif self.sv_name == p_other_assertion.sv_name and self.sv_params_keys == p_other_assertion.sv_params_keys:
             b = True
             for i in range(len(self.sv_params_values)):
                 if not p_cn.objvars_unifiable(self.sv_params_values[i],p_other_assertion.sv_params_values[i]):
@@ -224,29 +224,38 @@ class Assertion(tuple):
 
 class ActionAndMethodTemplate(tuple):
 
+    class Type(Enum):
+        ACTION = 0
+        METHOD = 1
+
     __slots__ = []
     def __new__(cls,
+        p_type:Type,
         p_name:str,
-        p_params_names:typing.Tuple[str,...],
-        p_assertions:typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[Assertion]]=(lambda ts,te,params: set()),
-        p_constraints:typing.Callable[[str,str,typing.Dict[str,str]],typing.Tuple[ConstraintType,typing.Any]]=(lambda ts,te,params: set()),
+        p_params:typing.Dict[str,str],
+        p_assertions_func:typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[Assertion]]=(lambda ts,te,params: set()),
+        p_constraints_func:typing.Callable[[str,str,typing.Dict[str,str]],typing.Tuple[ConstraintType,typing.Any]]=(lambda ts,te,params: set()),
     ):
-        return tuple.__new__(cls, (p_name, p_params_names, p_assertions, p_constraints))
+        return tuple.__new__(cls, (p_name, p_params.items(), p_assertions_func, p_constraints_func, p_type))
+
+    @property
+    def type(self) -> Type:
+        return tuple.__getitem__(self, 4)
 
     @property
     def name(self) -> str:
         return tuple.__getitem__(self, 0)
 
     @property
-    def params_names(self) -> typing.Tuple[str,...]:
-        return tuple.__getitem__(self, 1)
+    def params(self) -> typing.Dict[str,str]:
+        return dict(tuple.__getitem__(self, 1))
 
     @property
-    def assertions_function(self) -> typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[Assertion]]:
+    def assertions_func(self) -> typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[Assertion]]:
         return tuple.__getitem__(self, 2)
 
     @property
-    def constraints_function(self) -> typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[typing.Tuple[ConstraintType,typing.Any]]]:
+    def constraints_func(self) -> typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[typing.Tuple[ConstraintType,typing.Any]]]:
         return tuple.__getitem__(self, 3)
 
     def __getitem__(self, item):
@@ -257,7 +266,7 @@ class Action(tuple):
     __slots__ = []
     def __new__(cls,
         p_template:ActionAndMethodTemplate,
-        p_params:typing.Dict[str,str],
+        p_args:typing.Dict[str,str],
         p_name:str="",
         p_time_start:str="",
         p_time_end:str="",
@@ -279,11 +288,11 @@ class Action(tuple):
 
         return tuple.__new__(cls, (
             p_template,
-            p_params.items(), 
+            p_args.items(), 
             name,
             ts, te, 
-            p_template.assertions_function(ts,te,p_params), 
-            p_template.constraints_function(ts,te,p_params)))
+            p_template.assertions_func(ts,te,p_args), 
+            p_template.constraints_func(ts,te,p_args)))
 
     @property
     def template(self) -> ActionAndMethodTemplate:
@@ -294,7 +303,7 @@ class Action(tuple):
         return tuple.__getitem__(self, 2)
 
     @property
-    def params(self) -> typing.Dict[str,str]:
+    def args(self) -> typing.Dict[str,str]:
         return dict(tuple.__getitem__(self, 1))
 
     @property
@@ -323,7 +332,7 @@ class Method(tuple):
     __slots__ = []
     def __new__(cls,
         p_template:ActionAndMethodTemplate,
-        p_params:typing.Dict[str,str],
+        p_args:typing.Dict[str,str],
         p_name:str="",
         p_time_start:str="",
         p_time_end:str="",
@@ -344,11 +353,11 @@ class Method(tuple):
             te = p_time_end
         return tuple.__new__(cls, (
             p_template,
-            p_params.items(), 
+            p_args.items(), 
             name,
             ts, te, 
-            p_template.assertions_function(ts,te,p_params), 
-            p_template.constraints_function(ts,te,p_params)))
+            p_template.assertions_func(ts,te,p_args), 
+            p_template.constraints_func(ts,te,p_args)))
 
     @property
     def template(self) -> ActionAndMethodTemplate:
@@ -359,7 +368,7 @@ class Method(tuple):
         return tuple.__getitem__(self, 2)
 
     @property
-    def params(self) -> typing.Dict[str,str]:
+    def args(self) -> typing.Dict[str,str]:
         return dict(tuple.__getitem__(self, 1))
 
     @property
