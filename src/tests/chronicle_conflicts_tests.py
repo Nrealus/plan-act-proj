@@ -4,9 +4,8 @@ sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-play
 from src.constraints.domain import Domain
 from src.constraints.constraints import ConstraintNetwork, ConstraintType
 
-from src.base import Assertion, AssertionType
+from src.assertion import Assertion, AssertionType
 from src.chronicle import Chronicle
-from src.goal_node import GoalMode
 
 import time
 
@@ -31,28 +30,6 @@ def reset():
     constraint_network.m_stn.clear()
     chronicle.clear()
 
-#def print_obj_details1():
-#
-#    print("details : ")
-#    print("   var1 domain : {0}".format(constraint_network.objvar_domain("var1").get_values()))
-#    print("   var2 domain : {0}".format(constraint_network.objvar_domain("var2").get_values()))
-#    print("   var3 domain : {0}".format(constraint_network.objvar_domain("var3").get_values()))
-#    print("   var4 domain : {0}".format(constraint_network.objvar_domain("var4").get_values()))
-#    print("   var5 domain : {0}".format(constraint_network.objvar_domain("var5").get_values()))
-#    print("   unionfind connected component - var1 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var1")))
-#    print("   unionfind connected component - var2 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var2")))
-#    print("   unionfind connected component - var3 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var3")))
-#    print("   unionfind connected component - var4 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var4")))
-#    print("   unionfind connected component - var5 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var5")))
-
-def print_obj_details2(u:str, v:str):
-
-    print("details on {0} and {1} : ".format(u,v))
-    print("   {0} and {1} unified : {2}".format(u,v,constraint_network.objvars_unified(u,v)))
-    print("   {0} and {1} unifiable : {2}".format(u,v,constraint_network.objvars_unifiable(u,v)))
-    print("   {0} and {1} separable : {2}".format(u,v,constraint_network.objvars_separable(u,v)))
-    print("   {0} and {1} separated : {2}".format(u,v,constraint_network.objvars_separated(u,v)))
-
 def print_temporal_details1(u:str, v:str):
 
     print("details on {0} and {1} : ".format(u,v))
@@ -63,7 +40,7 @@ def print_temporal_details1(u:str, v:str):
 
 def init_situation1():
     reset()
-    constraint_network.declare_and_init_objvars({
+    constraint_network.init_objvars({
         "objvar_robots_grp1":Domain(p_initial_allowed_values=["robot1","robot2"]),
         "objvar_robots_grp2":Domain(p_initial_allowed_values=["robot2","robot3"]),
         "objvar_robots_grp3":Domain(p_initial_allowed_values=["robot5","robot5"]),
@@ -79,7 +56,7 @@ def init_situation1():
         "c_l23":Domain(p_initial_allowed_values=[-3]),
         "c_u23":Domain(p_initial_allowed_values=[15]),
     })
-    constraint_network.declare_and_init_tempvars({"t0":True,"t1":True,"t2":True,"t3":True})
+    constraint_network.init_tempvars({"t0":True,"t1":True,"t2":True,"t3":True})
 
 def test1(verbose=False):
 
