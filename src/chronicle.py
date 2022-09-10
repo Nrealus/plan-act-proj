@@ -5,7 +5,8 @@ sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-play
 
 import typing
 from enum import Enum
-from src.base import Assertion, AssertionType, Action, Method
+from src.assertion import Assertion
+from src.actionmethod import ActionMethod
 from src.constraints.constraints import ConstraintNetwork, ConstraintType
 from src.goal_node import GoalMode, GoalNode
 
@@ -33,7 +34,7 @@ class Chronicle():
 
         self.m_assertions: typing.Dict[Assertion, bool] = {} # bool value : supported or not
         
-        self.m_plan: typing.Dict[Action|Method,Action|Method] = {} # quick n dirty tree as an adjacency list
+        self.m_plan: typing.Dict[ActionMethod,ActionMethod] = {} # quick n dirty tree as an adjacency list
         # actions (or their operational model) in the plan will be triggered / executed and will transition the goal nodes for
         # their assertions to "dispatched" mode.
 
@@ -71,73 +72,6 @@ class Chronicle():
         self.m_constraint_network = ConstraintNetwork()
         #self.m_constraint_network.m_bcn.clear()
         #self.m_constraint_network.m_stn.clear()
-
-    def is_action_or_method_applicable(self,
-        p_act_or_meth:Action|Method,
-        p_time:str,
-        p_assertion_to_support:Assertion=None
-    ) -> typing.Iterable[typing.Tuple[Assertion,Assertion]]:#,bool]]:
-        """
-        Determines whether a (specified) action/method is applicable to this chronicle at a specified time.
-        Used for planning search purposes.
-        Arguments:
-            p_act_or_meth (Action|Method):
-                The action/method whose applicability to check for 
-            p_time (str):
-                Time at which to test for the applicability of the specified action/method
-            p_assertion_to_support (Assertion):
-                Assertion that must be supported by the action in order to applicable.
-                None by default.
-        Returns:
-            If the action/method is not applicable - an empty list []
-            If it is applicable - a list of (supportee, supporter) pairs of Assertions which would be established in the chronicle when applying the action/method
-            As such, all of the action's/method's assertions starting at the same time as it must be present in all pairs as the first element.
-            And at least one of the action's/method's assertions present as a second element (with an already present supportee assertion from the chronicle as first element)
-        Side effects:
-            None
-        """
-        # NOTE: maybe p_time should rather be a direct float "time instance", rather than a timepoint/variable
-        # idea : instead of true/false, return the (supportee (chronicle assertion), supporter (action assertion), order)
-        # order : true if supportee is from chronicle, and supporter is from action/method
-        # will facilitate action insertion, by directly providing the assertions to become supported, instead of performing a new search again
-        res = []
-        # the action/method's starting time must be "now" (p_time)
-        if not self.m_constraint_network.propagate_constraints(p_act_or_meth.constraints):
-            return []
-        if self.m_constraint_network.tempvars_unified(p_act_or_meth.time_start,p_time):
-            b1 = False
-            b3 = (p_assertion_to_support == None)
-            for i_act_or_meth_asrt in p_act_or_meth.assertions:
-                b2 = False
-                for i_chronicle_asrt in self.m_assertions:
-                    # just in case
-                    if i_act_or_meth_asrt == i_chronicle_asrt:
-                        break
-                    # the chronicle must support all action/method's assertions which start at the same time as it
-                    if (not b2 and i_act_or_meth_asrt.is_causally_supported_by(i_chronicle_asrt, self.m_constraint_network)
-                        and self.m_constraint_network.tempvars_unified(i_act_or_meth_asrt.time_start,p_time)
-                    ):
-                        res.append((i_act_or_meth_asrt, i_chronicle_asrt))
-                        b2 = True
-                        if b1:
-                            break
-                    # the action/method must have at least one assertion (any, not necessarily starting at the same as it)
-                    # supporting an unsupported assertion already present in the chronicle
-                    if not b1 and i_chronicle_asrt.is_causally_supported_by(i_act_or_meth_asrt, self.m_constraint_network):
-                        res.append((i_chronicle_asrt, i_act_or_meth_asrt))
-                        b1 = True
-                        if not b3 and i_chronicle_asrt == p_assertion_to_support:
-                            b3 = True
-                        if b2:
-                            break
-                if not b2:
-                    self.m_constraint_network.backtrack()
-                    return []
-            if not b1 or not b3:
-                self.m_constraint_network.backtrack()
-                return []
-        self.m_constraint_network.backtrack()
-        return res
 
     def get_induced_conflicts(self, p_new_assertions:typing.Iterable[Assertion]) -> typing.Set[typing.Tuple[Assertion,Assertion]]:
         """

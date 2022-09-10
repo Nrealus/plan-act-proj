@@ -5,7 +5,7 @@ sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-play
 
 from enum import Enum
 import typing
-from src.base import Assertion, Action, Method
+from src.actionmethod import ActionMethod
 
 class GoalMode(Enum):
     FORMULATED = 0
@@ -24,7 +24,7 @@ class GoalNode():
         #self.m_constraint_network:ConstraintNetwork = ConstraintNetwork()
         self.m_mode:GoalMode = GoalMode.FORMULATED
         self.m_parent:GoalNode = None
-        self.m_possible_expansions:typing.List[Action|Method] = []
-        self.m_committed_expansion:Action|Method = None
+        self.m_possible_expansions:typing.List[ActionMethod] = []
+        self.m_committed_expansion:ActionMethod = None
         self.m_metrics:typing.Dict = {}
 
