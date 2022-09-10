@@ -128,7 +128,35 @@ class ActionMethod(tuple):
         p_assertion_to_support:Assertion=None,
         p_backtrack=True,
     ) -> typing.Iterable[typing.Tuple[Assertion,Assertion]]:
-
+        '''
+        Attempts to propagate the constraints necessary to enforce applicability of this action/method at the
+        specified time, considering specified assertions and in the specified constraint network.
+        Used to determine whether this action/method can be applicable in the specified situation by
+        propagating the constraints necessary to enforce applicability in the specified situation
+        (i.e. starting at p_time, having all the action/method's assertions starting at time p_time causally supported
+        from p_assertions, supporting p_assertion_to_support with one of the action/method's assertions)
+        If propagation is successful, then applicability in the specified situation is indeed possible
+        (i.e. can be enforced and even remains enforced, if p_backtrack is False).
+        Arguments:
+            p_time (str):
+                The time to test applicability at
+            p_cn (ConstraintNetwork):
+                The constraint network describing the situation and where to propagate the constraints
+            p_assertions (Iterable[Assertions]):
+                The assertions describing the situation
+            p_assertion_to_support (Assertion, None by default):
+                An assertion that must be supported by one of the action/method's assertions. Can be None.
+            p_backtrack (bool, True by default):
+                Whether to backtrack the changes propagated to the constraint network (in case it is successful).
+                In other words, whether to "apply" the action/method (enforce its applicability) or simply check if
+                applicability is possible.
+        Returns:
+            A collection of Assertion pairs (supporter, supportee) describing the causal supports introduced with the applicability.
+            The first element is the supporter assertion, the second element is the supported one.
+            If applicability is impossible (applicability constraints propagation failed) the an empty [] list is returned.
+        Side effects:
+            Changes propagated to p_cn, in case p_backtrack is False.
+        '''
         num_backtracks = 0
         res = []
         # the action/method's starting time must be "now" (p_time)

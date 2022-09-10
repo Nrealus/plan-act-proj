@@ -25,10 +25,6 @@ from src.constraints.constraints import ConstraintNetwork, ConstraintType
 # Assertions are used to describe temporal knowledge.
 # They are composed of a head (state variable name and parameter names, as well as parameter values (i.e. variables)) and a temporal interval, i.e. a start and end time point variable
 
-# Actions
-
-# Methods
-
 ############################################
 
 class AssertionType(Enum):
@@ -96,7 +92,15 @@ class Assertion(tuple):
         raise TypeError
 
     def has_same_head(self, p_other_assertion:Assertion) -> bool:
-        
+        '''
+        Determines whether this assertion and the argument assertion have the same head
+        (i.e. same name and same parameter names)
+        Arguments:
+            p_other_assertion (Assertion):
+                Specified assertion to test against
+        Returns:
+            True if this assertion and the argument assertion have the same head
+        '''
         return self.sv_name == p_other_assertion.sv_name and self.sv_params_keys == p_other_assertion.sv_params_keys
     
     def propagate_causal_support_by(self,
@@ -104,7 +108,28 @@ class Assertion(tuple):
         p_cn:ConstraintNetwork,
         p_backtrack=True,
     ) -> typing.Tuple[bool, int]:
-
+        '''
+        Attempts to propagate the constraints necessary to enforce causal support of this assertion
+        by the specified assertion in the specified constraint network.
+        Used to determine whether this assertion can be causally supported by the specified assertion
+        with the specified constraint network by propagating the constraints necessary to enforce causal support.
+        If propagation is successful, then causal support with the specified arguments is indeed possible 
+        and remains enforced if p_backtrack is False).
+        Arguments:
+            p_test_supporter (Assertion):
+                Candidate supporter assertion to test
+            p_cn (ConstraintNetwork):
+                The constraint network where to propagate causal support constraints
+            p_backtrack (bool, True by default):
+                Whether to backtrack the changes propagated to the constraint network (in case it is successful).
+                In other words, whether to keep the causal support enforced or simply check if it is possible.
+        Returns:
+            A tuple (bool, int) where the bool value describes whether the propagation was successful (i.e. whether causal support can be enforced)
+            and where the int value describes the number of constraint batches that have been propagated. As such if the bool value is False, the int element is 0.            
+            Moreover, the int element can be used to backtrack by hand later if the constraints remain enforced (i.e. p_backtrack is False)
+        Side effects:
+            Changes propagated to p_cn, in case p_backtrack is False.
+        '''
         num_backtracks = 0
         # check if the assertions have the same head
         if self.has_same_head(p_test_supporter):
