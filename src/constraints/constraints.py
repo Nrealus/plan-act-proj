@@ -196,7 +196,7 @@ class ConstraintNetwork():
 
     def tempvars_minimal_directed_distance(self, p_tp1:str, p_tp2:str) -> float:
         """
-        Query used to obtain the minimal distance from timepoint p_tp1 to timepoint p_tp2 by a path of length >= 1.
+        Query used to obtain the minimal distance from timepoint p_tp1 to timepoint p_tp2 through a path of length >= 1.
         As such, the result given for 2 identical timepoints is NOT necessarily 0 (which would be the shortest path length in case the path was "static" of "of length 0")
         Arguments:
             p_tp1 (str): source timepoint
@@ -206,8 +206,15 @@ class ConstraintNetwork():
         """        
         return self.m_stn.m_minimal_network[(p_tp1,p_tp2)]
 
-    def tempvars_unified(self, p_tp1:str, p_tp2:str) -> float:
+    def tempvars_unified(self, p_tp1:str, p_tp2:str) -> bool:
         """
+        Query used to determine whether two timepoints are unified,
+        i.e. are identical (same name) or are different and the minimal temporal distance between them (in both ways) is 0
+        Arguments:
+            p_tp1 (str): source timepoint
+            p_tp2 (str): destination timepoint
+        Returns:
+            True if the specified timepoints are unified
         """        
         return (p_tp1 == p_tp2
             or (self.m_stn.m_minimal_network[(p_tp1,p_tp2)] == 0 and self.m_stn.m_minimal_network[(p_tp2,p_tp1)] == 0))
@@ -250,7 +257,7 @@ class ConstraintNetwork():
                     if DISJ_UNIFICATION:
                         (objvar1, [objvar2, objvar3, ...])
                     if GENERAL_RELATION:
-                        (relation_name, ([param_objvars...], [[objvars_values...]...]))
+                        (relation_name, ((param_objvars...), [(objvars_values...)...]))
             p_backtrack (bool):
                 Indicates whether to restore the changes to the constraint networks and domains as they were before, i.e. just checking propagation, not applying it.
         Returns:
