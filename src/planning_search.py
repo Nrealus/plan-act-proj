@@ -1,6 +1,9 @@
 from __future__ import annotations
+from sqlite3 import paramstyle
 
 import sys
+
+from constraints.domain import Domain
 sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-playground7")
 
 from copy import deepcopy
@@ -8,7 +11,8 @@ import typing
 from enum import Enum
 from src.utility.new_int_id import new_int_id
 from src.constraints.constraints import ConstraintNetwork, ConstraintType
-from src.base import ActionAndMethodTemplate, Assertion, Action, Method
+from src.assertion import Assertion, AssertionType
+from src.actionmethod import ActionMethodTemplate, ActionMethod
 from src.chronicle import Chronicle
 from src.goal_node import GoalMode, GoalNode
 
@@ -35,9 +39,11 @@ class ResolverNodeInfo():
     m_type:ResolverType
     m_direct_support_assertion:Assertion
     m_direct_support_assertion_supporter:Assertion
-    m_constraints:typing.Set[typing.Tuple[ConstraintType,typing.Any]]
-    m_action_or_method_instance:Action|Method
-    m_act_or_meth_assertion_support_info:typing.Set[typing.Tuple[Assertion,Assertion]]
+    #m_objvar_domains:typing.Dict[str, Domain]
+    m_new_constraint_network:ConstraintNetwork
+    m_new_constraints:typing.Set[typing.Tuple[ConstraintType,typing.Any]]
+    m_action_or_method_instance:ActionMethod
+    m_action_or_method_assertion_support_info:typing.Set[typing.Tuple[Assertion,Assertion]]
 
 class CharlieMoveInfo():
     m_selected_controllable_timepoints:typing.List[str]
@@ -49,10 +55,12 @@ class EveMoveInfo():
 
 class SearchNode():
 
-    monitor_action_template = ActionAndMethodTemplate(
+    monitor_action_template = ActionMethodTemplate(
         p_name="action_monitor_assertion",
-        p_params_names=("p_assertion",),
-        p_constraints=lambda ts,te,_:[
+        p_args={
+            "p_assertion":"all_assertions_objvar" # obviously, need to find a way to represent non explicit domains
+        },
+        p_constraints_func=lambda ts,te,_:[
             (ConstraintType.TEMPORAL, (ts,te,0,False))
         ]
     )
@@ -60,9 +68,10 @@ class SearchNode():
     def __init__(self,
         p_node_type:SearchNodeType,
         p_parent:SearchNode,
-        p_time:float,
+        p_time:str,
         p_state:object,
         p_chronicle:Chronicle,
+        p_action_method_templates_library:typing.Set[ActionMethodTemplate]=set(),
         p_flaw_node_info:FlawNodeInfo=None,
         p_resolver_node_info:ResolverNodeInfo=None,
         p_charlie_move_info:CharlieMoveInfo=None,
@@ -72,11 +81,13 @@ class SearchNode():
         self.m_parent:SearchNode = p_parent
         self.m_children:typing.List[SearchNode] = []
 
-        self.m_time:float = p_time
+        self.m_time:str = p_time
         self.m_state:object = p_state
         self.m_chronicle:Chronicle = p_chronicle
         #self.scheduled_time_points ?
         #other variables than time points ? maybe already accounted for in constr net ?
+
+        self.m_action_method_templates_library:typing.Set[ActionMethodTemplate] = p_action_method_templates_library
 
         # V these actually correspond to the edge coming from the parent V
         # in other words, it contains the details of the _parent_'s choice for this node 
@@ -123,7 +134,7 @@ class SearchNode():
                 if ri.m_type == ResolverType.CONFLICT_SEPARATION:
 
                     # Apply constraints resolving the flaw to the chronicle of the child search node currently being built
-                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
+                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_new_constraints)
                     # Remove the adressed conflict from the collection of current conflicts in the chronicle of the child search node currently being built
                     transformed_chronicle.m_conflicts.remove((self.m_flaw_node_info.m_assertion1,self.m_flaw_node_info.m_assertion2))
 
@@ -139,9 +150,11 @@ class SearchNode():
                     # Which actually corresponds to the monitoring function of planning and acting.
                     # In conclusion - this action will have to monitor whether the newly directly supported assertion is indeed respected during execution
                     # It is this action that will be triggered when the goal/assertion will be dispatched
-                    new_action = Action(
+                    new_action = ActionMethod(
                         p_template=SearchNode.monitor_action_template,
-                        p_params={"p_assertion":self.m_flaw_node_info.m_assertion1},
+                        p_args={
+                            "p_assertion":self.m_flaw_node_info.m_assertion1
+                        },
                         p_time_start=self.m_flaw_node_info.m_assertion1.time_start,
                         p_time_end=self.m_flaw_node_info.m_assertion1.time_end,
                     )
@@ -178,9 +191,9 @@ class SearchNode():
                     if ri.m_direct_support_assertion_supporter is not None:
 
                         # Same as above, but addresses the supporter of the introduced direct supporter of the flawed unsupported assertion.
-                        new_action2 = Action(
+                        new_action2 = ActionMethod(
                             p_template=SearchNode.monitor_action_template,
-                            p_params={"p_assertion":ri.m_direct_support_assertion},
+                            p_args={"p_assertion":ri.m_direct_support_assertion},
                             p_time_start=ri.m_direct_support_assertion.time_start,
                             p_time_end=ri.m_direct_support_assertion.time_end,
                         )
@@ -205,7 +218,7 @@ class SearchNode():
                         transformed_chronicle.m_goal_nodes[ri.m_direct_support_assertion].m_committed_expansion = new_action2
 
                     # Apply the constraints introduced to allow the suggested direct supporter to be one
-                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
+                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_new_constraints)
                     # Update the collection of current conflicts in the chronicle of the child search node currently being built
                     # with all the conflicts which may have appeared after the application of these constraints and possilby new direct supporter assertion
                     transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts([ri.m_direct_support_assertion]))
@@ -242,7 +255,7 @@ class SearchNode():
 
                     # Manage the assertion supports which made the action/method applicable in the first place
                     # (i.e. set the supported assertions from unsupported to supported and add their supporter in the causal network)
-                    for (i_asrt_supportee, i_asrt_supporter) in ri.m_act_or_meth_assertion_support_info:
+                    for (i_asrt_supportee, i_asrt_supporter) in ri.m_action_or_method_assertion_support_info:
 
                         # All of the assertions of the action/method, starting at the same time as it, have to be supported by the chronicle
                         # But those that do not start at the same time as it (and as such don't have to be supported by the chronicle)
@@ -265,27 +278,53 @@ class SearchNode():
 
                     # Apply the constraints introduced of the action/method and also any other constraints that may be in the resolver
                     # (NOTE: can there be any other ? think about it, and if yes - an example ?)
-                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_action_or_method_instance.constraints)
-                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
+                    transformed_chronicle.m_constraint_network = ri.m_new_constraint_network
+                    #transformed_chronicle.m_constraint_network.init_objvars(ri.m_objvars_domains)
+                    #transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_action_or_method_instance.constraints)
+                    #transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
 
-                    # Propagating the instantiation variable for the action/method
-                    # Done here and not earlier (e.g. when adding the action/method to the plan)
-                    # as other constraints should be propagated first (in order to use the correct )
-                    _name = ri.m_action_or_method_instance.name
-                    _params = ri.m_action_or_method_instance.template.params_names
-                    transformed_chronicle.m_constraint_network.propagate_constraints([
-                        (ConstraintType.GENERAL_RELATION,
-                            ("__actmethinst_{0}{1}_rel".format(_name, _params),
-                            ["__actmethinst_{0}{1}_param_{2}".format(_name,_params,_p) for _p in list(_params)]
-                                + ["__actmethinst_{0}{1}_id".format(_name, _params)],
-                            [list(transformed_chronicle.m_constraint_network.objvar_domain(_v).get_values())
-                                + [new_int_id()] for _v in ri.m_action_or_method_instance.params.values()]
-                            )
-                        )
-                    ])
-                    # !! TODO !!: the above approach to general relations assumes an explicit discrete domains representation...
-                    # As we cannot really represent all of the possible values for such variables/table columns explicitly,
-                    # we will *NEED* better variable domain representations for that very soon.
+                    ## Propagating the instantiation variable for the action/method
+                    ## Done here and not earlier (e.g. when adding the action/method to the plan)
+                    ## as other constraints should be propagated first (in order to use the correct )
+                    ## NOTE: this is very basic / crude / inefficient, but good enough for now.
+                    #_name = ri.m_action_or_method_instance.name
+                    #_args = ri.m_action_or_method_instance.args
+                    #_args_values  = _args.values()
+                    #_n = len(_args.keys())
+                    #_rows = []
+                    #def _recursion(_i, _row:typing.List):
+                    #    _rowcopy = _row.copy()
+                    #    for _v in self.m_chronicle.m_constraint_network.objvar_domain(_args_values[_i]).get_values():
+                    #        _row.append(_v)
+                    #    if _i <= _n-2:
+                    #        _recursion(_i+1,_row)
+                    #    else:
+                    #        _rows.append(_row.copy())
+                    #    _row = _rowcopy
+                    #    if _i > 0:
+                    #        _recursion(0,[])
+                    #    else:
+                    #        return
+                    #_recursion(0,[])
+                    ##_id_objvar = "__actmethinst_{0}{1}_id".format(_name, _args)
+                    ##if transformed_chronicle.m_constraint_network.objvar_domain(_id_objvar) is None:
+                    ##    transformed_chronicle.m_constraint_network.declare_and_init_objvars({_id_objvar:Domain()})
+                    #rows_final = _rows#[]
+                    ##for _row in _rows:
+                    ##    _id = new_int_id()
+                    ##    transformed_chronicle.m_constraint_network.objvar_domain(_id_objvar).add_discrete_value(_id)
+                    ##    rows_final = tuple(_row + [_id])
+                    #transformed_chronicle.m_constraint_network.propagate_constraints([
+                    #    (ConstraintType.GENERAL_RELATION,
+                    #        ("__actmethinst_{0}{1}_rel{2}".format(_name, _args, new_int_id()),
+                    #        tuple([_p for _p in _args_values]),# + [_id_objvar]),
+                    #        rows_final)
+                    #    )
+                    #])
+                    ## !! TODO !!: the above approach to general relations assumes an explicit discrete domains representation...
+                    ## As we cannot really represent all of the possible values for such variables/table columns explicitly,
+                    ## we will *NEED* better variable domain representations for that very soon.
+                    ## It is also quite inefficient and unelegant
 
                     # Update the collection of current conflicts in the chronicle of the child search node currently being built
                     # with all the conflicts which may have appeared after the application of the action/method
@@ -383,14 +422,208 @@ class SearchNode():
         for (asrt,supported) in self.m_chronicle.m_assertions:
             if not supported and self.m_chronicle.m_goal_nodes[asrt].m_mode != GoalMode.FORMULATED: 
                 res.append(FlawNodeInfo(m_assertion1=asrt, m_assertion2=None))
+        
         for (asrt1, asrt2) in self.m_chronicle.m_conflicts:
             res.append(FlawNodeInfo(m_assertion1=asrt1, m_assertion2=asrt2))
+        
         return res
 
     def select_resolvers(self) -> typing.List[ResolverNodeInfo]:
         res = []
-        # suggest resolver by analizing the flaw, chronicle etc... (later heuristics...)
-        # use non null self.m_resolver_flaw_info
+        
+        if self.m_flaw_node_info.m_assertion2 is None:
+
+            # there can only be unsupported assertions starting at time now or later (not before, that would just mean failed acting)
+            # so we assume that self.m_flaw_node_info.m_assertion1's start time is later than (or at the same time as) self.time
+            # (would it be beneficial to enforce it by an explicit constraint ? (easier conflict/inconsistency detection from that ?))
+
+            # direct support resolvers
+
+            for i_asrt in self.m_chronicle.m_assertions:
+
+                if (i_asrt.type == AssertionType.PERSISTENCE
+                    and i_asrt.has_same_head(self.m_flaw_node_info.m_assertion1)
+                    and i_asrt != self.m_flaw_node_info.m_assertion1
+                ):
+                    if (self.m_chronicle.m_constraint_network.propagate_constraints([
+                            (ConstraintType.TEMPORAL, (i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start, 0, False)),
+                            (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_start, i_asrt.time_end, 0, False))
+                            (ConstraintType.UNIFICATION, (i_asrt.sv_val, self.m_flaw_node_info.m_assertion1.sv_val))
+                        ], p_backtrack=True)
+                        and self.m_chronicle.m_constraint_network.tempvars_unified(i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start)
+                    ):
+                        resolver = ResolverNodeInfo()
+                        resolver.m_type = ResolverType.EXISTING_DIRECT_PERSISTENCE_SUPPORT_NOW
+                        resolver.m_direct_support_assertion = i_asrt
+                        resolver.m_direct_support_assertion_supporter = None
+                        resolver.m_new_constraint_network = None
+                        resolver.m_new_constraints = [
+                            (ConstraintType.TEMPORAL, (i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start, 0, False)),
+                            (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_start, i_asrt.time_end, 0, False)),
+                            # here i_asrt.time_end is already (see if statement above) unified/equal to self.m_time (i.e. time "now")
+                            (ConstraintType.UNIFICATION, (i_asrt.sv_val, self.m_flaw_node_info.m_assertion1.sv_val))
+                        ]
+                        resolver.m_action_or_method_instance = None
+                        resolver.m_action_or_method_assertion_support_info = None
+                        res.append(resolver)
+
+                    if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
+                            i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start) > 0
+                        # !!!NOTE!!! possible latest assertions on the considered state variable, before the flawed one
+                        # (no reason to take ones where we're sure that there is one between it and the flawed one)
+                        # will be easier if we group assertions by head (-> explicit timelines ?)
+                        # OR (NOTE) MAYBE no point in this ? as if we don't take the "latest" assertion from which to support,
+                        # applying the resolver will cause a potential conflict flaw (between the introduced supporter and "later" assertions)
+                        # but that is not necessarily a problem or something to avoid - this conflict could get resolved sucessfully.
+                        and self.m_chronicle.m_constraint_network.propagate_constraints([
+                            (ConstraintType.UNIFICATION, (i_asrt.sv_val, self.m_flaw_node_info.m_assertion1.sv_val))
+                        ], p_backtrack=True)
+                    ):
+                        resolver = ResolverNodeInfo()
+                        resolver.m_type = ResolverType.NEW_DIRECT_PERSISTENCE_SUPPORT_NOW
+                        resolver.m_direct_support_assertion = Assertion(
+                            p_type=AssertionType.PERSISTENCE,
+                            p_sv_name=self.m_flaw_node_info.m_assertion1.sv_name,
+                            p_sv_params_keys=self.m_flaw_node_info.m_assertion1.sv_params_keys,
+                            p_sv_params_values=self.m_flaw_node_info.m_assertion1.sv_params_values,
+                            p_sv_val=i_asrt.sv_val,
+                            p_sv_val_sec=None,
+                            p_time_start=self.m_time, # i_asrt.time_end ? NOTE: Either this or constraint below
+                            p_time_end=self.m_flaw_node_info.m_assertion1.time_end
+                        )
+                        resolver.m_direct_support_assertion_supporter = i_asrt
+                        resolver.m_new_constraint_network = None
+                        resolver.m_action_or_method_instance = None
+                        resolver.m_action_or_method_assertion_support_info = None
+                        res.append(resolver)
+
+            # action/method insertion resolvers
+            # lots of heuristics (both lifted and grounded ?) will need to be used and search space reduction techniques (reachability analysis etc)
+
+            for i_act_or_meth_template in self.m_action_method_templates_library:
+
+                # Only consider action templates which have an assertion with the same header as the flawed unsupported one
+                # Indeed, it must be supported by one of the assertions of the chosen action/method
+                # !!!NOTE!!! we assume that the head of the assertions (sv_name and sv_params_keys) do not depend on assertion parameters
+                _b = False
+                same_sv_as_flaw_asrt:Assertion = None
+                i_act_or_meth_template_asrts = i_act_or_meth_template.assertions_func(
+                    self.m_time, self.m_flaw_node_info.m_assertion1.time_start, i_act_or_meth_template.params)
+                for i_asrt in i_act_or_meth_template_asrts:
+                    if i_asrt.has_same_head(self.m_flaw_node_info.m_assertion1):
+                        same_sv_as_flaw_asrt = i_asrt
+                        _b = True
+                        break
+                if not _b:
+                    continue
+
+                _list = list(i_act_or_meth_template.params)
+                _n = len(i_act_or_meth_template.params.keys())
+                rows = []
+                def _recursion(_i, _row:typing.List):
+                    _rowcopy = _row.copy()
+                    for _v in self.m_chronicle.m_constraint_network.objvar_domain(_list[_i]).get_values():
+                        _row.append(_v)
+                        if _i <= _n-2:
+                            _recursion(_i+1,_row)
+                        else:
+                            rows.append(_row.copy())
+                        _row = _rowcopy
+                    if _i > 0:
+                        _recursion(0,[])
+                    else:
+                        return
+                _recursion(0,[])
+
+                if same_sv_as_flaw_asrt.type == AssertionType.TRANSITION:
+                    unif_constr = (ConstraintType.UNIFICATION, 
+                        (same_sv_as_flaw_asrt.sv_val_sec, self.m_flaw_node_info.m_assertion1.sv_val))
+                else:
+                    unif_constr = (ConstraintType.UNIFICATION, 
+                        (same_sv_as_flaw_asrt.sv_val, self.m_flaw_node_info.m_assertion1.sv_val)),
+
+                #propagated = self.m_chronicle.m_constraint_network.propagate_constraints(
+                #    i_act_or_meth_template.constraints_func(
+                #        self.m_time, self.m_flaw_node_info.m_assertion1.time_start, i_act_or_meth_template.params)
+                #    .union([
+                #        unif_constr,
+                #        (ConstraintType.GENERAL_RELATION,
+                #            ("__actmethtempl_{0}{1}_rel".format(i_act_or_meth_template.name, i_act_or_meth_template.params),
+                #            tuple(i_act_or_meth_template.params.values()),
+                #            rows))
+                #    ])
+                #)
+                
+                if ("__actmethtempl_{0}{1}_rel".format(i_act_or_meth_template.name, i_act_or_meth_template.params)
+                    in self.m_chronicle.m_constraint_network.m_bcn.m_general_relations
+                ):
+                    propagated = True
+                else:
+                    propagated = self.m_chronicle.m_constraint_network.propagate_constraints(
+                        (ConstraintType.GENERAL_RELATION,
+                            ("__actmethtempl_{0}{1}_rel".format(i_act_or_meth_template.name, i_act_or_meth_template.params),
+                            tuple(i_act_or_meth_template.params.values()),
+                            rows))
+                    )
+                
+                if propagated:
+
+                    new_constraint_network = deepcopy(self.m_chronicle.m_constraint_network)
+                    propagated = new_constraint_network.propagate_constraints(
+                        i_act_or_meth_template.constraints_func(
+                            self.m_time, self.m_flaw_node_info.m_assertion1.time_start, i_act_or_meth_template.params)
+                        .union([unif_constr])
+                    )
+                
+                    if propagated:
+        
+                        args = {}
+                        objvars_domains = {}
+                        _n = new_int_id()
+                        for param in i_act_or_meth_template.params:
+                            arg_objvar_name = "__actmethinst{0}_{1}{2}_arg_{3}".format(
+                                _n, i_act_or_meth_template.name, i_act_or_meth_template.params, param)
+                            objvars_domains[arg_objvar_name] = Domain(p_initial_allowed_values=
+                                    new_constraint_network.objvar_domain(i_act_or_meth_template.params[param]))
+                            args[param] = arg_objvar_name
+                        new_constraint_network.init_objvars(objvars_domains)
+
+                        act_or_meth_instance = ActionMethod(
+                            p_template=i_act_or_meth_template,
+                            p_time_start=self.m_time,
+                            p_time_end=self.m_flaw_node_info.m_assertion1.time_start,
+                            p_args=args
+                        )
+                        act_or_meth_assertion_support_info = act_or_meth_instance.propagate_applicability(
+                            p_time=self.m_time,
+                            p_cn=new_constraint_network,
+                            p_assertions=self.m_chronicle.m_assertions,
+                            p_assertion_to_support=self.m_flaw_node_info.m_assertion1,
+                            p_backtrack=False,
+                        )
+
+                        if len(act_or_meth_assertion_support_info) > 0:
+                            
+                            resolver = ResolverNodeInfo()
+                            if act_or_meth_instance.template.type == ActionMethodTemplate.Type.ACTION:
+                                resolver.m_type = ResolverType.ACTION_INSERTION_NOW
+                            else:
+                                resolver.m_type = ResolverType.METHOD_INSERTION_NOW
+                            resolver.m_direct_support_assertion = None
+                            resolver.m_direct_support_assertion_supporter = None
+                            resolver.m_new_constraints = None
+                            resolver.m_new_constraint_network = new_constraint_network
+                            resolver.m_action_or_method_instance = act_or_meth_instance
+                            resolver.m_action_or_method_assertion_support_info = act_or_meth_assertion_support_info
+
+                            res.append(resolver)
+    
+                if not propagated:
+                    continue
+
+        else:
+            pass
+
         return res
 
     def select_charlie_moves(self) -> typing.List[CharlieMoveInfo]:
