@@ -66,7 +66,7 @@ class ConstraintNetwork():
         self._bcns_stack = []
         self._stns_stack = []
 
-    def declare_and_init_objvars(self, p_domains: typing.Dict[str, Domain]) -> None:
+    def init_objvars(self, p_domains: typing.Dict[str, Domain]) -> None:
         """
         Wrapper for declaring and initialising object variables (in the BCN)
         (i.e. creating corresponding entries in the domains dictionary entry and adding to the union-find structure)
@@ -80,7 +80,7 @@ class ConstraintNetwork():
         self.m_bcn.m_unifications.make_set(p_domains.keys())
         self.m_bcn.m_domains = { **self.m_bcn.m_domains , **p_domains }
 
-    def declare_and_init_tempvars(self, p_controllability: typing.Dict[str,bool]) -> None:
+    def init_tempvars(self, p_controllability: typing.Dict[str,bool]) -> None:
         """
         Wrapper for declaring and initialising timepoints (in the STN)
         Arguments:
@@ -230,7 +230,7 @@ class ConstraintNetwork():
     def propagate_constraints(
         self,
         p_input_constraints:typing.Iterable[typing.Tuple[ConstraintType,typing.Any]],
-        p_dont_apply_and_push=False,
+        p_backtrack=False,
     ) -> bool:
         """
         Method allowing to (partially, locally) propagate the specified constraints, by triggering (non independent) constraint propagation for both the BCN and STN.
@@ -251,12 +251,12 @@ class ConstraintNetwork():
                         (objvar1, [objvar2, objvar3, ...])
                     if GENERAL_RELATION:
                         (relation_name, ([param_objvars...], [[objvars_values...]...]))
-            p_apply_and_push (bool):
+            p_backtrack (bool):
                 Indicates whether to restore the changes to the constraint networks and domains as they were before, i.e. just checking propagation, not applying it.
         Returns:
             True if the constraints can be successfully propagated
         Side effects:
-            If p_apply_and_push is False (by default), the constraints and changes introduced to the constraint networks and domains will be saved if propagation is successful.
+            If p_backtrack is False (by default), the constraints and changes introduced to the constraint networks and domains will be saved if propagation is successful.
             If it is True, then even if propagation is successful, the changes will be reverted and there won't be any side effects.
             Currently these backups and restorations are managed through deepcopies... (inefficient and not elegant). 
         """
@@ -292,7 +292,7 @@ class ConstraintNetwork():
         ):
             # if only checking / verifying possibly consistent propagation is required, then restore backed up networks
             # (no need to apply new propagated constraints)
-            if p_dont_apply_and_push:
+            if p_backtrack:
                 self.backtrack()
             return True
 
@@ -461,14 +461,16 @@ class BCN():
                 ):
                     return False
 
-                self.m_unifications.add_and_union(var1, var2)
-                
-                changed = self.m_domains[var1].intersection(self.m_domains[var2])
-                if changed:
-                    change_info.append((var1,var2))
+                if var1 != Domain._ANY_VALUE_VAR and var2 != Domain._ANY_VALUE_VAR:
 
-                if self.m_domains[var1].is_empty():
-                    return False
+                    self.m_unifications.add_and_union(var1, var2)
+                    changed = self.m_domains[var1].intersection(self.m_domains[var2])
+                    
+                    if changed:
+                        change_info.append((var1,var2))
+
+                    if self.m_domains[var1].is_empty():
+                        return False
             
             elif constr_type == ConstraintType.DISJ_UNIFICATION:
                 
