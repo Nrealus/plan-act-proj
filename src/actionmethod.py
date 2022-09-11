@@ -24,11 +24,11 @@ class ActionMethodTemplate(tuple):
     def __new__(cls,
         p_type:Type,
         p_name:str,
-        p_params:typing.Dict[str,str],
+        p_params:typing.Tuple[typing.Tuple[str,str],...],
         p_assertions_func:typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[Assertion]]=(lambda ts,te,params: set()),
         p_constraints_func:typing.Callable[[str,str,typing.Dict[str,str]],typing.Tuple[ConstraintType,typing.Any]]=(lambda ts,te,params: set()),
     ):
-        return tuple.__new__(cls, (p_name, p_params.items(), p_assertions_func, p_constraints_func, p_type))
+        return tuple.__new__(cls, (p_name, p_params, p_assertions_func, p_constraints_func, p_type))
 
     @property
     def type(self) -> Type:
@@ -39,8 +39,8 @@ class ActionMethodTemplate(tuple):
         return tuple.__getitem__(self, 0)
 
     @property
-    def params(self) -> typing.Dict[str,str]:
-        return dict(tuple.__getitem__(self, 1))
+    def params(self) -> typing.Tuple[typing.Tuple[str,str],...]:
+        return tuple.__getitem__(self, 1)
 
     @property
     def assertions_func(self) -> typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[Assertion]]:
@@ -58,7 +58,7 @@ class ActionMethod(tuple):
     __slots__ = []
     def __new__(cls,
         p_template:ActionMethodTemplate,
-        p_args:typing.Dict[str,str],
+        p_args:typing.Tuple[typing.Tuple[str,str],...],
         p_name:str="",
         p_time_start:str="",
         p_time_end:str="",
@@ -80,11 +80,11 @@ class ActionMethod(tuple):
 
         return tuple.__new__(cls, (
             p_template,
-            p_args.items(), 
+            p_args, 
             name,
             ts, te, 
-            p_template.assertions_func(ts,te,p_args), 
-            p_template.constraints_func(ts,te,p_args)))
+            p_template.assertions_func(ts,te,{ k:v for (k,v) in p_args }), 
+            p_template.constraints_func(ts,te,{ k:v for (k,v) in p_args })))
 
     @property
     def type(self) -> ActionMethodTemplate.Type:
@@ -99,8 +99,8 @@ class ActionMethod(tuple):
         return tuple.__getitem__(self, 2)
 
     @property
-    def args(self) -> typing.Dict[str,str]:
-        return dict(tuple.__getitem__(self, 1))
+    def args(self) -> typing.Tuple[typing.Tuple[str,str],...]:
+        return tuple.__getitem__(self, 1)
 
     @property
     def time_start(self) -> str:

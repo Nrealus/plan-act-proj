@@ -37,8 +37,7 @@ class Assertion(tuple):
     def __new__(cls,
         p_type:AssertionType,
         p_sv_name:str,
-        p_sv_params_keys:typing.Tuple[str,...],
-        p_sv_params_values:typing.Tuple[str,...],
+        p_sv_params:typing.Tuple[typing.Tuple[str,str],...],
         p_sv_val:object,
         p_sv_val_sec:object=None,
         p_time_start:str="",
@@ -54,7 +53,7 @@ class Assertion(tuple):
             te = "__te_asrt_{0}".format(str(k))
         else:
             te = p_time_end
-        return tuple.__new__(cls, (p_type, p_sv_name, p_sv_params_keys, p_sv_params_values, ts, te, p_sv_val, p_sv_val_sec))
+        return tuple.__new__(cls, (p_type, p_sv_name, p_sv_params, ts, te, p_sv_val, p_sv_val_sec))
 
     @property
     def type(self) -> AssertionType:
@@ -65,28 +64,24 @@ class Assertion(tuple):
         return tuple.__getitem__(self, 1)
 
     @property
-    def sv_params_keys(self) -> typing.Tuple[str,...]:
+    def sv_params(self) -> typing.Tuple[typing.Tuple[str,str],...]:
         return tuple.__getitem__(self, 2)
 
     @property
-    def sv_params_values(self) -> typing.Tuple[str,...]:
+    def time_start(self) -> str:
         return tuple.__getitem__(self, 3)
 
     @property
-    def time_start(self) -> str:
+    def time_end(self) -> str:
         return tuple.__getitem__(self, 4)
 
     @property
-    def time_end(self) -> str:
+    def sv_val(self) -> object:
         return tuple.__getitem__(self, 5)
 
     @property
-    def sv_val(self) -> object:
-        return tuple.__getitem__(self, 6)
-
-    @property
     def sv_val_sec(self) -> object:
-        return tuple.__getitem__(self, 7)
+        return tuple.__getitem__(self, 6)
 
     def __getitem__(self, item):
         raise TypeError
@@ -101,7 +96,14 @@ class Assertion(tuple):
         Returns:
             True if this assertion and the argument assertion have the same head
         '''
-        return self.sv_name == p_other_assertion.sv_name and self.sv_params_keys == p_other_assertion.sv_params_keys
+        if self.sv_name != p_other_assertion.sv_name:
+            return False
+        if len(self.sv_params) != len(p_other_assertion.sv_params):
+            return False
+        for _i in range(len(self.sv_params)):
+            if self.sv_params[_i][0] != p_other_assertion.sv_params[_i][0]:
+                return False
+        return True
     
     def propagate_causal_support_by(self,
         p_test_supporter:Assertion,
@@ -134,8 +136,8 @@ class Assertion(tuple):
         # check if the assertions have the same head
         if self.has_same_head(p_test_supporter):
             constrs = []
-            for i in range(len(p_test_supporter.sv_params_values)):
-                constrs.append((ConstraintType.UNIFICATION, (p_test_supporter.sv_params_values[i], self.sv_params_values[i])))
+            for i in range(len(p_test_supporter.sv_params)):
+                constrs.append((ConstraintType.UNIFICATION, (p_test_supporter.sv_params[i][1], self.sv_params[i][1])))
             # check if parameters of the assertions are unified
             if p_cn.propagate_constraints(constrs):
                 num_backtracks += 1
@@ -194,8 +196,8 @@ class Assertion(tuple):
             return False
         # check if the head of this assertion and the specified one is different
         elif self.has_same_head(p_other_assertion):
-            for i in range(len(self.sv_params_values)):
-                if not p_cn.objvars_unifiable(self.sv_params_values[i],p_other_assertion.sv_params_values[i]):
+            for i in range(len(self.sv_params)):
+                if not p_cn.objvars_unifiable(self.sv_params[i][1],p_other_assertion.sv_params[i][1]):
                     return False
         else:
         #    warnings.warn("shouldn't happen...!!!!")

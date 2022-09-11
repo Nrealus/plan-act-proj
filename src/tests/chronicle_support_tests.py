@@ -65,8 +65,7 @@ def test1(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("param_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+        p_sv_params=(("param_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
         p_time_start="t0",
@@ -76,8 +75,7 @@ def test1(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("param_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+        p_sv_params=(("param_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
         p_time_start="t2",
@@ -130,8 +128,7 @@ def test2(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("param_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+        p_sv_params=(("param_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
         p_time_start="t0",
@@ -141,8 +138,7 @@ def test2(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("param_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+        p_sv_params=(("param_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
         p_time_start="t2",
@@ -194,8 +190,7 @@ def test3(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("param_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+        p_sv_params=(("param_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -212,8 +207,7 @@ def test3(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("param_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+        p_sv_params=(("param_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -272,8 +266,7 @@ def test4(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("param_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+        p_sv_params=(("param_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -290,8 +283,7 @@ def test4(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("param_robot",),
-        p_sv_params_values=("objvar_robots_grp2",),
+        p_sv_params=(("param_robot","objvar_robots_grp2"),),
         p_sv_val="objvar_location_B",
         p_sv_val_sec=None,
     )
@@ -350,8 +342,7 @@ def test4_1(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("param_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+        p_sv_params=(("param_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -368,8 +359,7 @@ def test4_1(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("param_robot",),
-        p_sv_params_values=("objvar_robots_grp3",),
+        p_sv_params=(("param_robot","objvar_robots_grp3"),),
         p_sv_val="objvar_location_C",
         p_sv_val_sec=None,
     )
@@ -428,8 +418,7 @@ def test5(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.TRANSITION,
         p_sv_name="sv_location",
-        p_sv_params_keys=("param_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+        p_sv_params=(("param_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_B",
         p_sv_val_sec="objvar_location_A",
     )
@@ -444,8 +433,7 @@ def test5(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("param_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+        p_sv_params=(("param_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -502,8 +490,7 @@ def test6(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("param_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+        p_sv_params=(("param_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -520,8 +507,7 @@ def test6(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("param_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+        p_sv_params=(("param_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -586,16 +572,15 @@ def test10(verbose=False):
     action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params={
-            "p_robot":"objvar_robots_all",
-            "p_destination_location":"objvar_locations_all"
-        },
+        p_params=(
+            ("p_robot","objvar_robots_all"),
+            ("p_destination_location","objvar_locations_all"),
+        ),
         p_assertions_func=lambda ts,te,params: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params_keys=("p_robot",),
-                p_sv_params_values=(params["p_robot"],),
+                p_sv_params=(("p_robot",params["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
                 p_sv_val_sec=params["p_destination_location"],
                 p_time_start=ts,
@@ -609,7 +594,7 @@ def test10(verbose=False):
 
     action1 = ActionMethod(
         p_template=action_template,
-        p_args={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_args=(("p_robot", "my_robot"), ("p_destination_location","my_destination")),
         p_name="",
         p_time_start="t1",
         p_time_end="t2"
@@ -622,8 +607,7 @@ def test10(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("p_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+            p_sv_params=(("p_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
         p_time_start="t0",
@@ -633,8 +617,7 @@ def test10(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("p_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+            p_sv_params=(("p_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_B",
         p_sv_val_sec=None,
         p_time_start="t2",
@@ -701,16 +684,15 @@ def test11(verbose=False):
     action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params={
-            "p_robot":"all_robots_objvar",
-            "p_destination_location":"all_destinations_objvar"
-        },
+        p_params=(
+            ("p_robot","objvar_robots_all"),
+            ("p_destination_location","objvar_locations_all"),
+        ),
         p_assertions_func=lambda ts,te,params: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params_keys=("p_robot",),
-                p_sv_params_values=(params["p_robot"],),
+                p_sv_params=(("p_robot",params["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
                 p_sv_val_sec=params["p_destination_location"],
                 p_time_start=ts,
@@ -724,21 +706,20 @@ def test11(verbose=False):
 
     action1 = ActionMethod(
         p_template=action_template,
-        p_args={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_args=(("p_robot", "my_robot"), ("p_destination_location","my_destination")),
         p_name="",
         p_time_start="t1",
         p_time_end="t2"
     )
     constrs.extend([
-        (ConstraintType.UNIFICATION,(action1.args["p_robot"],"objvar_robots_grp1")),
-        (ConstraintType.UNIFICATION,(action1.args["p_destination_location"],"objvar_location_B")),
+        (ConstraintType.UNIFICATION,(action1.args[0][1],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.args[1][1],"objvar_location_B")),
     ])
     
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("p_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+            p_sv_params=(("p_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
         p_time_start="t0",
@@ -748,8 +729,7 @@ def test11(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("p_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+            p_sv_params=(("p_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_B",
         p_sv_val_sec=None,
         p_time_start="t2",
@@ -816,16 +796,15 @@ def test12(verbose=False):
     action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params={
-            "p_robot":"all_robots_objvar",
-            "p_destination_location":"all_destinations_objvar"
-        },
+        p_params=(
+            ("p_robot","objvar_robots_all"),
+            ("p_destination_location","objvar_locations_all"),
+        ),
         p_assertions_func=lambda ts,te,params: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params_keys=("p_robot",),
-                p_sv_params_values=(params["p_robot"],),
+                p_sv_params=(("p_robot",params["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
                 p_sv_val_sec=params["p_destination_location"],
                 p_time_start=ts,
@@ -839,14 +818,14 @@ def test12(verbose=False):
 
     action1 = ActionMethod(
         p_template=action_template,
-        p_args={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_args=(("p_robot", "my_robot"), ("p_destination_location","my_destination")),
         p_name="",
         p_time_start="",
         p_time_end=""
     )
     constrs.extend([
-        (ConstraintType.UNIFICATION,(action1.args["p_robot"],"objvar_robots_grp1")),
-        (ConstraintType.UNIFICATION,(action1.args["p_destination_location"],"objvar_location_B")),
+        (ConstraintType.UNIFICATION,(action1.args[0][1],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.args[1][1],"objvar_location_B")),
         (ConstraintType.TEMPORAL,(action1.time_start, "t1", 0, False)),
         (ConstraintType.TEMPORAL,("t1", action1.time_start, 0, False)),
         (ConstraintType.TEMPORAL,(action1.time_end, "t2", 0, False)),
@@ -856,8 +835,7 @@ def test12(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("p_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+            p_sv_params=(("p_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -872,8 +850,7 @@ def test12(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("p_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+            p_sv_params=(("p_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_B",
         p_sv_val_sec=None,
     )
@@ -944,16 +921,15 @@ def test13(verbose=False):
     action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params={
-            "p_robot":"all_robots_objvar",
-            "p_destination_location":"all_destinations_objvar"
-        },
+        p_params=(
+            ("p_robot","objvar_robots_all"),
+            ("p_destination_location","objvar_locations_all"),
+        ),
         p_assertions_func=lambda ts,te,params: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params_keys=("p_robot",),
-                p_sv_params_values=(params["p_robot"],),
+                p_sv_params=(("p_robot",params["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
                 p_sv_val_sec=params["p_destination_location"],
                 p_time_start=ts,
@@ -967,22 +943,21 @@ def test13(verbose=False):
 
     action1 = ActionMethod(
         p_template=action_template,
-        p_args={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_args=(("p_robot", "my_robot"), ("p_destination_location","my_destination")),
         p_name="",
         p_time_start="t1",
         p_time_end="t2"
     )
 
     constrs.extend([
-        (ConstraintType.UNIFICATION,(action1.args["p_robot"],"objvar_robots_grp1")),
-        (ConstraintType.UNIFICATION,(action1.args["p_destination_location"],"objvar_location_B")),
+        (ConstraintType.UNIFICATION,(action1.args[0][1],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.args[1][1],"objvar_location_B")),
     ])
 
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("p_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+            p_sv_params=(("p_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -997,8 +972,7 @@ def test13(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("p_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+            p_sv_params=(("p_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_B",
         p_sv_val_sec=None,
     )
@@ -1069,16 +1043,15 @@ def test14(verbose=False):
     action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params={
-            "p_robot":"all_robots_objvar",
-            "p_destination_location":"all_destinations_objvar"
-        },
+        p_params=(
+            ("p_robot","objvar_robots_all"),
+            ("p_destination_location","objvar_locations_all"),
+        ),
         p_assertions_func=lambda ts,te,params: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params_keys=("p_robot",),
-                p_sv_params_values=(params["p_robot"],),
+                p_sv_params=(("p_robot",params["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
                 p_sv_val_sec=params["p_destination_location"],
                 p_time_start=ts,
@@ -1092,7 +1065,7 @@ def test14(verbose=False):
 
     action1 = ActionMethod(
         p_template=action_template,
-        p_args={"p_robot": "my_robot", "p_destination_location":"my_destination"},
+        p_args=(("p_robot", "my_robot"), ("p_destination_location","my_destination")),
         p_name="",
         p_time_start="",
         p_time_end=""
@@ -1109,8 +1082,7 @@ def test14(verbose=False):
     asrt1 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("p_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+            p_sv_params=(("p_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_A",
         p_sv_val_sec=None,
     )
@@ -1125,8 +1097,7 @@ def test14(verbose=False):
     asrt2 = Assertion(
         p_type=AssertionType.PERSISTENCE,
         p_sv_name="sv_location",
-        p_sv_params_keys=("p_robot",),
-        p_sv_params_values=("objvar_robots_grp1",),
+            p_sv_params=(("p_robot","objvar_robots_grp1"),),
         p_sv_val="objvar_location_B",
         p_sv_val_sec=None,
     )

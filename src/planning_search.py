@@ -3,13 +3,13 @@ from sqlite3 import paramstyle
 
 import sys
 
-from constraints.domain import Domain
 sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-playground7")
 
 from copy import deepcopy
 import typing
 from enum import Enum
 from src.utility.new_int_id import new_int_id
+from src.constraints.domain import Domain
 from src.constraints.constraints import ConstraintNetwork, ConstraintType
 from src.assertion import Assertion, AssertionType
 from src.actionmethod import ActionMethodTemplate, ActionMethod
@@ -56,10 +56,9 @@ class EveMoveInfo():
 class SearchNode():
 
     monitor_action_template = ActionMethodTemplate(
+        p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_monitor_assertion",
-        p_args={
-            "p_assertion":"all_assertions_objvar" # obviously, need to find a way to represent non explicit domains
-        },
+        p_params=(("p_assertion","all_assertions_objvar"),), # obviously, need to find a way to represent non explicit domains
         p_constraints_func=lambda ts,te,_:[
             (ConstraintType.TEMPORAL, (ts,te,0,False))
         ]
@@ -112,7 +111,6 @@ class SearchNode():
             # resolvable at time now !!
             flaws = self.select_flaws() # order/priority can depend on search strategy
             for fi in flaws:
-
                 self.m_children.append(SearchNode(p_node_type=SearchNodeType.RESOLVER,
                     p_parent=self,
                     p_time=self.m_time,
@@ -152,9 +150,9 @@ class SearchNode():
                     # It is this action that will be triggered when the goal/assertion will be dispatched
                     new_action = ActionMethod(
                         p_template=SearchNode.monitor_action_template,
-                        p_args={
-                            "p_assertion":self.m_flaw_node_info.m_assertion1
-                        },
+                        p_args=(
+                            ("p_assertion",self.m_flaw_node_info.m_assertion1),
+                        ),
                         p_time_start=self.m_flaw_node_info.m_assertion1.time_start,
                         p_time_end=self.m_flaw_node_info.m_assertion1.time_end,
                     )
@@ -193,7 +191,7 @@ class SearchNode():
                         # Same as above, but addresses the supporter of the introduced direct supporter of the flawed unsupported assertion.
                         new_action2 = ActionMethod(
                             p_template=SearchNode.monitor_action_template,
-                            p_args={"p_assertion":ri.m_direct_support_assertion},
+                            p_args=(("p_assertion",ri.m_direct_support_assertion),),
                             p_time_start=ri.m_direct_support_assertion.time_start,
                             p_time_end=ri.m_direct_support_assertion.time_end,
                         )
@@ -419,12 +417,18 @@ class SearchNode():
         # in general : "priority queue" (or just priority order in list) according to search strategy
         # for example : flaws with only one possible resolver first... (FAPE 2020 p.40)
         # maybe if mcts is used, not all children at the same time ? maybe come back to this node later and "complete" its children ?--
-        for (asrt,supported) in self.m_chronicle.m_assertions:
-            if not supported and self.m_chronicle.m_goal_nodes[asrt].m_mode != GoalMode.FORMULATED: 
-                res.append(FlawNodeInfo(m_assertion1=asrt, m_assertion2=None))
-        
+        for asrt in self.m_chronicle.m_assertions:
+            if not self.m_chronicle.m_assertions[asrt] and self.m_chronicle.m_goal_nodes[asrt].m_mode != GoalMode.FORMULATED:
+                fi = FlawNodeInfo()
+                fi.m_assertion1 = asrt
+                fi.m_assertion2 = None
+                res.append(fi)
+
         for (asrt1, asrt2) in self.m_chronicle.m_conflicts:
-            res.append(FlawNodeInfo(m_assertion1=asrt1, m_assertion2=asrt2))
+                fi = FlawNodeInfo()
+                fi.m_assertion1 = asrt1
+                fi.m_assertion2 = asrt2
+                res.append(fi)
         
         return res
 
@@ -484,8 +488,7 @@ class SearchNode():
                         resolver.m_direct_support_assertion = Assertion(
                             p_type=AssertionType.PERSISTENCE,
                             p_sv_name=self.m_flaw_node_info.m_assertion1.sv_name,
-                            p_sv_params_keys=self.m_flaw_node_info.m_assertion1.sv_params_keys,
-                            p_sv_params_values=self.m_flaw_node_info.m_assertion1.sv_params_values,
+                            p_sv_params=self.m_flaw_node_info.m_assertion1.sv_params,
                             p_sv_val=i_asrt.sv_val,
                             p_sv_val_sec=None,
                             p_time_start=self.m_time, # i_asrt.time_end ? NOTE: Either this or constraint below
@@ -504,11 +507,11 @@ class SearchNode():
 
                 # Only consider action templates which have an assertion with the same header as the flawed unsupported one
                 # Indeed, it must be supported by one of the assertions of the chosen action/method
-                # !!!NOTE!!! we assume that the head of the assertions (sv_name and sv_params_keys) do not depend on assertion parameters
+                # !!!NOTE!!! we assume that the head of the assertions (sv_name and sv_params first elements) do not depend on assertion parameters
                 _b = False
                 same_sv_as_flaw_asrt:Assertion = None
                 i_act_or_meth_template_asrts = i_act_or_meth_template.assertions_func(
-                    self.m_time, self.m_flaw_node_info.m_assertion1.time_start, i_act_or_meth_template.params)
+                    self.m_time, self.m_flaw_node_info.m_assertion1.time_start, [pair[1] for pair in i_act_or_meth_template.params])
                 for i_asrt in i_act_or_meth_template_asrts:
                     if i_asrt.has_same_head(self.m_flaw_node_info.m_assertion1):
                         same_sv_as_flaw_asrt = i_asrt
@@ -517,12 +520,11 @@ class SearchNode():
                 if not _b:
                     continue
 
-                _list = list(i_act_or_meth_template.params)
-                _n = len(i_act_or_meth_template.params.keys())
+                _n = len(i_act_or_meth_template.params)
                 rows = []
                 def _recursion(_i, _row:typing.List):
                     _rowcopy = _row.copy()
-                    for _v in self.m_chronicle.m_constraint_network.objvar_domain(_list[_i]).get_values():
+                    for _v in self.m_chronicle.m_constraint_network.objvar_domain(i_act_or_meth_template.params[_i][1]).get_values():
                         _row.append(_v)
                         if _i <= _n-2:
                             _recursion(_i+1,_row)
@@ -562,7 +564,7 @@ class SearchNode():
                     propagated = self.m_chronicle.m_constraint_network.propagate_constraints(
                         (ConstraintType.GENERAL_RELATION,
                             ("__actmethtempl_{0}{1}_rel".format(i_act_or_meth_template.name, i_act_or_meth_template.params),
-                            tuple(i_act_or_meth_template.params.values()),
+                            tuple([pair[1] for pair in i_act_or_meth_template.params]),
                             rows))
                     )
                 
@@ -571,7 +573,7 @@ class SearchNode():
                     new_constraint_network = deepcopy(self.m_chronicle.m_constraint_network)
                     propagated = new_constraint_network.propagate_constraints(
                         i_act_or_meth_template.constraints_func(
-                            self.m_time, self.m_flaw_node_info.m_assertion1.time_start, i_act_or_meth_template.params)
+                            self.m_time, self.m_flaw_node_info.m_assertion1.time_start, [pair[1] for pair in i_act_or_meth_template.params])
                         .union([unif_constr])
                     )
                 
@@ -582,9 +584,9 @@ class SearchNode():
                         _n = new_int_id()
                         for param in i_act_or_meth_template.params:
                             arg_objvar_name = "__actmethinst{0}_{1}{2}_arg_{3}".format(
-                                _n, i_act_or_meth_template.name, i_act_or_meth_template.params, param)
+                                _n, i_act_or_meth_template.name, i_act_or_meth_template.params, param[0])
                             objvars_domains[arg_objvar_name] = Domain(p_initial_allowed_values=
-                                    new_constraint_network.objvar_domain(i_act_or_meth_template.params[param]))
+                                    new_constraint_network.objvar_domain(param[1]))
                             args[param] = arg_objvar_name
                         new_constraint_network.init_objvars(objvars_domains)
 
