@@ -471,7 +471,7 @@ class SearchNode():
                             resolver.m_action_or_method_instance = None
                             resolver.m_action_or_method_assertion_support_info = None
                             res.append(resolver)
-                    else:
+                    
                         self.m_chronicle.m_constraint_network.backtrack()
 
                     if (self.m_chronicle.m_constraint_network.propagate_constraints([
@@ -514,7 +514,7 @@ class SearchNode():
                             resolver.m_action_or_method_instance = None
                             resolver.m_action_or_method_assertion_support_info = None
                             res.append(resolver)
-                    else:
+                    
                         self.m_chronicle.m_constraint_network.backtrack()
                         
             # action/method insertion resolvers
