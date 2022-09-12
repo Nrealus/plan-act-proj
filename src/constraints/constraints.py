@@ -290,8 +290,8 @@ class ConstraintNetwork():
                     binding_constraints_worklist.append((cstr_type,cstr))
         
         # back up networks
-        self._bcns_stack.append(self.m_bcn)
-        self._stns_stack.append(self.m_stn)
+        self._bcns_stack.append(deepcopy(self.m_bcn))
+        self._stns_stack.append(deepcopy(self.m_stn))
 
         # propagate constraints to both (interacting) constraint networks (hence stn and bcn specified as arguments)
         if (self.m_bcn._propagate(binding_constraints_worklist,self.m_stn)
@@ -803,7 +803,7 @@ class STN():
 
     def _apsp_fw(self, p_bcn:BCN):
         
-        res = dict(self.m_minimal_network)
+        res = {}
         for q in self.m_controllability:
             for u in self.m_controllability:
                 for v in self.m_controllability:
