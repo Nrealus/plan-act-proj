@@ -121,15 +121,13 @@ def test1(verbose=False):
     root_chronicle.m_assertions[asrt2] = False
     root_chronicle.m_goal_nodes.setdefault(asrt2, GoalNode()).m_mode = GoalMode.SELECTED
 
-    print(root_chronicle.m_assertions)
-
     root_search_node = SearchNode(
         p_node_type=SearchNodeType.FLAW,
         p_parent=None,
         p_time=1,
         p_state=None,
         p_chronicle=root_chronicle,
-        p_action_method_templates_library=set(action_template),
+        p_action_method_templates_library=set([action_template]),
     )
     
     if not ok:
@@ -144,16 +142,21 @@ def test1(verbose=False):
         if verbose:
             _i = 0
             nodes = [root_search_node]
+            strs = ["0"]
             while len(nodes) > 0:
-                print("---{0}---".format(_i))
-                _i += 1
                 cur_node = nodes.pop(0)
-                print(cur_node)
+                
+                _s = strs.pop(0)
+                print("-{0} : {1}".format(_s, cur_node.m_node_type))
+                print("|")
+
                 cur_node.build_children()
-                print(cur_node.m_children)
                 nodes.extend(cur_node.m_children)
+                strs.extend([_s+"."+str(_j) for _j in range(len(cur_node.m_children))])
+                _i += 1
+            print("---")
             print("time : {0}".format(es-ts))
-        #if len(res) == 2:
+        #if <<successful test condition>>:
         #    print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
         #else:
         #    print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
