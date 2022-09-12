@@ -5,9 +5,9 @@ import sys
 
 sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-playground7")
 
-from copy import deepcopy
 import typing
 from enum import Enum
+from copy import deepcopy
 from src.utility.new_int_id import new_int_id
 from src.constraints.domain import Domain
 from src.constraints.constraints import ConstraintNetwork, ConstraintType
@@ -115,19 +115,19 @@ class SearchNode():
                     p_parent=self,
                     p_time=self.m_time,
                     p_state=self.m_state,
-                    p_chronicle=deepcopy(self.m_chronicle),
+                    p_chronicle=self.m_chronicle.copy_chronicle(),
                     p_flaw_node_info=fi))
 
         if self.m_node_type == SearchNodeType.RESOLVER:
 
             # usable at time now !!
-            old_chronicle = deepcopy(self.m_chronicle)
+            old_chronicle = self.m_chronicle.copy_chronicle()
             
             resolvers = self.select_resolvers() # order/priority can depend on search strategy
             for ri in resolvers:
                 
                 # The chronicle of the child search node that is being created 
-                transformed_chronicle = deepcopy(old_chronicle)
+                transformed_chronicle = old_chronicle.copy_chronicle()
             
                 if ri.m_type == ResolverType.CONFLICT_SEPARATION:
 
@@ -451,7 +451,7 @@ class SearchNode():
                 ):
                     if (self.m_chronicle.m_constraint_network.propagate_constraints([
                             (ConstraintType.TEMPORAL, (i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start, 0, False)),
-                            (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_start, i_asrt.time_end, 0, False))
+                            (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_start, i_asrt.time_end, 0, False)),
                             (ConstraintType.UNIFICATION, (i_asrt.sv_val, self.m_flaw_node_info.m_assertion1.sv_val))
                         ], p_backtrack=True)
                         and self.m_chronicle.m_constraint_network.tempvars_unified(i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start)
@@ -495,6 +495,16 @@ class SearchNode():
                             p_time_end=self.m_flaw_node_info.m_assertion1.time_end
                         )
                         resolver.m_direct_support_assertion_supporter = i_asrt
+                        resolver.m_new_constraints = [
+                            (ConstraintType.TEMPORAL, (resolver.m_direct_support_assertion.time_end, self.m_flaw_node_info.m_assertion1.time_start, 0, False)),
+                            (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_start, resolver.m_direct_support_assertion.time_end, 0, False)),
+                            # here i_asrt.time_end is already (see if statement above) unified/equal to self.m_time (i.e. time "now")
+                            (ConstraintType.UNIFICATION, (resolver.m_direct_support_assertion.sv_val, self.m_flaw_node_info.m_assertion1.sv_val)),
+                            (ConstraintType.TEMPORAL, (i_asrt.time_end, resolver.m_direct_support_assertion.time_start, 0, False)),
+                            (ConstraintType.TEMPORAL, (resolver.m_direct_support_assertion.time_start, i_asrt.time_end, 0, False)),
+                            # here i_asrt.time_end is already (see if statement above) unified/equal to self.m_time (i.e. time "now")
+                            (ConstraintType.UNIFICATION, (i_asrt.sv_val, resolver.m_direct_support_assertion.sv_val))
+                        ]
                         resolver.m_new_constraint_network = None
                         resolver.m_action_or_method_instance = None
                         resolver.m_action_or_method_assertion_support_info = None

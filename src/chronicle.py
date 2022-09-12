@@ -5,6 +5,7 @@ sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-play
 
 import typing
 from enum import Enum
+from copy import deepcopy
 from src.assertion import Assertion
 from src.actionmethod import ActionMethod
 from src.constraints.constraints import ConstraintNetwork, ConstraintType
@@ -60,6 +61,20 @@ class Chronicle():
         # efficient way of accessing constraints involving variables from a specified assertion ?
         self.m_constraint_network: ConstraintNetwork = ConstraintNetwork()
         #self.m_actions = [] - in GNT 2016 (book) - "a set A of temporally qualified primitives and tasks"...
+
+    def copy_chronicle(self) -> Chronicle:
+        
+        res = Chronicle()
+        
+        for asrt in self.m_assertions:
+            res.m_goal_nodes[asrt] = deepcopy(self.m_goal_nodes[asrt])
+        res.m_assertions = self.m_assertions.copy()
+        res.m_plan = self.m_plan.copy()
+        res.m_causal_network = self.m_causal_network.copy()
+        res.m_conflicts = self.m_conflicts.copy()
+        res.m_constraint_network = deepcopy(self.m_constraint_network)
+
+        return res
 
     def clear(self):
         
