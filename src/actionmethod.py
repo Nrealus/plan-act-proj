@@ -14,49 +14,48 @@ from src.assertion import Assertion
 
 ############################################
 
-class ActionMethodTemplate(tuple):
+class ActionMethodTemplate():
 
     class Type(Enum):
         ACTION = 0
         METHOD = 1
 
-    __slots__ = []
-    def __new__(cls,
+    def __init__(self,
         p_type:Type,
         p_name:str,
         p_params:typing.Tuple[typing.Tuple[str,str],...],
         p_assertions_func:typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[Assertion]]=(lambda ts,te,params: set()),
         p_constraints_func:typing.Callable[[str,str,typing.Dict[str,str]],typing.Tuple[ConstraintType,typing.Any]]=(lambda ts,te,params: set()),
     ):
-        return tuple.__new__(cls, (p_name, p_params, p_assertions_func, p_constraints_func, p_type))
+        self._type = p_type
+        self._name = p_name
+        self._params = p_params
+        self._assertions_func = p_assertions_func
+        self._constraints_func = p_constraints_func
 
     @property
     def type(self) -> Type:
-        return tuple.__getitem__(self, 4)
+        return self._type
 
     @property
     def name(self) -> str:
-        return tuple.__getitem__(self, 0)
+        return self._name
 
     @property
     def params(self) -> typing.Tuple[typing.Tuple[str,str],...]:
-        return tuple.__getitem__(self, 1)
+        return self._params
 
     @property
     def assertions_func(self) -> typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[Assertion]]:
-        return tuple.__getitem__(self, 2)
+        return self._assertions_func
 
     @property
     def constraints_func(self) -> typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[typing.Tuple[ConstraintType,typing.Any]]]:
-        return tuple.__getitem__(self, 3)
+        return self._constraints_func
 
-    def __getitem__(self, item):
-        raise TypeError
+class ActionMethod():
 
-class ActionMethod(tuple):
-
-    __slots__ = []
-    def __new__(cls,
+    def __init__(self,
         p_template:ActionMethodTemplate,
         p_args:typing.Tuple[typing.Tuple[str,str],...],
         p_name:str="",
@@ -78,48 +77,45 @@ class ActionMethod(tuple):
         else:
             te = p_time_end
 
-        return tuple.__new__(cls, (
-            p_template,
-            p_args, 
-            name,
-            ts, te, 
-            p_template.assertions_func(ts,te,{ k:v for (k,v) in p_args }), 
-            p_template.constraints_func(ts,te,{ k:v for (k,v) in p_args })))
+        self._template = p_template
+        self._args = p_args
+        self._name = p_name
+        self._time_start = ts
+        self._time_end = te
+        self._assertions = p_template.assertions_func(ts,te,{ k:v for (k,v) in p_args })
+        self._constraints = p_template.constraints_func(ts,te,{ k:v for (k,v) in p_args })
 
     @property
     def type(self) -> ActionMethodTemplate.Type:
-        return tuple.__getitem__(self, 0).type
+        return self._template.type
 
     @property
     def template(self) -> ActionMethodTemplate:
-        return tuple.__getitem__(self, 0)
+        return self._template
 
     @property
     def name(self) -> str:
-        return tuple.__getitem__(self, 2)
+        return self._name
 
     @property
     def args(self) -> typing.Tuple[typing.Tuple[str,str],...]:
-        return tuple.__getitem__(self, 1)
+        return self._args
 
     @property
     def time_start(self) -> str:
-        return tuple.__getitem__(self, 3)
+        return self._time_start
 
     @property
     def time_end(self) -> str:
-        return tuple.__getitem__(self, 4)
+        return self._time_end
 
     @property
     def assertions(self) -> typing.Set[Assertion]:
-        return tuple.__getitem__(self, 5)
+        return self._assertions
 
     @property
     def constraints(self) -> typing.Set[typing.Tuple[ConstraintType,typing.Any]]:
-        return tuple.__getitem__(self, 6)
-
-    def __getitem__(self, item):
-        raise TypeError
+        return self._constraints
 
     def propagate_applicability(self,
         p_time:str,

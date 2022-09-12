@@ -31,10 +31,9 @@ class AssertionType(Enum):
     PERSISTENCE=0
     TRANSITION=1
 
-class Assertion(tuple):
+class Assertion():
 
-    __slots__ = []
-    def __new__(cls,
+    def __init__(self,
         p_type:AssertionType,
         p_sv_name:str,
         p_sv_params:typing.Tuple[typing.Tuple[str,str],...],
@@ -53,38 +52,42 @@ class Assertion(tuple):
             te = "__te_asrt_{0}".format(str(k))
         else:
             te = p_time_end
-        return tuple.__new__(cls, (p_type, p_sv_name, p_sv_params, ts, te, p_sv_val, p_sv_val_sec))
+        
+        self._type = p_type
+        self._sv_name = p_sv_name
+        self._sv_params = p_sv_params
+        self._time_start = ts
+        self._time_end = te
+        self._sv_val = p_sv_val
+        self._sv_val_sec = p_sv_val_sec
 
     @property
     def type(self) -> AssertionType:
-        return tuple.__getitem__(self, 0)
+        return self._type
 
     @property
     def sv_name(self) -> str:
-        return tuple.__getitem__(self, 1)
+        return self._sv_name
 
     @property
     def sv_params(self) -> typing.Tuple[typing.Tuple[str,str],...]:
-        return tuple.__getitem__(self, 2)
+        return self._sv_params
 
     @property
     def time_start(self) -> str:
-        return tuple.__getitem__(self, 3)
+        return self._time_start
 
     @property
     def time_end(self) -> str:
-        return tuple.__getitem__(self, 4)
+        return self._time_end
 
     @property
     def sv_val(self) -> object:
-        return tuple.__getitem__(self, 5)
+        return self._sv_val
 
     @property
     def sv_val_sec(self) -> object:
-        return tuple.__getitem__(self, 6)
-
-    def __getitem__(self, item):
-        raise TypeError
+        return self._sv_val_sec
 
     def has_same_head(self, p_other_assertion:Assertion) -> bool:
         '''
