@@ -426,6 +426,8 @@ class BCN():
             Modifies domains object and collection storing constraints during propagation.
         """
         #file:///home/nrealus/T%C3%A9l%C3%A9chargements/781f16-3.pdf
+        if len(p_input_constraints) == 0:
+            return True
         # initial worklist (already shallow-copied in the main constraint network before calling this method)
         worklist = p_input_constraints
         while (len(worklist) > 0):
@@ -752,6 +754,8 @@ class STN():
         Side effects:
             Modifies collections during propagation.
         """
+        if len(p_input_constraints) == 0:
+            return True
         # initial worklist (already shallow-copied in the main constraint network before calling this method)
         worklist = p_input_constraints#list(p_input_constraints)
         for (t1, t2, bound, strict) in worklist:
