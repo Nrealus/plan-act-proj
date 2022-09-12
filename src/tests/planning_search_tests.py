@@ -39,7 +39,7 @@ def init_situation1(chronicle:Chronicle):
         "c_u01":Domain(p_initial_allowed_values=[5]),
         "c_l03":Domain(p_initial_allowed_values=[-4]),
         "c_u03":Domain(p_initial_allowed_values=[25]),
-        "c_l12":Domain(p_initial_allowed_values=[-5]),
+        "c_l12":Domain(p_initial_allowed_values=[2]),
         "c_u12":Domain(p_initial_allowed_values=[10]),
         "c_l23":Domain(p_initial_allowed_values=[-1]),
         "c_u23":Domain(p_initial_allowed_values=[5]),
@@ -124,7 +124,7 @@ def test1(verbose=False):
     root_search_node = SearchNode(
         p_node_type=SearchNodeType.FLAW,
         p_parent=None,
-        p_time=1,
+        p_time="t0",
         p_state=None,
         p_chronicle=root_chronicle,
         p_action_method_templates_library=set([action_template]),
@@ -139,21 +139,30 @@ def test1(verbose=False):
         res = root_search_node.build_children()
         es = time.perf_counter()
         print("---")
-        if verbose:
-            _i = 0
-            nodes = [root_search_node]
-            strs = ["0"]
-            while len(nodes) > 0:
-                cur_node = nodes.pop(0)
-                
-                _s = strs.pop(0)
+        #_i = 0
+        nodes = [root_search_node]
+        strs = ["0"]
+        while len(nodes) > 0:
+            cur_node = nodes.pop(0)
+            
+            _s = strs.pop(0)
+            if verbose:
                 print("-{0} : {1}".format(_s, cur_node.m_node_type))
-                print("|")
+            
+                if cur_node.m_flaw_node_info is not None:
+                    print("---flaw node info : {0}".format(cur_node.m_flaw_node_info.__dict__))
+                if cur_node.m_resolver_node_info is not None:
+                    print("---resolver node info : {0}".format(cur_node.m_resolver_node_info.m_type))
+                if cur_node.m_charlie_move_info is not None:
+                    print("---charlie move info : {0}".format(cur_node.m_charlie_move_info.__dict__))
+                if cur_node.m_eve_move_info is not None:
+                    print("---eve move info : {0}".format(cur_node.m_eve_move_info.__dict__))
 
-                cur_node.build_children()
-                nodes.extend(cur_node.m_children)
-                strs.extend([_s+"."+str(_j) for _j in range(len(cur_node.m_children))])
-                _i += 1
+            cur_node.build_children()
+            nodes.extend(cur_node.m_children)
+            strs.extend([_s+"."+str(_j) for _j in range(len(cur_node.m_children))])
+            #_i += 1
+        if verbose:
             print("---")
             print("time : {0}".format(es-ts))
         #if <<successful test condition>>:
@@ -162,4 +171,4 @@ def test1(verbose=False):
         #    print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
         print("---")
 
-test1(1)
+test1(0)

@@ -111,7 +111,8 @@ class SearchNode():
             # resolvable at time now !!
             flaws = self.select_flaws() # order/priority can depend on search strategy
             for fi in flaws:
-                self.m_children.append(SearchNode(p_node_type=SearchNodeType.RESOLVER,
+                self.m_children.append(SearchNode(
+                    p_node_type=SearchNodeType.RESOLVER,
                     p_parent=self,
                     p_time=self.m_time,
                     p_state=self.m_state,
@@ -453,63 +454,69 @@ class SearchNode():
                             (ConstraintType.TEMPORAL, (i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start, 0, False)),
                             (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_start, i_asrt.time_end, 0, False)),
                             (ConstraintType.UNIFICATION, (i_asrt.sv_val, self.m_flaw_node_info.m_assertion1.sv_val))
-                        ], p_backtrack=True)
-                        and self.m_chronicle.m_constraint_network.tempvars_unified(i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start)
+                        ], p_backtrack=False)
                     ):
-                        resolver = ResolverNodeInfo()
-                        resolver.m_type = ResolverType.EXISTING_DIRECT_PERSISTENCE_SUPPORT_NOW
-                        resolver.m_direct_support_assertion = i_asrt
-                        resolver.m_direct_support_assertion_supporter = None
-                        resolver.m_new_constraint_network = None
-                        resolver.m_new_constraints = [
-                            (ConstraintType.TEMPORAL, (i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start, 0, False)),
-                            (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_start, i_asrt.time_end, 0, False)),
-                            # here i_asrt.time_end is already (see if statement above) unified/equal to self.m_time (i.e. time "now")
-                            (ConstraintType.UNIFICATION, (i_asrt.sv_val, self.m_flaw_node_info.m_assertion1.sv_val))
-                        ]
-                        resolver.m_action_or_method_instance = None
-                        resolver.m_action_or_method_assertion_support_info = None
-                        res.append(resolver)
+                        if self.m_chronicle.m_constraint_network.tempvars_unified(i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start):
+                            resolver = ResolverNodeInfo()
+                            resolver.m_type = ResolverType.EXISTING_DIRECT_PERSISTENCE_SUPPORT_NOW
+                            resolver.m_direct_support_assertion = i_asrt
+                            resolver.m_direct_support_assertion_supporter = None
+                            resolver.m_new_constraint_network = None
+                            resolver.m_new_constraints = [
+                                (ConstraintType.TEMPORAL, (i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start, 0, False)),
+                                (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_start, i_asrt.time_end, 0, False)),
+                                # here i_asrt.time_end is already (see if statement above) unified/equal to self.m_time (i.e. time "now")
+                                (ConstraintType.UNIFICATION, (i_asrt.sv_val, self.m_flaw_node_info.m_assertion1.sv_val))
+                            ]
+                            resolver.m_action_or_method_instance = None
+                            resolver.m_action_or_method_assertion_support_info = None
+                            res.append(resolver)
+                    else:
+                        self.m_chronicle.m_constraint_network.backtrack()
 
-                    if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
-                            i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start) > 0
+                    if (self.m_chronicle.m_constraint_network.propagate_constraints([
+                            (ConstraintType.TEMPORAL,(i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start, 0, True)),
+                            (ConstraintType.UNIFICATION, (i_asrt.sv_val, self.m_flaw_node_info.m_assertion1.sv_val)),
+                        ], p_backtrack=False)
+                    ):
                         # !!!NOTE!!! possible latest assertions on the considered state variable, before the flawed one
                         # (no reason to take ones where we're sure that there is one between it and the flawed one)
                         # will be easier if we group assertions by head (-> explicit timelines ?)
                         # OR (NOTE) MAYBE no point in this ? as if we don't take the "latest" assertion from which to support,
                         # applying the resolver will cause a potential conflict flaw (between the introduced supporter and "later" assertions)
                         # but that is not necessarily a problem or something to avoid - this conflict could get resolved sucessfully.
-                        and self.m_chronicle.m_constraint_network.propagate_constraints([
-                            (ConstraintType.UNIFICATION, (i_asrt.sv_val, self.m_flaw_node_info.m_assertion1.sv_val))
-                        ], p_backtrack=True)
-                    ):
-                        resolver = ResolverNodeInfo()
-                        resolver.m_type = ResolverType.NEW_DIRECT_PERSISTENCE_SUPPORT_NOW
-                        resolver.m_direct_support_assertion = Assertion(
-                            p_type=AssertionType.PERSISTENCE,
-                            p_sv_name=self.m_flaw_node_info.m_assertion1.sv_name,
-                            p_sv_params=self.m_flaw_node_info.m_assertion1.sv_params,
-                            p_sv_val=i_asrt.sv_val,
-                            p_sv_val_sec=None,
-                            p_time_start=self.m_time, # i_asrt.time_end ? NOTE: Either this or constraint below
-                            p_time_end=self.m_flaw_node_info.m_assertion1.time_end
-                        )
-                        resolver.m_direct_support_assertion_supporter = i_asrt
-                        resolver.m_new_constraints = [
-                            (ConstraintType.TEMPORAL, (resolver.m_direct_support_assertion.time_end, self.m_flaw_node_info.m_assertion1.time_start, 0, False)),
-                            (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_start, resolver.m_direct_support_assertion.time_end, 0, False)),
-                            # here i_asrt.time_end is already (see if statement above) unified/equal to self.m_time (i.e. time "now")
-                            (ConstraintType.UNIFICATION, (resolver.m_direct_support_assertion.sv_val, self.m_flaw_node_info.m_assertion1.sv_val)),
-                            (ConstraintType.TEMPORAL, (i_asrt.time_end, resolver.m_direct_support_assertion.time_start, 0, False)),
-                            (ConstraintType.TEMPORAL, (resolver.m_direct_support_assertion.time_start, i_asrt.time_end, 0, False)),
-                            # here i_asrt.time_end is already (see if statement above) unified/equal to self.m_time (i.e. time "now")
-                            (ConstraintType.UNIFICATION, (i_asrt.sv_val, resolver.m_direct_support_assertion.sv_val))
-                        ]
-                        resolver.m_new_constraint_network = None
-                        resolver.m_action_or_method_instance = None
-                        resolver.m_action_or_method_assertion_support_info = None
-                        res.append(resolver)
-
+                        if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
+                            i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start) > 0
+                        ):
+                            resolver = ResolverNodeInfo()
+                            resolver.m_type = ResolverType.NEW_DIRECT_PERSISTENCE_SUPPORT_NOW
+                            resolver.m_direct_support_assertion = Assertion(
+                                p_type=AssertionType.PERSISTENCE,
+                                p_sv_name=self.m_flaw_node_info.m_assertion1.sv_name,
+                                p_sv_params=self.m_flaw_node_info.m_assertion1.sv_params,
+                                p_sv_val=i_asrt.sv_val,
+                                p_sv_val_sec=None,
+                                p_time_start=self.m_time, # i_asrt.time_end ? NOTE: Either this or constraint below
+                                p_time_end=self.m_flaw_node_info.m_assertion1.time_end
+                            )
+                            resolver.m_direct_support_assertion_supporter = i_asrt
+                            resolver.m_new_constraints = [
+                                (ConstraintType.TEMPORAL, (resolver.m_direct_support_assertion.time_end, self.m_flaw_node_info.m_assertion1.time_start, 0, False)),
+                                (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_start, resolver.m_direct_support_assertion.time_end, 0, False)),
+                                # here i_asrt.time_end is already (see if statement above) unified/equal to self.m_time (i.e. time "now")
+                                (ConstraintType.UNIFICATION, (resolver.m_direct_support_assertion.sv_val, self.m_flaw_node_info.m_assertion1.sv_val)),
+                                (ConstraintType.TEMPORAL, (i_asrt.time_end, resolver.m_direct_support_assertion.time_start, 0, False)),
+                                (ConstraintType.TEMPORAL, (resolver.m_direct_support_assertion.time_start, i_asrt.time_end, 0, False)),
+                                # here i_asrt.time_end is already (see if statement above) unified/equal to self.m_time (i.e. time "now")
+                                (ConstraintType.UNIFICATION, (i_asrt.sv_val, resolver.m_direct_support_assertion.sv_val))
+                            ]
+                            resolver.m_new_constraint_network = None
+                            resolver.m_action_or_method_instance = None
+                            resolver.m_action_or_method_assertion_support_info = None
+                            res.append(resolver)
+                    else:
+                        self.m_chronicle.m_constraint_network.backtrack()
+                        
             # action/method insertion resolvers
             # lots of heuristics (both lifted and grounded ?) will need to be used and search space reduction techniques (reachability analysis etc)
 
