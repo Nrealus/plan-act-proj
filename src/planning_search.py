@@ -115,8 +115,9 @@ class SearchNode():
                     p_node_type=SearchNodeType.RESOLVER,
                     p_parent=self,
                     p_time=self.m_time,
-                    p_state=self.m_state,
+                    p_state=deepcopy(self.m_state),
                     p_chronicle=self.m_chronicle.copy_chronicle(),
+                    p_action_method_templates_library=self.m_action_method_templates_library,
                     p_flaw_node_info=fi))
 
         if self.m_node_type == SearchNodeType.RESOLVER:
@@ -335,16 +336,18 @@ class SearchNode():
                 self.m_children.append(SearchNode(p_node_type=SearchNodeType.FLAW,
                     p_parent=self,
                     p_time=self.m_time,
-                    p_state=self.m_state,
+                    p_state=deepcopy(self.m_state),
                     p_chronicle=transformed_chronicle,
+                    p_action_method_templates_library=self.m_action_method_templates_library,
                     p_resolver_node_info=ri))
 
-                self.m_children.append(SearchNode(p_node_type=SearchNodeType.CHARLIE,
-                    p_parent=self,
-                    p_time=self.m_time,
-                    p_state=self.m_state,
-                    p_chronicle=transformed_chronicle,
-                    p_resolver_node_info=ri))
+                #self.m_children.append(SearchNode(p_node_type=SearchNodeType.CHARLIE,
+                #    p_parent=self,
+                #    p_time=self.m_time,
+                #    p_state=deepcopy(self.m_state),
+                #    p_chronicle=transformed_chronicle,
+                #    p_action_method_templates_library=self.m_action_method_templates_library,
+                #    p_resolver_node_info=ri))
 
         if self.m_node_type == SearchNodeType.CHARLIE:
             
@@ -380,9 +383,10 @@ class SearchNode():
  
                     self.m_children.append(SearchNode(p_node_type=SearchNodeType.EVE,
                         p_parent=self,
-                        p_time=self.m_time,
+                        p_time=deepcopy(self.m_time),
                         p_state=self.m_state,#new_state,
                         p_chronicle=transformed_chronicle,
+                        p_action_method_templates_library=self.m_action_method_templates_library,
                         p_charlie_move_info=ci))
 
                 # "wait" move
@@ -391,8 +395,9 @@ class SearchNode():
                     self.m_children.append(SearchNode(p_node_type=SearchNodeType.EVE,
                         p_parent=self,
                         p_time=self.m_time + ci.m_wait_time,
-                        p_state=self.m_state,
+                        p_state=deepcopy(self.m_state),
                         p_chronicle=transformed_chronicle,
+                        p_action_method_templates_library=self.m_action_method_templates_library,
                         p_charlie_move_info=ci))
             '''
         if self.m_node_type == SearchNodeType.EVE:
@@ -401,15 +406,17 @@ class SearchNode():
             #     self.m_children.append(SearchNode(p_node_type=SearchNodeType.CHARLIE,
             #         p_parent=self,
             #         p_time=self.m_time,
-            #         p_state=self.m_state,
+            #         p_state=deepcopy(self.m_state),
             #         p_chronicle=transformed_chronicle,
+            #         p_action_method_templates_library=self.m_action_method_templates_library,
             #         p_eve_move_info=ei))
             # for ...
             #     self.m_children.append(SearchNode(p_node_type=SearchNodeType.FLAW,
             #         p_parent=self,
             #         p_time=self.m_time,
-            #         p_state=self.m_state,
+            #         p_state=deepcopy(self.m_state),
             #         p_chronicle=transformed_chronicle,
+            #         p_action_method_templates_library=self.m_action_method_templates_library,
             #         p_eve_move_info=ei))
 
     def select_flaws(self) -> typing.List[FlawNodeInfo]:
@@ -456,7 +463,8 @@ class SearchNode():
                             (ConstraintType.UNIFICATION, (i_asrt.sv_val, self.m_flaw_node_info.m_assertion1.sv_val))
                         ], p_backtrack=False)
                     ):
-                        if self.m_chronicle.m_constraint_network.tempvars_unified(i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start):
+                        if self.m_chronicle.m_constraint_network.tempvars_unified(i_asrt.time_end, self.m_time):#self.m_flaw_node_info.m_assertion1.time_start):
+
                             resolver = ResolverNodeInfo()
                             resolver.m_type = ResolverType.EXISTING_DIRECT_PERSISTENCE_SUPPORT_NOW
                             resolver.m_direct_support_assertion = i_asrt
@@ -485,8 +493,9 @@ class SearchNode():
                         # OR (NOTE) MAYBE no point in this ? as if we don't take the "latest" assertion from which to support,
                         # applying the resolver will cause a potential conflict flaw (between the introduced supporter and "later" assertions)
                         # but that is not necessarily a problem or something to avoid - this conflict could get resolved sucessfully.
-                        if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
-                            i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start) > 0
+                        if (self.m_chronicle.m_constraint_network.tempvars_unified(i_asrt.time_end, self.m_time)
+                            and self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
+                                i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start) > 0
                         ):
                             resolver = ResolverNodeInfo()
                             resolver.m_type = ResolverType.NEW_DIRECT_PERSISTENCE_SUPPORT_NOW
@@ -528,7 +537,7 @@ class SearchNode():
                 _b = False
                 same_sv_as_flaw_asrt:Assertion = None
                 i_act_or_meth_template_asrts = i_act_or_meth_template.assertions_func(
-                    self.m_time, self.m_flaw_node_info.m_assertion1.time_start, [pair[1] for pair in i_act_or_meth_template.params])
+                    self.m_time, self.m_flaw_node_info.m_assertion1.time_start, { k:v for (k,v) in i_act_or_meth_template.params })
                 for i_asrt in i_act_or_meth_template_asrts:
                     if i_asrt.has_same_head(self.m_flaw_node_info.m_assertion1):
                         same_sv_as_flaw_asrt = i_asrt
@@ -536,24 +545,19 @@ class SearchNode():
                         break
                 if not _b:
                     continue
-
+    
                 _n = len(i_act_or_meth_template.params)
                 rows = []
-                def _recursion(_i, _row:typing.List):
-                    _rowcopy = _row.copy()
-                    for _v in self.m_chronicle.m_constraint_network.objvar_domain(i_act_or_meth_template.params[_i][1]).get_values():
-                        _row.append(_v)
-                        if _i <= _n-2:
-                            _recursion(_i+1,_row)
-                        else:
-                            rows.append(_row.copy())
-                        _row = _rowcopy
-                    if _i > 0:
-                        _recursion(0,[])
+                def _recursion(_i, _row:typing.List[str]):
+                    if _i < _n:
+                        for _v in self.m_chronicle.m_constraint_network.objvar_domain(i_act_or_meth_template.params[_i][1]).get_values():
+                            _newrow = _row.copy()
+                            _newrow[_i] = _v
+                            _recursion(_i+1,_newrow)
                     else:
-                        return
-                _recursion(0,[])
-
+                        rows.append(tuple(_row))
+                _recursion(0, [""]*_n)
+                
                 if same_sv_as_flaw_asrt.type == AssertionType.TRANSITION:
                     unif_constr = (ConstraintType.UNIFICATION, 
                         (same_sv_as_flaw_asrt.sv_val_sec, self.m_flaw_node_info.m_assertion1.sv_val))
@@ -578,19 +582,19 @@ class SearchNode():
                 ):
                     propagated = True
                 else:
-                    propagated = self.m_chronicle.m_constraint_network.propagate_constraints(
+                    propagated = self.m_chronicle.m_constraint_network.propagate_constraints([
                         (ConstraintType.GENERAL_RELATION,
                             ("__actmethtempl_{0}{1}_rel".format(i_act_or_meth_template.name, i_act_or_meth_template.params),
-                            tuple([pair[1] for pair in i_act_or_meth_template.params]),
-                            rows))
-                    )
+                                (tuple([pair[1] for pair in i_act_or_meth_template.params]),
+                                rows)))
+                    ])
                 
                 if propagated:
 
                     new_constraint_network = deepcopy(self.m_chronicle.m_constraint_network)
                     propagated = new_constraint_network.propagate_constraints(
                         i_act_or_meth_template.constraints_func(
-                            self.m_time, self.m_flaw_node_info.m_assertion1.time_start, [pair[1] for pair in i_act_or_meth_template.params])
+                            self.m_time, self.m_flaw_node_info.m_assertion1.time_start, { k:v for (k,v) in i_act_or_meth_template.params })
                         .union([unif_constr])
                     )
                 
@@ -602,8 +606,8 @@ class SearchNode():
                         for param in i_act_or_meth_template.params:
                             arg_objvar_name = "__actmethinst{0}_{1}{2}_arg_{3}".format(
                                 _n, i_act_or_meth_template.name, i_act_or_meth_template.params, param[0])
-                            objvars_domains[arg_objvar_name] = Domain(p_initial_allowed_values=
-                                    new_constraint_network.objvar_domain(param[1]))
+                            #objvars_domains[arg_objvar_name] = deepcopy(new_constraint_network.objvar_domain(param[1]))
+                            objvars_domains[arg_objvar_name] = Domain(p_initial_allowed_values=new_constraint_network.objvar_domain(param[1]).get_values())
                             args[param] = arg_objvar_name
                         new_constraint_network.init_objvars(objvars_domains)
 

@@ -57,6 +57,38 @@ def init_situation1(chronicle:Chronicle):
     ])
 
 
+def init_situation2(chronicle:Chronicle):
+    chronicle.clear()
+    chronicle.m_constraint_network.init_objvars({
+        "objvar_robots_all":Domain(p_initial_allowed_values=["robot1","robot2","robot3","robot4","robot5"]),
+        "objvar_robots_grp1":Domain(p_initial_allowed_values=["robot1","robot2"]),
+        "objvar_robots_grp2":Domain(p_initial_allowed_values=["robot2","robot3"]),
+        "objvar_robots_grp3":Domain(p_initial_allowed_values=["robot4","robot5"]),
+        "objvar_locations_all":Domain(p_initial_allowed_values=["location1","location2","location3","location4","location5"]),
+        "objvar_location_A":Domain(p_initial_allowed_values=["location1", "location2"]),
+        "objvar_location_B":Domain(p_initial_allowed_values=["location2", "location3"]),
+        "objvar_location_C":Domain(p_initial_allowed_values=["location4", "location5"]),
+        "c_l01":Domain(p_initial_allowed_values=[-1]),
+        "c_u01":Domain(p_initial_allowed_values=[5]),
+        "c_l03":Domain(p_initial_allowed_values=[-4]),
+        "c_u03":Domain(p_initial_allowed_values=[25]),
+        "c_l12":Domain(p_initial_allowed_values=[-5]),
+        "c_u12":Domain(p_initial_allowed_values=[10]),
+        "c_l23":Domain(p_initial_allowed_values=[-1]),
+        "c_u23":Domain(p_initial_allowed_values=[5]),
+    })
+    chronicle.m_constraint_network.init_tempvars({"t0":True,"t1":True,"t2":True,"t3":True})
+    chronicle.m_constraint_network.propagate_constraints([
+        (ConstraintType.TEMPORAL,("t0", "t1", "c_l01", False)),
+        (ConstraintType.TEMPORAL,("t1", "t0", "c_u01", False)),
+        (ConstraintType.TEMPORAL,("t0", "t3", "c_l03", False)),
+        (ConstraintType.TEMPORAL,("t3", "t0", "c_u03", False)),
+        (ConstraintType.TEMPORAL,("t1", "t2", "c_l12", False)),
+        (ConstraintType.TEMPORAL,("t2", "t1", "c_u12", False)),
+        (ConstraintType.TEMPORAL,("t2", "t3", "c_l23", False)),
+        (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
+    ])
+
 def test1(verbose=False):
 
     ####
@@ -66,14 +98,13 @@ def test1(verbose=False):
         p_name="action_move",
         p_params=(
             ("p_robot","objvar_robots_all"),
-            ("p_destination_location","objvar_locations_all"),
+            ("p_dest_location","objvar_locations_all"),
         ),
         p_assertions_func=lambda ts,te,params: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params_keys=("p_robot", "p_dest_location"),
-                p_sv_params_values=(params["p_robot"],),
+                p_sv_params=(("p_robot",params["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
                 p_sv_val_sec=params["p_dest_location"],
                 p_time_start=ts,
@@ -121,10 +152,16 @@ def test1(verbose=False):
     root_chronicle.m_assertions[asrt2] = False
     root_chronicle.m_goal_nodes.setdefault(asrt2, GoalNode()).m_mode = GoalMode.SELECTED
 
+    #root_chronicle.m_constraint_network.init_tempvars({"t_now": True})
+    #root_chronicle.m_constraint_network.propagate_constraints([
+    #    (ConstraintType.TEMPORAL, ("t_now", "t1", 0, False)),
+    #    (ConstraintType.TEMPORAL, ("t1", "t_now", 0, False)),
+    #])
+
     root_search_node = SearchNode(
         p_node_type=SearchNodeType.FLAW,
         p_parent=None,
-        p_time="t0",
+        p_time="t1",#"t_now",
         p_state=None,
         p_chronicle=root_chronicle,
         p_action_method_templates_library=set([action_template]),
@@ -136,7 +173,7 @@ def test1(verbose=False):
         print("---")
     else:
         ts = time.perf_counter()
-        res = root_search_node.build_children()
+        #res = root_search_node.build_children()
         es = time.perf_counter()
         print("---")
         #_i = 0
@@ -146,6 +183,7 @@ def test1(verbose=False):
             cur_node = nodes.pop(0)
             
             _s = strs.pop(0)
+
             if verbose:
                 print("-{0} : {1}".format(_s, cur_node.m_node_type))
             
@@ -161,6 +199,10 @@ def test1(verbose=False):
             cur_node.build_children()
             nodes.extend(cur_node.m_children)
             strs.extend([_s+"."+str(_j) for _j in range(len(cur_node.m_children))])
+
+            if len(_s) > 8:
+                break
+
             #_i += 1
         if verbose:
             print("---")
@@ -171,4 +213,4 @@ def test1(verbose=False):
         #    print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
         print("---")
 
-test1(0)
+test1(1)
