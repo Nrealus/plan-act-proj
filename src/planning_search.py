@@ -1,5 +1,4 @@
 from __future__ import annotations
-from sqlite3 import paramstyle
 
 import sys
 
@@ -255,14 +254,15 @@ class SearchNode():
 
                     # Manage the assertion supports which made the action/method applicable in the first place
                     # (i.e. set the supported assertions from unsupported to supported and add their supporter in the causal network)
-                    for (i_asrt_supportee, i_asrt_supporter) in ri.m_action_or_method_assertion_support_info:
+                    for (i_asrt_supporter, i_asrt_supportee) in ri.m_action_or_method_assertion_support_info:
 
                         # All of the assertions of the action/method, starting at the same time as it, have to be supported by the chronicle
                         # But those that do not start at the same time as it (and as such don't have to be supported by the chronicle)
                         # still need to be introduced, which is done in the loop above. 
+                        
                         transformed_chronicle.m_assertions[i_asrt_supportee] = True
                         transformed_chronicle.m_causal_network[i_asrt_supportee] = i_asrt_supporter
-                                
+
                         # Also, at least one of the chronicle's assertions must be supported by an assertion from the action/method
                         # (The flawed unsupported assertion is (must) be one of them)
                         # These assertions and the corresponding goals are managed below
@@ -282,7 +282,6 @@ class SearchNode():
                     #transformed_chronicle.m_constraint_network.init_objvars(ri.m_objvars_domains)
                     #transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_action_or_method_instance.constraints)
                     #transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
-
                     ## Propagating the instantiation variable for the action/method
                     ## Done here and not earlier (e.g. when adding the action/method to the plan)
                     ## as other constraints should be propagated first (in order to use the correct )
@@ -506,7 +505,7 @@ class SearchNode():
                                 p_sv_val=i_asrt.sv_val,
                                 p_sv_val_sec=None,
                                 p_time_start=self.m_time, # i_asrt.time_end ? NOTE: Either this or constraint below
-                                p_time_end=self.m_flaw_node_info.m_assertion1.time_end
+                                p_time_end=self.m_flaw_node_info.m_assertion1.time_start
                             )
                             resolver.m_direct_support_assertion_supporter = i_asrt
                             resolver.m_new_constraints = [
@@ -537,7 +536,7 @@ class SearchNode():
                 _b = False
                 same_sv_as_flaw_asrt:Assertion = None
                 i_act_or_meth_template_asrts = i_act_or_meth_template.assertions_func(
-                    self.m_time, self.m_flaw_node_info.m_assertion1.time_start, { k:v for (k,v) in i_act_or_meth_template.params })
+                    self.m_time, self.m_flaw_node_info.m_assertion1.time_start, { pair[0]:pair[1] for pair in i_act_or_meth_template.params })
                 for i_asrt in i_act_or_meth_template_asrts:
                     if i_asrt.has_same_head(self.m_flaw_node_info.m_assertion1):
                         same_sv_as_flaw_asrt = i_asrt
@@ -594,13 +593,13 @@ class SearchNode():
                     new_constraint_network = deepcopy(self.m_chronicle.m_constraint_network)
                     propagated = new_constraint_network.propagate_constraints(
                         i_act_or_meth_template.constraints_func(
-                            self.m_time, self.m_flaw_node_info.m_assertion1.time_start, { k:v for (k,v) in i_act_or_meth_template.params })
+                            self.m_time, self.m_flaw_node_info.m_assertion1.time_start, { pair[0] for pair in i_act_or_meth_template.params })
                         .union([unif_constr])
                     )
                 
                     if propagated:
         
-                        args = {}
+                        args = ()
                         objvars_domains = {}
                         _n = new_int_id()
                         for param in i_act_or_meth_template.params:
@@ -608,9 +607,9 @@ class SearchNode():
                                 _n, i_act_or_meth_template.name, i_act_or_meth_template.params, param[0])
                             #objvars_domains[arg_objvar_name] = deepcopy(new_constraint_network.objvar_domain(param[1]))
                             objvars_domains[arg_objvar_name] = Domain(p_initial_allowed_values=new_constraint_network.objvar_domain(param[1]).get_values())
-                            args[param] = arg_objvar_name
+                            args += ((param[0],arg_objvar_name),)
                         new_constraint_network.init_objvars(objvars_domains)
-
+                        
                         act_or_meth_instance = ActionMethod(
                             p_template=i_act_or_meth_template,
                             p_time_start=self.m_time,

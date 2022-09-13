@@ -65,9 +65,9 @@ class ActionMethod():
 
         k = new_int_id()
         if p_name == "":
-            name = "{0}_{1}".format(p_template.name, str(k))
+            _name = "{0}_{1}".format(p_template.name, str(k))
         else:
-            name = p_name
+            _name = p_name
         if p_time_start == "":
             ts = "__ts_act_{0}".format(str(k))
         else:
@@ -79,7 +79,7 @@ class ActionMethod():
 
         self._template = p_template
         self._args = p_args
-        self._name = p_name
+        self._name = _name
         self._time_start = ts
         self._time_end = te
         self._assertions = p_template.assertions_func(ts,te,{ k:v for (k,v) in p_args })
