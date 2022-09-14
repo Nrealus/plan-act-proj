@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-playground7")
 
@@ -7,7 +9,7 @@ from src.constraints.constraints import ConstraintNetwork, ConstraintType
 from src.assertion import Assertion, AssertionType
 from src.actionmethod import ActionMethodTemplate, ActionMethod
 from src.chronicle import Chronicle
-from src.planning_search import SearchNode, SearchNodeType
+from src.planning_search import CharlieMoveInfo, EveMoveInfo, FlawNodeInfo, ResolverNodeInfo, ResolverType, SearchNode, SearchNodeType
 from src.goal_node import GoalNode, GoalMode
 
 import time
@@ -23,6 +25,47 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 ############################################
+
+def compare_search_node_info(
+    node_info1:FlawNodeInfo|ResolverNodeInfo|CharlieMoveInfo|EveMoveInfo,
+    node_info2:FlawNodeInfo|ResolverNodeInfo|CharlieMoveInfo|EveMoveInfo,
+):
+    if node_info1 is None and node_info2 is None:
+        return True
+    if not type(node_info1) == type(node_info2):
+        return False
+    if type(node_info1) == FlawNodeInfo:
+        if ((node_info1.m_assertion2 is None and not node_info2.m_assertion2 is None)
+            or (node_info2.m_assertion2 is None and not node_info1.m_assertion2 is None)
+        ):
+            return False
+        if (node_info1.m_assertion1.sv_name == node_info2.m_assertion1.sv_name
+            and node_info1.m_assertion1.sv_params == node_info2.m_assertion1.sv_params
+            and node_info1.m_assertion1.sv_val == node_info2.m_assertion1.sv_val
+            and node_info1.m_assertion1.sv_val_sec == node_info2.m_assertion1.sv_val_sec
+            and node_info1.m_assertion1.time_start == node_info2.m_assertion1.time_start
+            and node_info1.m_assertion1.time_end == node_info2.m_assertion1.time_end
+        ):
+            return True
+        if not node_info1.m_assertion2 is None:
+            if (node_info1.m_assertion2.sv_name == node_info2.m_assertion2.sv_name
+                and node_info1.m_assertion2.sv_params == node_info2.m_assertion2.sv_params
+                and node_info1.m_assertion2.sv_val == node_info2.m_assertion2.sv_val
+                and node_info1.m_assertion2.sv_val_sec == node_info2.m_assertion2.sv_val_sec
+                and node_info1.m_assertion2.time_start == node_info2.m_assertion2.time_start
+                and node_info1.m_assertion2.time_end == node_info2.m_assertion2.time_end
+            ):
+                return True
+    if type(node_info1) == ResolverNodeInfo:
+        #NOTE : VERY PARTIAL "EQUALITY"
+        if node_info1.m_type == node_info2.m_type:
+            return True
+        # AND NOT EVEN NECESSARILY TO GO FURTHEr
+    if type(node_info1) == CharlieMoveInfo:
+        return NotImplemented
+    if type(node_info1) == EveMoveInfo:
+        return NotImplemented
+    return False
 
 def init_situation1(chronicle:Chronicle):
     chronicle.clear()
@@ -172,44 +215,104 @@ def test1(verbose=False):
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
         print("---")
     else:
+        ok = True
+        success_nodes_info = [
+            None,
+            FlawNodeInfo(p_assertion1=asrt2,p_assertion2=None),
+            ResolverNodeInfo(
+                p_type=ResolverType.EXISTING_DIRECT_PERSISTENCE_SUPPORT_NOW,
+                p_direct_support_assertion = None,
+                p_direct_support_assertion_supporter = None,
+                p_new_constraint_network = None,
+                p_new_constraints = None,
+                p_action_or_method_instance = None,
+                p_action_or_method_assertion_support_info = None,
+            ),
+            ResolverNodeInfo(
+                p_type=ResolverType.NEW_DIRECT_PERSISTENCE_SUPPORT_NOW,
+                p_direct_support_assertion = None,
+                p_direct_support_assertion_supporter = None,
+                p_new_constraint_network = None,
+                p_new_constraints = None,
+                p_action_or_method_instance = None,
+                p_action_or_method_assertion_support_info = None,
+            ),
+            ResolverNodeInfo(
+                p_type=ResolverType.ACTION_INSERTION_NOW,
+                p_direct_support_assertion = None,
+                p_direct_support_assertion_supporter = None,
+                p_new_constraint_network = None,
+                p_new_constraints = None,
+                p_action_or_method_instance = None,
+                p_action_or_method_assertion_support_info = None,
+            ),
+        ]
+        
         nodes = [root_search_node]
+        dur = 0
         strs = ["0"]
-        ts = time.perf_counter()
+        indents = [""]
 
         while len(nodes) > 0:
             cur_node = nodes.pop(0)
             
+            node_info = None
+            if cur_node.m_flaw_node_info is not None:
+                node_info = cur_node.m_flaw_node_info
+            if cur_node.m_resolver_node_info is not None:
+                node_info = cur_node.m_resolver_node_info
+            if cur_node.m_charlie_move_info is not None:
+                node_info = cur_node.m_charlie_move_info
+            if cur_node.m_eve_move_info is not None:
+                node_info = cur_node.m_eve_move_info
+            if len(success_nodes_info) == 0:
+                ok = False
+                break
+            elif not compare_search_node_info(node_info, success_nodes_info.pop(0)):
+                ok = False
+                break
+            
             _s = strs.pop(0)
+            _ind = indents.pop(0)
 
             if verbose:
-                print("-{0} : {1}".format(_s, cur_node.m_node_type))
+                print(_ind+"# {0} : {1}".format(_s, cur_node.m_node_type))
             
                 if cur_node.m_flaw_node_info is not None:
-                    print("---flaw node info : {0}".format(cur_node.m_flaw_node_info.__dict__))
+                    print(_ind+"| flaw node info : {0}".format(cur_node.m_flaw_node_info.__dict__))
                 if cur_node.m_resolver_node_info is not None:
-                    print("---resolver node info : {0}".format(cur_node.m_resolver_node_info.m_type))
+                    print(_ind+"| resolver node info : {0}".format(cur_node.m_resolver_node_info.m_type))
                 if cur_node.m_charlie_move_info is not None:
-                    print("---charlie move info : {0}".format(cur_node.m_charlie_move_info.__dict__))
+                    print(_ind+"| charlie move info : {0}".format(cur_node.m_charlie_move_info.__dict__))
                 if cur_node.m_eve_move_info is not None:
-                    print("---eve move info : {0}".format(cur_node.m_eve_move_info.__dict__))
+                    print(_ind+"| eve move info : {0}".format(cur_node.m_eve_move_info.__dict__))
 
+            ts = time.perf_counter()
             cur_node.build_children()
+            es = time.perf_counter()
+            dur += es-ts
+
             nodes.extend(cur_node.m_children)
             strs.extend([_s+"."+str(_j) for _j in range(len(cur_node.m_children))])
+            indents.extend([_ind+"|   " for _ in range(len(cur_node.m_children))])
 
-            if len(_s) > 12:
-                break
+            if verbose:
+                if len(_s) > 16:
+                    print("# ETC...")
+                    break
 
-        es = time.perf_counter()
         print("---")
+
+        if len(success_nodes_info) > 0:
+            ok = False
 
         if verbose:
             print("---")
-            print("time : {0}".format(es-ts))
-        #if <<successful test condition>>:
-        #    print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
-        #else:
-        #    print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+            print("time : {0}".format(dur))
+        if ok:
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
         print("---")
 
 def test2(verbose=False):
@@ -295,46 +398,96 @@ def test2(verbose=False):
         print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
         print("---")
     else:
+        ok = True
+        success_nodes_info = [
+            None,
+            FlawNodeInfo(p_assertion1=asrt2,p_assertion2=None),
+            ResolverNodeInfo(
+                p_type=ResolverType.NEW_DIRECT_PERSISTENCE_SUPPORT_NOW,
+                p_direct_support_assertion = None,
+                p_direct_support_assertion_supporter = None,
+                p_new_constraint_network = None,
+                p_new_constraints = None,
+                p_action_or_method_instance = None,
+                p_action_or_method_assertion_support_info = None,
+            ),
+            ResolverNodeInfo(
+                p_type=ResolverType.ACTION_INSERTION_NOW,
+                p_direct_support_assertion = None,
+                p_direct_support_assertion_supporter = None,
+                p_new_constraint_network = None,
+                p_new_constraints = None,
+                p_action_or_method_instance = None,
+                p_action_or_method_assertion_support_info = None,
+            ),
+        ]
+        
         nodes = [root_search_node]
+        dur = 0
         strs = ["0"]
-
-        ts = time.perf_counter()
+        indents = [""]
 
         while len(nodes) > 0:
             cur_node = nodes.pop(0)
             
+            node_info = None
+            if cur_node.m_flaw_node_info is not None:
+                node_info = cur_node.m_flaw_node_info
+            if cur_node.m_resolver_node_info is not None:
+                node_info = cur_node.m_resolver_node_info
+            if cur_node.m_charlie_move_info is not None:
+                node_info = cur_node.m_charlie_move_info
+            if cur_node.m_eve_move_info is not None:
+                node_info = cur_node.m_eve_move_info
+            if len(success_nodes_info) == 0:
+                ok = False
+                break
+            elif not compare_search_node_info(node_info, success_nodes_info.pop(0)):
+                ok = False
+                break
+                            
             _s = strs.pop(0)
+            _ind = indents.pop(0)
 
             if verbose:
-                print("-{0} : {1}".format(_s, cur_node.m_node_type))
+                print(_ind+"# {0} : {1}".format(_s, cur_node.m_node_type))
             
                 if cur_node.m_flaw_node_info is not None:
-                    print("---flaw node info : {0}".format(cur_node.m_flaw_node_info.__dict__))
+                    print(_ind+"| flaw node info : {0}".format(cur_node.m_flaw_node_info.__dict__))
                 if cur_node.m_resolver_node_info is not None:
-                    print("---resolver node info : {0}".format(cur_node.m_resolver_node_info.m_type))
+                    print(_ind+"| resolver node info : {0}".format(cur_node.m_resolver_node_info.m_type))
                 if cur_node.m_charlie_move_info is not None:
-                    print("---charlie move info : {0}".format(cur_node.m_charlie_move_info.__dict__))
+                    print(_ind+"| charlie move info : {0}".format(cur_node.m_charlie_move_info.__dict__))
                 if cur_node.m_eve_move_info is not None:
-                    print("---eve move info : {0}".format(cur_node.m_eve_move_info.__dict__))
+                    print(_ind+"| eve move info : {0}".format(cur_node.m_eve_move_info.__dict__))
 
+            ts = time.perf_counter()
             cur_node.build_children()
+            es = time.perf_counter()
+            dur += es-ts
+
             nodes.extend(cur_node.m_children)
             strs.extend([_s+"."+str(_j) for _j in range(len(cur_node.m_children))])
+            indents.extend([_ind+"|   " for _ in range(len(cur_node.m_children))])
 
-            if len(_s) > 12:
-                break
+            if verbose:
+                if len(_s) > 16:
+                    print("# ETC...")
+                    break
 
-        es = time.perf_counter()
         print("---")
+
+        if len(success_nodes_info) > 0:
+            ok = False
 
         if verbose:
             print("---")
-            print("time : {0}".format(es-ts))
-        #if <<successful test condition>>:
-        #    print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
-        #else:
-        #    print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
+            print("time : {0}".format(dur))
+        if ok:
+            print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
+        else:
+            print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
         print("---")
 
-test1(1)
-test2(1)
+test1()
+test2()

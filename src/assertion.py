@@ -37,8 +37,8 @@ class Assertion():
         p_type:AssertionType,
         p_sv_name:str,
         p_sv_params:typing.Tuple[typing.Tuple[str,str],...],
-        p_sv_val:object,
-        p_sv_val_sec:object=None,
+        p_sv_val:str,
+        p_sv_val_sec:str=None,
         p_time_start:str="",
         p_time_end:str="",
     ):
@@ -82,11 +82,11 @@ class Assertion():
         return self._time_end
 
     @property
-    def sv_val(self) -> object:
+    def sv_val(self) -> str:
         return self._sv_val
 
     @property
-    def sv_val_sec(self) -> object:
+    def sv_val_sec(self) -> str:
         return self._sv_val_sec
 
     def has_same_head(self, p_other_assertion:Assertion) -> bool:
