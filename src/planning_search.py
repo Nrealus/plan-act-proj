@@ -8,6 +8,7 @@ import typing
 from enum import Enum
 from copy import deepcopy
 from src.utility.new_int_id import new_int_id
+from src.utility.powerset import powerset
 from src.constraints.domain import Domain
 from src.constraints.constraints import ConstraintNetwork, ConstraintType
 from src.assertion import Assertion, AssertionType
@@ -133,7 +134,8 @@ class SearchNode():
                 if ri.m_type == ResolverType.CONFLICT_SEPARATION:
 
                     # Apply constraints resolving the flaw to the chronicle of the child search node currently being built
-                    transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_new_constraints)
+                    #transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_new_constraints)
+                    transformed_chronicle.m_constraint_network = ri.m_new_constraint_network
                     # Remove the adressed conflict from the collection of current conflicts in the chronicle of the child search node currently being built
                     transformed_chronicle.m_conflicts.remove((self.m_flaw_node_info.m_assertion1,self.m_flaw_node_info.m_assertion2))
 
@@ -441,9 +443,12 @@ class SearchNode():
 
     def select_resolvers(self) -> typing.List[ResolverNodeInfo]:
         res = []
-        
+
+        # Case of an unsupported assertion flaw
+
         if self.m_flaw_node_info.m_assertion2 is None:
 
+            # NOTE:
             # there can only be unsupported assertions starting at time now or later (not before, that would just mean failed acting)
             # so we assume that self.m_flaw_node_info.m_assertion1's start time is later than (or at the same time as) self.time
             # (would it be beneficial to enforce it by an explicit constraint ? (easier conflict/inconsistency detection from that ?))
@@ -643,8 +648,215 @@ class SearchNode():
                 if not propagated:
                     continue
 
+        # Case of a conflict flaw
+
         else:
-            pass
+                                
+            # temporal separation resolver
+
+            if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
+                self.m_time, self.m_flaw_node_info.m_assertion1.time_start) > 0
+            ):
+                if (self.m_chronicle.m_constraint_network.propagate_constraints([
+                    (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion2.time_end, self.m_flaw_node_info.m_assertion1.time_start, 0, True))
+                    ])
+                ):
+                    new_constraint_network = deepcopy(self.m_chronicle.m_constraint_network)
+                    self.m_chronicle.m_constraint_network.backtrack()
+
+                    resolver = ResolverNodeInfo()
+                    resolver.m_type = ResolverType.CONFLICT_SEPARATION
+                    resolver.m_direct_support_assertion = None
+                    resolver.m_direct_support_assertion_supporter = None
+                    resolver.m_new_constraint_network = new_constraint_network
+                    resolver.m_new_constraints = None
+                    resolver.m_action_or_method_instance = None
+                    resolver.m_action_or_method_assertion_support_info = None
+                    res.append(resolver)
+
+            if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
+                self.m_time, self.m_flaw_node_info.m_assertion2.time_start) > 0
+            ):
+                if (self.m_chronicle.m_constraint_network.propagate_constraints([
+                    (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_end, self.m_flaw_node_info.m_assertion2.time_start, 0, True))
+                    ])
+                ):
+                    new_constraint_network = deepcopy(self.m_chronicle.m_constraint_network)
+                    self.m_chronicle.m_constraint_network.backtrack()
+
+                    resolver = ResolverNodeInfo()
+                    resolver.m_type = ResolverType.CONFLICT_SEPARATION
+                    resolver.m_direct_support_assertion = None
+                    resolver.m_direct_support_assertion_supporter = None
+                    resolver.m_new_constraint_network = new_constraint_network
+                    resolver.m_new_constraints = None
+                    resolver.m_action_or_method_instance = None
+                    resolver.m_action_or_method_assertion_support_info = None
+                    res.append(resolver)
+
+            # value unification resolver for two persistences
+
+            if (self.m_flaw_node_info.m_assertion1.type == AssertionType.PERSISTENCE
+                and self.m_flaw_node_info.m_assertion2.type == AssertionType.PERSISTENCE
+            ):
+                if (self.m_chronicle.m_constraint_network.propagate_constraints([
+                    (ConstraintType.UNIFICATION, (self.m_flaw_node_info.m_assertion1.sv_val, self.m_flaw_node_info.m_assertion2.sv_val))
+                    ])
+                ):
+                    new_constraint_network = deepcopy(self.m_chronicle.m_constraint_network)
+                    self.m_chronicle.m_constraint_network.backtrack()
+
+                    resolver = ResolverNodeInfo()
+                    resolver.m_type = ResolverType.CONFLICT_SEPARATION
+                    resolver.m_direct_support_assertion = None
+                    resolver.m_direct_support_assertion_supporter = None
+                    resolver.m_new_constraint_network = new_constraint_network
+                    resolver.m_new_constraints = None
+                    resolver.m_action_or_method_instance = None
+                    resolver.m_action_or_method_assertion_support_info = None
+                    res.append(resolver)
+            
+            # value unification resolver for two transitions (involves temporal constraints as well)
+
+            elif (self.m_flaw_node_info.m_assertion1.type == AssertionType.TRANSITION
+                and self.m_flaw_node_info.m_assertion2.type == AssertionType.TRANSITION
+            ):
+                if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
+                    self.m_time, self.m_flaw_node_info.m_assertion1.time_start) > 0
+                ):
+                    if (self.m_chronicle.m_constraint_network.propagate_constraints([
+                        (ConstraintType.UNIFICATION, (self.m_flaw_node_info.m_assertion1.sv_val, self.m_flaw_node_info.m_assertion2.sv_val_sec)),
+                        (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion2.time_end, self.m_flaw_node_info.m_assertion1.time_start, 0, False)), 
+                        (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_start, self.m_flaw_node_info.m_assertion2.time_end, 0, False)),
+                        ])
+                    ):
+                        new_constraint_network = deepcopy(self.m_chronicle.m_constraint_network)
+                        self.m_chronicle.m_constraint_network.backtrack()
+
+                        resolver = ResolverNodeInfo()
+                        resolver.m_type = ResolverType.CONFLICT_SEPARATION
+                        resolver.m_direct_support_assertion = None
+                        resolver.m_direct_support_assertion_supporter = None
+                        resolver.m_new_constraint_network = new_constraint_network
+                        resolver.m_new_constraints = None
+                        resolver.m_action_or_method_instance = None
+                        resolver.m_action_or_method_assertion_support_info = None
+                        res.append(resolver)
+
+                if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
+                    self.m_time, self.m_flaw_node_info.m_assertion2.time_start) > 0
+                ):
+                    if (self.m_chronicle.m_constraint_network.propagate_constraints([
+                        (ConstraintType.UNIFICATION, (self.m_flaw_node_info.m_assertion2.sv_val, self.m_flaw_node_info.m_assertion1.sv_val_sec)),
+                        (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_end, self.m_flaw_node_info.m_assertion2.time_start, 0, False)), 
+                        (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion2.time_start, self.m_flaw_node_info.m_assertion1.time_end, 0, False)),
+                        ])
+                    ):
+                        new_constraint_network = deepcopy(self.m_chronicle.m_constraint_network)
+                        self.m_chronicle.m_constraint_network.backtrack()
+
+                        resolver = ResolverNodeInfo()
+                        resolver.m_type = ResolverType.CONFLICT_SEPARATION
+                        resolver.m_direct_support_assertion = None
+                        resolver.m_direct_support_assertion_supporter = None
+                        resolver.m_new_constraint_network = new_constraint_network
+                        resolver.m_new_constraints = None
+                        resolver.m_action_or_method_instance = None
+                        resolver.m_action_or_method_assertion_support_info = None
+                        res.append(resolver)
+
+            # value unification resolver for a persistence and a transition
+
+            else:
+
+                if self.m_flaw_node_info.m_assertion1.type == AssertionType.PERSISTENCE:
+                    _pers_asrt = self.m_flaw_node_info.m_assertion1
+                    _trans_asrt = self.m_flaw_node_info.m_assertion2
+                else:
+                    _pers_asrt = self.m_flaw_node_info.m_assertion2
+                    _trans_asrt = self.m_flaw_node_info.m_assertion1
+
+                if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
+                    self.m_time, _pers_asrt.time_start) > 0
+                ):
+                    if (self.m_chronicle.m_constraint_network.propagate_constraints([
+                        (ConstraintType.UNIFICATION, (_pers_asrt.sv_val, _trans_asrt.sv_val_sec)),
+                        (ConstraintType.TEMPORAL, (_trans_asrt.time_end, _pers_asrt.time_start, 0, False)), 
+                        (ConstraintType.TEMPORAL, (_pers_asrt.time_start, _trans_asrt.time_end, 0, False)),
+                        ])
+                    ):
+                        new_constraint_network = deepcopy(self.m_chronicle.m_constraint_network)
+                        self.m_chronicle.m_constraint_network.backtrack()
+
+                        resolver = ResolverNodeInfo()
+                        resolver.m_type = ResolverType.CONFLICT_SEPARATION
+                        resolver.m_direct_support_assertion = None
+                        resolver.m_direct_support_assertion_supporter = None
+                        resolver.m_new_constraint_network = new_constraint_network
+                        resolver.m_new_constraints = None
+                        resolver.m_action_or_method_instance = None
+                        resolver.m_action_or_method_assertion_support_info = None
+                        res.append(resolver)
+
+                if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
+                    self.m_time, _trans_asrt.time_start) > 0
+                ):
+                    if (self.m_chronicle.m_constraint_network.propagate_constraints([
+                        (ConstraintType.UNIFICATION, (_trans_asrt.sv_val, _pers_asrt)),
+                        (ConstraintType.TEMPORAL, (_pers_asrt.time_end, _trans_asrt.time_start, 0, False)), 
+                        (ConstraintType.TEMPORAL, (_trans_asrt.time_start, _pers_asrt.time_end, 0, False)),
+                        ])
+                    ):
+                        new_constraint_network = deepcopy(self.m_chronicle.m_constraint_network)
+                        self.m_chronicle.m_constraint_network.backtrack()
+
+                        resolver = ResolverNodeInfo()
+                        resolver.m_type = ResolverType.CONFLICT_SEPARATION
+                        resolver.m_direct_support_assertion = None
+                        resolver.m_direct_support_assertion_supporter = None
+                        resolver.m_new_constraint_network = new_constraint_network
+                        resolver.m_new_constraints = None
+                        resolver.m_action_or_method_instance = None
+                        resolver.m_action_or_method_assertion_support_info = None
+                        res.append(resolver)
+
+
+            # sv (assertion parameters) separation resolver
+
+            # NOTE: consider the impact of time "now" :
+            # - inapplicable if both assertions have already started (before time now)
+            # - applicable otherwise (special case if one has already started ?
+            #                         or maybe not ? - indeed, if an assertion has already started, 
+            #                         the state variables corresponding to its parameters (their values)
+            #                         are already fixed... or are they ? - indeed, their domain is not necessarily reduced to a singleton
+            #                         in that case, should the lifted representation still be used or should we instantiate all ground variants of the assertions ?
+            # NOTE: Same remarks apply to the value unification resolvers above as well...!
+
+            _i_separable = []
+            for _i in range(len(self.m_flaw_node_info.m_assertion1.sv_params)):
+                if (self.m_chronicle.m_constraint_network.objvars_separable(
+                    self.m_flaw_node_info.m_assertion1.sv_params[_i][1], self.m_flaw_node_info.m_assertion2.sv_params[_i][1])
+                ):
+                    _i_separable.append(_i)
+            _i_separable_ps = powerset(_i_separable, include_empty=False)
+            
+            for _tpl in _i_separable_ps:
+                if (self.m_chronicle.m_constraint_network.propagate_constraints(
+                    [(ConstraintType.SEPARATION, (self.m_flaw_node_info.m_assertion1.sv_params[_i][1], self.m_flaw_node_info.m_assertion2.sv_params[_i][1]))
+                    for _i in _tpl])
+                ):
+                    new_constraint_network = deepcopy(self.m_chronicle.m_constraint_network)
+                    self.m_chronicle.m_constraint_network.backtrack()
+
+                    resolver = ResolverNodeInfo()
+                    resolver.m_type = ResolverType.CONFLICT_SEPARATION
+                    resolver.m_direct_support_assertion = None
+                    resolver.m_direct_support_assertion_supporter = None
+                    resolver.m_new_constraint_network = new_constraint_network
+                    resolver.m_new_constraints = None
+                    resolver.m_action_or_method_instance = None
+                    resolver.m_action_or_method_assertion_support_info = None
+                    res.append(resolver)
 
         return res
 
