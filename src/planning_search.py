@@ -21,8 +21,8 @@ from src.goal_node import GoalMode, GoalNode
 class SearchNodeType(Enum):
     FLAW = 0
     RESOLVER = 1
-    CHARLIE = 2
-    EVE = 3
+    TP_DECISION = 2
+    TP_CHANCE = 3
 
 class ResolverType(Enum):
     CONFLICT_SEPARATION=0
@@ -59,7 +59,7 @@ class ResolverNodeInfo():
         self.m_action_or_method_instance:ActionMethod=p_action_or_method_instance
         self.m_action_or_method_assertion_support_info:typing.Set[typing.Tuple[Assertion,Assertion]]=p_action_or_method_assertion_support_info
 
-class CharlieMoveInfo():
+class TPDecisionNodeInfo():
     def __init__(self,
         p_selected_controllable_timepoints:typing.List[str],
         p_wait_time:None|str,
@@ -68,7 +68,7 @@ class CharlieMoveInfo():
         self.m_time:None|str=p_wait_time # here float could make sense...! i.e. wait until a certain "real" time, not necessarily towards a variable / time point. in that case - "str"
         # if it's <= 0 it means we have a "play" move. if not - "wait" move
 
-class EveMoveInfo():
+class TPChanceNodeInfo():
     def __init__(self,
         p_selected_uncontrollable_timepoints:typing.List[str]
     ):
@@ -94,8 +94,8 @@ class SearchNode():
         p_action_method_templates_library:typing.Set[ActionMethodTemplate]=set(),
         p_flaw_node_info:FlawNodeInfo=None,
         p_resolver_node_info:ResolverNodeInfo=None,
-        p_charlie_move_info:CharlieMoveInfo=None,
-        p_eve_move_info:EveMoveInfo=None,
+        p_tp_decision_node_info:TPDecisionNodeInfo=None,
+        p_tp_chance_node_info:TPChanceNodeInfo=None,
     ):
         self.m_node_type:SearchNodeType = p_node_type
         self.m_parent:SearchNode = p_parent
@@ -113,17 +113,8 @@ class SearchNode():
         # in other words, it contains the details of the _parent_'s choice for this node 
         self.m_flaw_node_info:FlawNodeInfo = p_flaw_node_info
         self.m_resolver_node_info:ResolverNodeInfo = p_resolver_node_info
-        self.m_charlie_move_info:CharlieMoveInfo = p_charlie_move_info
-        self.m_eve_move_info:EveMoveInfo = p_eve_move_info
-        # as such, we have the following:
-        # flaw type node : has non-empty resolver_info or eve_move_info (depending on previous node), nothing if root
-        # resolver type node : has non-empty flaw_info
-        # charlie type node : same as flaw type node (depending on parent node, non-empty resolver_info or eve_move_info)
-        # eve node type : has non-empty charlie_move_info
-        
-        # so, if we want to know the search choices made at this node, we need to go through its children and look at their "info" fields
-        # or, if we want to know our choices "directly", store them in lists, "parallel" to the children list
-        # e.g. flaws[], resolvers[], charlie_moves[], eve_moves[] (indices corresponding to children list)
+        self.m_tp_decision_node_info:TPDecisionNodeInfo = p_tp_decision_node_info
+        self.m_tp_chance_node_info:TPChanceNodeInfo = p_tp_chance_node_info
 
     def build_children(self):
 
@@ -351,9 +342,6 @@ class SearchNode():
                     # with all the conflicts which may have appeared after the application of the action/method
                     transformed_chronicle.m_conflicts.update(transformed_chronicle.get_induced_conflicts(ri.m_action_or_method_instance.assertions))
 
-                # decision could be made using search control on whether to follow with a flaw or charlie child (or both)
-                # until then / by default - both 
-
                 self.m_children.append(SearchNode(p_node_type=SearchNodeType.FLAW,
                     p_parent=self,
                     p_time=self.m_time,
@@ -370,12 +358,12 @@ class SearchNode():
                 #    p_action_method_templates_library=self.m_action_method_templates_library,
                 #    p_resolver_node_info=ri))
 
-        if self.m_node_type == SearchNodeType.CHARLIE:
+        if self.m_node_type == SearchNodeType.TP_DECISION:
             
             old_chronicle = self.m_chronicle.copy_chronicle()
 
-            charlie_moves = self.select_charlie_moves()
-            for ci in charlie_moves:
+            tp_decisions = self.select_tp_decisions()
+            for ci in tp_decisions:
 
                 transformed_chronicle = deepcopy(old_chronicle)
 
@@ -408,13 +396,13 @@ class SearchNode():
                                 # "preparation for execution -> execution_state state variable with inactive/running/completed values, then outcomes(successful,failed,unknown(?))"
                         # goal mode : dispatch (for start) for assertions whose starting time point is selected here
  
-                    self.m_children.append(SearchNode(p_node_type=SearchNodeType.EVE,
+                    self.m_children.append(SearchNode(p_node_type=SearchNodeType.TP_CHANCE,
                         p_parent=self,
                         p_time=self.m_time,
                         p_observation=self.m_observation,
                         p_chronicle=transformed_chronicle,
                         p_action_method_templates_library=self.m_action_method_templates_library,
-                        p_charlie_move_info=ci))
+                        p_tp_decision_node_info=ci))
 
                 # "wait" move
                 else:
@@ -422,15 +410,15 @@ class SearchNode():
                     # ci.m_time is basically any (both controllable and uncontrollable) timepoint that can come next.
                     # like "next" in nau temporal (...?) 
 
-                    self.m_children.append(SearchNode(p_node_type=SearchNodeType.EVE,
+                    self.m_children.append(SearchNode(p_node_type=SearchNodeType.TP_CHANCE,
                         p_parent=self,
                         p_time=ci.m_time,
                         p_observation=deepcopy(self.m_observation),
                         p_chronicle=transformed_chronicle,
                         p_action_method_templates_library=self.m_action_method_templates_library,
-                        p_charlie_move_info=ci))
+                        p_tp_decision_node_info=ci))
             
-        if self.m_node_type == SearchNodeType.EVE:
+        if self.m_node_type == SearchNodeType.TP_CHANCE:
             pass
             # for ...
             #     self.m_children.append(SearchNode(p_node_type=SearchNodeType.CHARLIE,
@@ -450,7 +438,6 @@ class SearchNode():
             #         p_eve_move_info=ei))
 
     def select_flaws(self) -> typing.List[FlawNodeInfo]:
-        # use non null self.m_resolver_node_info or self.m_eve_move_info
         res = []
         # in general : "priority queue" (or just priority order in list) according to search strategy
         # for example : flaws with only one possible resolver first... (FAPE 2020 p.40)
@@ -921,12 +908,10 @@ class SearchNode():
     # THEN, POWER SET OF THESE CANDIDATES (FOR "PLAY" MOVES)
     # PROBLEM : HOW TO CHOOSE TIMES FOR "WAIT" MOVES (STR TOO ?) ? ONE OF THE VERY SAME "NEXT" CANDIDATES ?
 
-    def select_charlie_moves(self) -> typing.List[CharlieMoveInfo]:
+    def select_tp_decisions(self) -> typing.List[TPDecisionNodeInfo]:
         res = []
-        # use non null self.m_resolver_node_info or self.m_eve_move_info
         return res
 
-    def select_eve_moves(self) -> typing.List[EveMoveInfo]:
+    def select_tp_chances(self) -> typing.List[TPChanceNodeInfo]:
         res = []
-        # use non null self.m_charlie_move_info
         return res

@@ -9,7 +9,7 @@ from src.constraints.constraints import ConstraintNetwork, ConstraintType
 from src.assertion import Assertion, AssertionType
 from src.actionmethod import ActionMethodTemplate, ActionMethod
 from src.chronicle import Chronicle
-from src.planning_search import CharlieMoveInfo, EveMoveInfo, FlawNodeInfo, ResolverNodeInfo, ResolverType, SearchNode, SearchNodeType
+from src.planning_search import TPDecisionNodeInfo, TPChanceNodeInfo, FlawNodeInfo, ResolverNodeInfo, ResolverType, SearchNode, SearchNodeType
 from src.goal_node import GoalNode, GoalMode
 
 import time
@@ -27,8 +27,8 @@ class bcolors:
 ############################################
 
 def compare_search_node_info(
-    node_info1:FlawNodeInfo|ResolverNodeInfo|CharlieMoveInfo|EveMoveInfo,
-    node_info2:FlawNodeInfo|ResolverNodeInfo|CharlieMoveInfo|EveMoveInfo,
+    node_info1:FlawNodeInfo|ResolverNodeInfo|TPDecisionNodeInfo|TPChanceNodeInfo,
+    node_info2:FlawNodeInfo|ResolverNodeInfo|TPDecisionNodeInfo|TPChanceNodeInfo,
 ):
     if node_info1 is None and node_info2 is None:
         return True
@@ -61,9 +61,9 @@ def compare_search_node_info(
         if node_info1.m_type == node_info2.m_type:
             return True
         # AND NOT EVEN NECESSARILY TO GO FURTHEr
-    if type(node_info1) == CharlieMoveInfo:
+    if type(node_info1) == TPDecisionNodeInfo:
         return NotImplemented
-    if type(node_info1) == EveMoveInfo:
+    if type(node_info1) == TPChanceNodeInfo:
         return NotImplemented
     return False
 
@@ -261,10 +261,10 @@ def test1(verbose=False):
                 node_info = cur_node.m_flaw_node_info
             if cur_node.m_resolver_node_info is not None:
                 node_info = cur_node.m_resolver_node_info
-            if cur_node.m_charlie_move_info is not None:
-                node_info = cur_node.m_charlie_move_info
-            if cur_node.m_eve_move_info is not None:
-                node_info = cur_node.m_eve_move_info
+            if cur_node.m_tp_decision_node_info is not None:
+                node_info = cur_node.m_tp_decision_node_info
+            if cur_node.m_tp_chance_node_info is not None:
+                node_info = cur_node.m_tp_chance_node_info
             if len(success_nodes_info) == 0:
                 ok = False
                 break
@@ -283,10 +283,10 @@ def test1(verbose=False):
                     print(_ind+"| flaw node info : {0}".format(cur_node.m_flaw_node_info.__dict__))
                 if cur_node.m_resolver_node_info is not None:
                     print(_ind+"| resolver node info : {0}".format(cur_node.m_resolver_node_info.m_type))
-                if cur_node.m_charlie_move_info is not None:
-                    print(_ind+"| charlie move info : {0}".format(cur_node.m_charlie_move_info.__dict__))
-                if cur_node.m_eve_move_info is not None:
-                    print(_ind+"| eve move info : {0}".format(cur_node.m_eve_move_info.__dict__))
+                if cur_node.m_tp_decision_node_info is not None:
+                    print(_ind+"| timepoint decision node info : {0}".format(cur_node.m_tp_decision_node_info.__dict__))
+                if cur_node.m_tp_chance_node_info is not None:
+                    print(_ind+"| timepoint chance node info : {0}".format(cur_node.m_tp_chance_node_info.__dict__))
 
             ts = time.perf_counter()
             cur_node.build_children()
@@ -436,10 +436,10 @@ def test2(verbose=False):
                 node_info = cur_node.m_flaw_node_info
             if cur_node.m_resolver_node_info is not None:
                 node_info = cur_node.m_resolver_node_info
-            if cur_node.m_charlie_move_info is not None:
-                node_info = cur_node.m_charlie_move_info
-            if cur_node.m_eve_move_info is not None:
-                node_info = cur_node.m_eve_move_info
+            if cur_node.m_tp_decision_node_info is not None:
+                node_info = cur_node.m_tp_decision_node_info
+            if cur_node.m_tp_chance_node_info is not None:
+                node_info = cur_node.m_tp_chance_node_info
             if len(success_nodes_info) == 0:
                 ok = False
                 break
@@ -458,10 +458,10 @@ def test2(verbose=False):
                     print(_ind+"| flaw node info : {0}".format(cur_node.m_flaw_node_info.__dict__))
                 if cur_node.m_resolver_node_info is not None:
                     print(_ind+"| resolver node info : {0}".format(cur_node.m_resolver_node_info.m_type))
-                if cur_node.m_charlie_move_info is not None:
-                    print(_ind+"| charlie move info : {0}".format(cur_node.m_charlie_move_info.__dict__))
-                if cur_node.m_eve_move_info is not None:
-                    print(_ind+"| eve move info : {0}".format(cur_node.m_eve_move_info.__dict__))
+                if cur_node.m_tp_decision_node_info is not None:
+                    print(_ind+"| timepoint decision node info : {0}".format(cur_node.m_tp_decision_node_info.__dict__))
+                if cur_node.m_tp_chance_node_info is not None:
+                    print(_ind+"| timepoint chance node info : {0}".format(cur_node.m_tp_chance_node_info.__dict__))
 
             ts = time.perf_counter()
             cur_node.build_children()
