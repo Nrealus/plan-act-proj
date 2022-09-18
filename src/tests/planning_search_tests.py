@@ -205,7 +205,7 @@ def test1(verbose=False):
         p_node_type=SearchNodeType.FLAW,
         p_parent=None,
         p_time="t1",#"t_now",
-        p_state=None,
+        p_observation=None,
         p_chronicle=root_chronicle,
         p_action_method_templates_library=set([action_template]),
     )
@@ -277,6 +277,7 @@ def test1(verbose=False):
 
             if verbose:
                 print(_ind+"# {0} : {1}".format(_s, cur_node.m_node_type))
+                print(_ind+"| plan : {0}".format(cur_node.m_chronicle.m_plan))
             
                 if cur_node.m_flaw_node_info is not None:
                     print(_ind+"| flaw node info : {0}".format(cur_node.m_flaw_node_info.__dict__))
@@ -388,7 +389,7 @@ def test2(verbose=False):
         p_node_type=SearchNodeType.FLAW,
         p_parent=None,
         p_time="t1",#"t_now",
-        p_state=None,
+        p_observation=None,
         p_chronicle=root_chronicle,
         p_action_method_templates_library=set([action_template]),
     )
@@ -451,7 +452,8 @@ def test2(verbose=False):
 
             if verbose:
                 print(_ind+"# {0} : {1}".format(_s, cur_node.m_node_type))
-            
+                print(_ind+"| plan : {0}".format(cur_node.m_chronicle.m_plan))
+
                 if cur_node.m_flaw_node_info is not None:
                     print(_ind+"| flaw node info : {0}".format(cur_node.m_flaw_node_info.__dict__))
                 if cur_node.m_resolver_node_info is not None:
@@ -489,5 +491,5 @@ def test2(verbose=False):
             print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
         print("---")
 
-test1()
-test2()
+test1(1)
+test2(1)

@@ -62,10 +62,10 @@ class ResolverNodeInfo():
 class CharlieMoveInfo():
     def __init__(self,
         p_selected_controllable_timepoints:typing.List[str],
-        p_wait_time
+        p_wait_time:None|str,
     ):
         self.m_selected_controllable_timepoints:typing.List[str]=p_selected_controllable_timepoints
-        self.m_wait_time:float=p_wait_time # here float could make sense...! i.e. wait until a certain "real" time, not necessarily towards a variable / time point. in that case - "str"
+        self.m_time:None|str=p_wait_time # here float could make sense...! i.e. wait until a certain "real" time, not necessarily towards a variable / time point. in that case - "str"
         # if it's <= 0 it means we have a "play" move. if not - "wait" move
 
 class EveMoveInfo():
@@ -89,7 +89,7 @@ class SearchNode():
         p_node_type:SearchNodeType,
         p_parent:SearchNode,
         p_time:str,
-        p_state:object,
+        p_observation:object,
         p_chronicle:Chronicle,
         p_action_method_templates_library:typing.Set[ActionMethodTemplate]=set(),
         p_flaw_node_info:FlawNodeInfo=None,
@@ -102,7 +102,7 @@ class SearchNode():
         self.m_children:typing.List[SearchNode] = []
 
         self.m_time:str = p_time
-        self.m_state:object = p_state
+        self.m_observation:object = p_observation
         self.m_chronicle:Chronicle = p_chronicle
         #self.scheduled_time_points ?
         #other variables than time points ? maybe already accounted for in constr net ?
@@ -136,7 +136,7 @@ class SearchNode():
                     p_node_type=SearchNodeType.RESOLVER,
                     p_parent=self,
                     p_time=self.m_time,
-                    p_state=deepcopy(self.m_state),
+                    p_observation=deepcopy(self.m_observation),
                     p_chronicle=self.m_chronicle.copy_chronicle(),
                     p_action_method_templates_library=self.m_action_method_templates_library,
                     p_flaw_node_info=fi))
@@ -300,7 +300,6 @@ class SearchNode():
                             transformed_chronicle.m_goal_nodes[asrt].m_committed_expansion = ri.m_action_or_method_instance
 
                     # Apply the constraints introduced of the action/method and also any other constraints that may be in the resolver
-                    # (NOTE: can there be any other ? think about it, and if yes - an example ?)
                     transformed_chronicle.m_constraint_network = ri.m_new_constraint_network
                     #transformed_chronicle.m_constraint_network.init_objvars(ri.m_objvars_domains)
                     #transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_action_or_method_instance.constraints)
@@ -358,7 +357,7 @@ class SearchNode():
                 self.m_children.append(SearchNode(p_node_type=SearchNodeType.FLAW,
                     p_parent=self,
                     p_time=self.m_time,
-                    p_state=deepcopy(self.m_state),
+                    p_observation=deepcopy(self.m_observation),
                     p_chronicle=transformed_chronicle,
                     p_action_method_templates_library=self.m_action_method_templates_library,
                     p_resolver_node_info=ri))
@@ -373,30 +372,36 @@ class SearchNode():
 
         if self.m_node_type == SearchNodeType.CHARLIE:
             
+            old_chronicle = self.m_chronicle.copy_chronicle()
+
             charlie_moves = self.select_charlie_moves()
-            '''for ci in charlie_moves:
+            for ci in charlie_moves:
 
                 transformed_chronicle = deepcopy(old_chronicle)
 
                 # "play" move
-                if ci.m_wait_time <= 0:
+                if ci.m_time is None:
                 # should the wait time be a float "offset" ? or should it be a time point that comes next ?
                 #FIXME: probably. change this tomorrow
 
                     for ctr_tp in ci.m_selected_controllable_timepoints:
 
-                        #for asrt in transformed_chronicle.m_assertions:
-                            #if (transformed_chronicle.m_constraint_network.propagate_constraints([
-                            #        (ConstraintType.TEMPORAL, (ctr_tp, asrt.m_time_start, 0, False)),
-                            #        (ConstraintType.TEMPORAL, (asrt.m_time_start, ctr_tp, 0, False)),
-                            #    ], p_apply_and_push=True)
-                            #):
+                        #transformed_chronicle.m_constraint_network.propagate_constraints([
+                        #    (ConstraintType.TEMPORAL, (ctr_tp, "ref_tp", self.m_time, False)),
+                        #    (ConstraintType.TEMPORAL, ("ref_tp", ctr_tp, self.m_time, False)),
+                        #])
+
                         transformed_chronicle.m_constraint_network.propagate_constraints([
-                            (ConstraintType.TEMPORAL, (ctr_tp, "ref_tp", self.m_time, False)),
-                            (ConstraintType.TEMPORAL, ("ref_tp", ctr_tp, self.m_time, False)),
+                            (ConstraintType.TEMPORAL, (ctr_tp, self.m_time, 0, False)),
+                            (ConstraintType.TEMPORAL, (self.m_time, ctr_tp, 0, False)),
                         ])
 
-                        for asrt in []: # assertions_starting_at_ctr_tp (need to check all time points "unified" with ctr_tp?)
+                        asrts_starting_at_ctr_tp = []
+                        for _asrt in transformed_chronicle.m_assertions:
+                            if transformed_chronicle.m_constraint_network.tempvars_unified(ctr_tp, _asrt.time_start):
+                                asrts_starting_at_ctr_tp.append(_asrt)
+                        
+                        for asrt in asrts_starting_at_ctr_tp:
                             if transformed_chronicle.m_goal_nodes[asrt].m_mode == GoalMode.COMMITTED:
                                 transformed_chronicle.m_goal_nodes[asrt].m_mode = GoalMode.DISPATCHED
                                 #NOTE: action dispatching ?..
@@ -405,8 +410,8 @@ class SearchNode():
  
                     self.m_children.append(SearchNode(p_node_type=SearchNodeType.EVE,
                         p_parent=self,
-                        p_time=deepcopy(self.m_time),
-                        p_state=self.m_state,#new_state,
+                        p_time=self.m_time,
+                        p_observation=self.m_observation,
                         p_chronicle=transformed_chronicle,
                         p_action_method_templates_library=self.m_action_method_templates_library,
                         p_charlie_move_info=ci))
@@ -414,14 +419,17 @@ class SearchNode():
                 # "wait" move
                 else:
 
+                    # ci.m_time is basically any (both controllable and uncontrollable) timepoint that can come next.
+                    # like "next" in nau temporal (...?) 
+
                     self.m_children.append(SearchNode(p_node_type=SearchNodeType.EVE,
                         p_parent=self,
-                        p_time=self.m_time + ci.m_wait_time,
-                        p_state=deepcopy(self.m_state),
+                        p_time=ci.m_time,
+                        p_observation=deepcopy(self.m_observation),
                         p_chronicle=transformed_chronicle,
                         p_action_method_templates_library=self.m_action_method_templates_library,
                         p_charlie_move_info=ci))
-            '''
+            
         if self.m_node_type == SearchNodeType.EVE:
             pass
             # for ...
@@ -526,7 +534,7 @@ class SearchNode():
                                 p_time_end=self.m_flaw_node_info.m_assertion1.time_start
                             )
 
-                            constrs = [
+                            constrs = set([
                                 (ConstraintType.TEMPORAL, (dsa.time_end, self.m_flaw_node_info.m_assertion1.time_start, 0, False)),
                                 (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_start, dsa.time_end, 0, False)),
                                 # here i_asrt.time_end is already (see if statement above) unified/equal to self.m_time (i.e. time "now")
@@ -535,7 +543,7 @@ class SearchNode():
                                 (ConstraintType.TEMPORAL, (dsa.time_start, i_asrt.time_end, 0, False)),
                                 # here i_asrt.time_end is already (see if statement above) unified/equal to self.m_time (i.e. time "now")
                                 (ConstraintType.UNIFICATION, (i_asrt.sv_val, dsa.sv_val))
-                            ]
+                            ])
 
                             res.append(ResolverNodeInfo(
                                 p_type = ResolverType.NEW_DIRECT_PERSISTENCE_SUPPORT_NOW,
@@ -881,6 +889,37 @@ class SearchNode():
                     ))
 
         return res
+
+    # NOTE: TWO POSSIBLE APPROACHES : 
+    # EITHER USE FLOAT CURRENT SEARCH NODE TIME (SELF.M_TIME) OR STR
+    #
+    # IF FLOAT : TEST WHETHER << min_network["candidate_tp","ref_tp"] <= self.m_time <= min_network["ref_tp", "candidate_tp"] >>
+    # TO DETERMINE IF "candidate_tp" CAN BE SET/DISPATCHED AT TIME self.m_time. (THEN : POWER SET OF THESE CANDIDATES (FOR "PLAY" MOVES))
+    # PROBLEM : HOW TO CHOOSE TIMES FOR "WAIT" MOVES (FLOAT TOO?) ? SAMPLING / "INTUITION" ? (K.Osanlou?)
+    #
+    # IF STR : USE THE FOLLOWING LOOP TO DETERMINE POSSIBLE NEXT TIMEPOINTS:
+    #    next_ctrl_tps = []
+    #    for _tp1 in self.m_chronicle.m_constraint_network.m_stn.m_controllability:
+    #        # if tp1 is necessarily after self.m_time (i.e its earliest occurence is after self.m_time)
+    #        if (self.m_chronicle.m_constraint_network.tempvars_unified(_tp1, self.m_time)
+    #            and self.m_chronicle.m_constraint_network.m_stn.m_controllability[_tp1] == True
+    #            and self.m_chronicle.m_constraint_network.m_stn.m_minimal_network[_tp1, self.m_time] < 0
+    #        ):
+    #            _b = True
+    #            for _tp2 in self.m_chronicle.m_constraint_network.m_stn.m_controllability: 
+    #                # if not (tp1 is necessarily after tp2 and tp2 is necessarily after self.m_time)
+    #                if (self.m_chronicle.m_constraint_network.m_stn.m_controllability[_tp2] == True
+    #                    and not self.m_chronicle.m_constraint_network.tempvars_unified(_tp1, _tp2)
+    #                    and not self.m_chronicle.m_constraint_network.tempvars_unified(_tp2, self.m_time)
+    #                    and self.m_chronicle.m_constraint_network.m_stn.m_minimal_network[_tp1, _tp2] < 0
+    #                    and self.m_chronicle.m_constraint_network.m_stn.m_minimal_network[ _tp2, self.m_time] < 0
+    #                ):
+    #                    _b = False
+    #                    break
+    #        if _b:
+    #                next_ctrl_tps.append(_tp1)
+    # THEN, POWER SET OF THESE CANDIDATES (FOR "PLAY" MOVES)
+    # PROBLEM : HOW TO CHOOSE TIMES FOR "WAIT" MOVES (STR TOO ?) ? ONE OF THE VERY SAME "NEXT" CANDIDATES ?
 
     def select_charlie_moves(self) -> typing.List[CharlieMoveInfo]:
         res = []

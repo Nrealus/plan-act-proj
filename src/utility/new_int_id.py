@@ -1,7 +1,3 @@
-
-
-from ast import Global
-
 class GlobalCounter:
     counter = 0
 
