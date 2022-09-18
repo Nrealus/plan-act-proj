@@ -660,7 +660,7 @@ class BCN():
 # This is currently why when the domain of a  no constraint propagation
 # Dealing with variable temporal constraints is a quite tricky, and not every result and approach carries on trivially from typical "constant" STNs.
 # Reasoning in this situation may introduce "conditional", "branching" reasoning, which is way too complex to tackle now. This is investigated in Pralet 2014 (Time-dependent STNs).
-# Finally, we probably would need to investigate how the planning search interleaved with partial/incremental uncertainty grounding ("Charlie and Eve search nodes")
+# Finally, we probably would need to investigate how the planning search interleaved with partial/incremental uncertainty grounding ("Charlie and Eve" or "Decision/chance" search nodes)
 # behaves with simple temporal constraints first, as more complex variable/functional temporal constraints (with non-singleton domains for object variables describing bounds)
 # can be seen as a form of uncertainty themselves. That may shed some light on whether more complex STNs may introduce additional difficulties for planning search,
 # local/full consistency maintaining (due to, for example, possibly unreasonable branching to deal with various cases of variable/functional temporal constraints)
