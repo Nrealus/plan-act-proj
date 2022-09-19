@@ -61,18 +61,26 @@ class ResolverNodeInfo():
 
 class TPDecisionNodeInfo():
     def __init__(self,
-        p_selected_controllable_timepoints:typing.List[str],
-        p_wait_time:None|str,
+        p_timepoint:str,
+        p_assigned_time:float,
+        p_other_timepoints:typing.Iterable[str]
     ):
-        self.m_selected_controllable_timepoints:typing.List[str]=p_selected_controllable_timepoints
-        self.m_time:None|str=p_wait_time # here float could make sense...! i.e. wait until a certain "real" time, not necessarily towards a variable / time point. in that case - "str"
-        # if it's <= 0 it means we have a "play" move. if not - "wait" move
-
+        self.m_timepoint = p_timepoint
+        self.m_assigned_time = p_assigned_time
+        self.m_other_timepoints = p_other_timepoints
+# !!!!!!!!FIXME!!!!!!!! ALSO NEED TO STORE THE REMAINING NEXT TIMEPOINTS !!!
+# or there won't be any way to enforce the constraint order between them and the chosen next timepoint
 class TPChanceNodeInfo():
     def __init__(self,
-        p_selected_uncontrollable_timepoints:typing.List[str]
+        p_timepoint:str,
+        p_assigned_time:float,
+        p_other_timepoints:typing.Iterable[str]
     ):
-        self.m_selected_uncontrollable_timepoints:typing.List[str]=p_selected_uncontrollable_timepoints
+        self.m_timepoint = p_timepoint
+        self.m_assigned_time = p_assigned_time
+        self.m_other_timepoints = p_other_timepoints
+
+# possibly unify TPDecisionNodeInfo and TPChanceNodeInfo into TPNodeInfo with a "type" field ?
 
 class SearchNode():
 
@@ -88,7 +96,7 @@ class SearchNode():
     def __init__(self,
         p_node_type:SearchNodeType,
         p_parent:SearchNode,
-        p_time:str,
+        p_now_timepoint:str,
         p_observation:object,
         p_chronicle:Chronicle,
         p_action_method_templates_library:typing.Set[ActionMethodTemplate]=set(),
@@ -101,7 +109,7 @@ class SearchNode():
         self.m_parent:SearchNode = p_parent
         self.m_children:typing.List[SearchNode] = []
 
-        self.m_time:str = p_time
+        self.m_now_timepoint:str = p_now_timepoint
         self.m_observation:object = p_observation
         self.m_chronicle:Chronicle = p_chronicle
         #self.scheduled_time_points ?
@@ -126,7 +134,7 @@ class SearchNode():
                 self.m_children.append(SearchNode(
                     p_node_type=SearchNodeType.RESOLVER,
                     p_parent=self,
-                    p_time=self.m_time,
+                    p_now_timepoint=self.m_now_timepoint,
                     p_observation=deepcopy(self.m_observation),
                     p_chronicle=self.m_chronicle.copy_chronicle(),
                     p_action_method_templates_library=self.m_action_method_templates_library,
@@ -292,51 +300,6 @@ class SearchNode():
 
                     # Apply the constraints introduced of the action/method and also any other constraints that may be in the resolver
                     transformed_chronicle.m_constraint_network = ri.m_new_constraint_network
-                    #transformed_chronicle.m_constraint_network.init_objvars(ri.m_objvars_domains)
-                    #transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_action_or_method_instance.constraints)
-                    #transformed_chronicle.m_constraint_network.propagate_constraints(ri.m_constraints)
-                    ## Propagating the instantiation variable for the action/method
-                    ## Done here and not earlier (e.g. when adding the action/method to the plan)
-                    ## as other constraints should be propagated first (in order to use the correct )
-                    ## NOTE: this is very basic / crude / inefficient, but good enough for now.
-                    #_name = ri.m_action_or_method_instance.name
-                    #_args = ri.m_action_or_method_instance.args
-                    #_args_values  = _args.values()
-                    #_n = len(_args.keys())
-                    #_rows = []
-                    #def _recursion(_i, _row:typing.List):
-                    #    _rowcopy = _row.copy()
-                    #    for _v in self.m_chronicle.m_constraint_network.objvar_domain(_args_values[_i]).get_values():
-                    #        _row.append(_v)
-                    #    if _i <= _n-2:
-                    #        _recursion(_i+1,_row)
-                    #    else:
-                    #        _rows.append(_row.copy())
-                    #    _row = _rowcopy
-                    #    if _i > 0:
-                    #        _recursion(0,[])
-                    #    else:
-                    #        return
-                    #_recursion(0,[])
-                    ##_id_objvar = "__actmethinst_{0}{1}_id".format(_name, _args)
-                    ##if transformed_chronicle.m_constraint_network.objvar_domain(_id_objvar) is None:
-                    ##    transformed_chronicle.m_constraint_network.declare_and_init_objvars({_id_objvar:Domain()})
-                    #rows_final = _rows#[]
-                    ##for _row in _rows:
-                    ##    _id = new_int_id()
-                    ##    transformed_chronicle.m_constraint_network.objvar_domain(_id_objvar).add_discrete_value(_id)
-                    ##    rows_final = tuple(_row + [_id])
-                    #transformed_chronicle.m_constraint_network.propagate_constraints([
-                    #    (ConstraintType.GENERAL_RELATION,
-                    #        ("__actmethinst_{0}{1}_rel{2}".format(_name, _args, new_int_id()),
-                    #        tuple([_p for _p in _args_values]),# + [_id_objvar]),
-                    #        rows_final)
-                    #    )
-                    #])
-                    ## !! TODO !!: the above approach to general relations assumes an explicit discrete domains representation...
-                    ## As we cannot really represent all of the possible values for such variables/table columns explicitly,
-                    ## we will *NEED* better variable domain representations for that very soon.
-                    ## It is also quite inefficient and unelegant
 
                     # Update the collection of current conflicts in the chronicle of the child search node currently being built
                     # with all the conflicts which may have appeared after the application of the action/method
@@ -344,7 +307,7 @@ class SearchNode():
 
                 self.m_children.append(SearchNode(p_node_type=SearchNodeType.FLAW,
                     p_parent=self,
-                    p_time=self.m_time,
+                    p_now_timepoint=self.m_now_timepoint,
                     p_observation=deepcopy(self.m_observation),
                     p_chronicle=transformed_chronicle,
                     p_action_method_templates_library=self.m_action_method_templates_library,
@@ -359,83 +322,45 @@ class SearchNode():
                 #    p_resolver_node_info=ri))
 
         if self.m_node_type == SearchNodeType.TP_DECISION:
+        # basically same for TP_CHANCE ?
             
             old_chronicle = self.m_chronicle.copy_chronicle()
 
             tp_decisions = self.select_tp_decisions()
-            for ci in tp_decisions:
+            for tpdi in tp_decisions:
 
                 transformed_chronicle = deepcopy(old_chronicle)
 
-                # "play" move
-                if ci.m_time is None:
-                # should the wait time be a float "offset" ? or should it be a time point that comes next ?
-                #FIXME: probably. change this tomorrow
+                constrs = [
+                    (ConstraintType.TEMPORAL, (tpdi.m_timepoint, "_REFERENCE_TIMEPOINT", tpdi.m_assigned_time, False)),
+                    (ConstraintType.TEMPORAL, ("_REFERENCE_TIMEPOINT", tpdi.m_timepoint, tpdi.m_assigned_time, False)),
+                ]
 
-                    for ctr_tp in ci.m_selected_controllable_timepoints:
+                for otp in tpdi.m_other_timepoints:
+                    constrs.extend([(ConstraintType.TEMPORAL, (tpdi.m_timepoint, otp, 0, False))])
+                transformed_chronicle.m_constraint_network.propagate_constraints(constrs)
 
-                        #transformed_chronicle.m_constraint_network.propagate_constraints([
-                        #    (ConstraintType.TEMPORAL, (ctr_tp, "ref_tp", self.m_time, False)),
-                        #    (ConstraintType.TEMPORAL, ("ref_tp", ctr_tp, self.m_time, False)),
-                        #])
+                asrts_starting_at_ctr_tp = []
+                for _asrt in transformed_chronicle.m_assertions:
+                    if transformed_chronicle.m_constraint_network.tempvars_unified(tpdi.m_timepoint, _asrt.time_start):
+                        asrts_starting_at_ctr_tp.append(_asrt)
+                
+                for asrt in asrts_starting_at_ctr_tp:
+                    if transformed_chronicle.m_goal_nodes[asrt].m_mode == GoalMode.COMMITTED:
+                        transformed_chronicle.m_goal_nodes[asrt].m_mode = GoalMode.DISPATCHED
+                        #NOTE: action dispatching ?..
+                        # "preparation for execution -> execution_state state variable with inactive/running/completed values, then outcomes(successful,failed,unknown(?))"
+                # goal mode : dispatch (for start) for assertions whose starting time point is selected here
 
-                        transformed_chronicle.m_constraint_network.propagate_constraints([
-                            (ConstraintType.TEMPORAL, (ctr_tp, self.m_time, 0, False)),
-                            (ConstraintType.TEMPORAL, (self.m_time, ctr_tp, 0, False)),
-                        ])
+                # NOTE: same for assertions ending ? -> drop / finish corresponding goal ?
 
-                        asrts_starting_at_ctr_tp = []
-                        for _asrt in transformed_chronicle.m_assertions:
-                            if transformed_chronicle.m_constraint_network.tempvars_unified(ctr_tp, _asrt.time_start):
-                                asrts_starting_at_ctr_tp.append(_asrt)
-                        
-                        for asrt in asrts_starting_at_ctr_tp:
-                            if transformed_chronicle.m_goal_nodes[asrt].m_mode == GoalMode.COMMITTED:
-                                transformed_chronicle.m_goal_nodes[asrt].m_mode = GoalMode.DISPATCHED
-                                #NOTE: action dispatching ?..
-                                # "preparation for execution -> execution_state state variable with inactive/running/completed values, then outcomes(successful,failed,unknown(?))"
-                        # goal mode : dispatch (for start) for assertions whose starting time point is selected here
- 
-                    self.m_children.append(SearchNode(p_node_type=SearchNodeType.TP_CHANCE,
-                        p_parent=self,
-                        p_time=self.m_time,
-                        p_observation=self.m_observation,
-                        p_chronicle=transformed_chronicle,
-                        p_action_method_templates_library=self.m_action_method_templates_library,
-                        p_tp_decision_node_info=ci))
-
-                # "wait" move
-                else:
-
-                    # ci.m_time is basically any (both controllable and uncontrollable) timepoint that can come next.
-                    # like "next" in nau temporal (...?) 
-
-                    self.m_children.append(SearchNode(p_node_type=SearchNodeType.TP_CHANCE,
-                        p_parent=self,
-                        p_time=ci.m_time,
-                        p_observation=deepcopy(self.m_observation),
-                        p_chronicle=transformed_chronicle,
-                        p_action_method_templates_library=self.m_action_method_templates_library,
-                        p_tp_decision_node_info=ci))
-            
-        if self.m_node_type == SearchNodeType.TP_CHANCE:
-            pass
-            # for ...
-            #     self.m_children.append(SearchNode(p_node_type=SearchNodeType.CHARLIE,
-            #         p_parent=self,
-            #         p_time=self.m_time,
-            #         p_state=deepcopy(self.m_state),
-            #         p_chronicle=transformed_chronicle,
-            #         p_action_method_templates_library=self.m_action_method_templates_library,
-            #         p_eve_move_info=ei))
-            # for ...
-            #     self.m_children.append(SearchNode(p_node_type=SearchNodeType.FLAW,
-            #         p_parent=self,
-            #         p_time=self.m_time,
-            #         p_state=deepcopy(self.m_state),
-            #         p_chronicle=transformed_chronicle,
-            #         p_action_method_templates_library=self.m_action_method_templates_library,
-            #         p_eve_move_info=ei))
+                #self.m_children.append(SearchNode(p_node_type=SearchNodeType.TP_CHANCE,
+                #    p_parent=self,
+                #    p_now_timepoint=self.m_now_timepoint,
+                #    p_observation=self.m_observation,
+                #    p_chronicle=transformed_chronicle,
+                #    p_action_method_templates_library=self.m_action_method_templates_library,
+                #    p_tp_decision_node_info=tpdi))
 
     def select_flaws(self) -> typing.List[FlawNodeInfo]:
         res = []
@@ -477,7 +402,7 @@ class SearchNode():
                             (ConstraintType.UNIFICATION, (i_asrt.sv_val, self.m_flaw_node_info.m_assertion1.sv_val))
                         ], p_backtrack=False)
                     ):
-                        if self.m_chronicle.m_constraint_network.tempvars_unified(i_asrt.time_end, self.m_time):#self.m_flaw_node_info.m_assertion1.time_start):
+                        if self.m_chronicle.m_constraint_network.tempvars_unified(i_asrt.time_end, self.m_now_timepoint):#self.m_flaw_node_info.m_assertion1.time_start):
 
                             res.append(ResolverNodeInfo(
                                 p_type = ResolverType.EXISTING_DIRECT_PERSISTENCE_SUPPORT_NOW,
@@ -507,7 +432,7 @@ class SearchNode():
                         # OR (NOTE) MAYBE no point in this ? as if we don't take the "latest" assertion from which to support,
                         # applying the resolver will cause a potential conflict flaw (between the introduced supporter and "later" assertions)
                         # but that is not necessarily a problem or something to avoid - this conflict could get resolved sucessfully.
-                        if (self.m_chronicle.m_constraint_network.tempvars_unified(i_asrt.time_end, self.m_time)
+                        if (self.m_chronicle.m_constraint_network.tempvars_unified(i_asrt.time_end, self.m_now_timepoint)
                             and self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
                                 i_asrt.time_end, self.m_flaw_node_info.m_assertion1.time_start) > 0
                         ):
@@ -517,7 +442,7 @@ class SearchNode():
                                 p_sv_params=self.m_flaw_node_info.m_assertion1.sv_params,
                                 p_sv_val=i_asrt.sv_val,
                                 p_sv_val_sec=None,
-                                p_time_start=self.m_time, # i_asrt.time_end ? NOTE: Either this or constraint below
+                                p_time_start=self.m_now_timepoint, # i_asrt.time_end ? NOTE: Either this or constraint below
                                 p_time_end=self.m_flaw_node_info.m_assertion1.time_start
                             )
 
@@ -555,7 +480,7 @@ class SearchNode():
                 _b = False
                 same_sv_as_flaw_asrt:Assertion = None
                 i_act_or_meth_template_asrts = i_act_or_meth_template.assertions_func(
-                    self.m_time, self.m_flaw_node_info.m_assertion1.time_start, { pair[0]:pair[1] for pair in i_act_or_meth_template.params })
+                    self.m_now_timepoint, self.m_flaw_node_info.m_assertion1.time_start, { pair[0]:pair[1] for pair in i_act_or_meth_template.params })
                 for i_asrt in i_act_or_meth_template_asrts:
                     if i_asrt.has_same_head(self.m_flaw_node_info.m_assertion1):
                         same_sv_as_flaw_asrt = i_asrt
@@ -612,7 +537,7 @@ class SearchNode():
                     new_constraint_network = deepcopy(self.m_chronicle.m_constraint_network)
                     propagated = new_constraint_network.propagate_constraints(
                         i_act_or_meth_template.constraints_func(
-                            self.m_time, self.m_flaw_node_info.m_assertion1.time_start, { pair[0] for pair in i_act_or_meth_template.params })
+                            self.m_now_timepoint, self.m_flaw_node_info.m_assertion1.time_start, { pair[0] for pair in i_act_or_meth_template.params })
                         .union([unif_constr])
                     )
                 
@@ -631,7 +556,7 @@ class SearchNode():
                         
                         act_or_meth_instance = ActionMethod(
                             p_template=i_act_or_meth_template,
-                            p_time_start=self.m_time,
+                            p_time_start=self.m_now_timepoint,
                             #p_time_end=self.m_flaw_node_info.m_assertion1.time_start,
                             #NOTE, FIXME !!! the action/method's end time doesn't necessarily have to be the start of the flawed unsupported assertion !!!
                             # as a matter of fact, the assertion inside the action/method supporting isn't necessarily ending at the same time as the whole action !!!!
@@ -639,7 +564,7 @@ class SearchNode():
                             p_args=args
                         )
                         act_or_meth_assertion_support_info = act_or_meth_instance.propagate_applicability(
-                            p_time=self.m_time,
+                            p_time=self.m_now_timepoint,
                             p_cn=new_constraint_network,
                             p_assertions=self.m_chronicle.m_assertions,
                             p_assertion_to_support=self.m_flaw_node_info.m_assertion1,
@@ -673,7 +598,7 @@ class SearchNode():
             # temporal separation resolver
 
             if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
-                self.m_time, self.m_flaw_node_info.m_assertion1.time_start) > 0
+                self.m_now_timepoint, self.m_flaw_node_info.m_assertion1.time_start) > 0
             ):
                 if (self.m_chronicle.m_constraint_network.propagate_constraints([
                     (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion2.time_end, self.m_flaw_node_info.m_assertion1.time_start, 0, True))
@@ -693,7 +618,7 @@ class SearchNode():
                     ))
 
             if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
-                self.m_time, self.m_flaw_node_info.m_assertion2.time_start) > 0
+                self.m_now_timepoint, self.m_flaw_node_info.m_assertion2.time_start) > 0
             ):
                 if (self.m_chronicle.m_constraint_network.propagate_constraints([
                     (ConstraintType.TEMPORAL, (self.m_flaw_node_info.m_assertion1.time_end, self.m_flaw_node_info.m_assertion2.time_start, 0, True))
@@ -740,7 +665,7 @@ class SearchNode():
                 and self.m_flaw_node_info.m_assertion2.type == AssertionType.TRANSITION
             ):
                 if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
-                    self.m_time, self.m_flaw_node_info.m_assertion1.time_start) > 0
+                    self.m_now_timepoint, self.m_flaw_node_info.m_assertion1.time_start) > 0
                 ):
                     if (self.m_chronicle.m_constraint_network.propagate_constraints([
                         (ConstraintType.UNIFICATION, (self.m_flaw_node_info.m_assertion1.sv_val, self.m_flaw_node_info.m_assertion2.sv_val_sec)),
@@ -762,7 +687,7 @@ class SearchNode():
                         ))
 
                 if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
-                    self.m_time, self.m_flaw_node_info.m_assertion2.time_start) > 0
+                    self.m_now_timepoint, self.m_flaw_node_info.m_assertion2.time_start) > 0
                 ):
                     if (self.m_chronicle.m_constraint_network.propagate_constraints([
                         (ConstraintType.UNIFICATION, (self.m_flaw_node_info.m_assertion2.sv_val, self.m_flaw_node_info.m_assertion1.sv_val_sec)),
@@ -795,7 +720,7 @@ class SearchNode():
                     _trans_asrt = self.m_flaw_node_info.m_assertion1
 
                 if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
-                    self.m_time, _pers_asrt.time_start) > 0
+                    self.m_now_timepoint, _pers_asrt.time_start) > 0
                 ):
                     if (self.m_chronicle.m_constraint_network.propagate_constraints([
                         (ConstraintType.UNIFICATION, (_pers_asrt.sv_val, _trans_asrt.sv_val_sec)),
@@ -817,7 +742,7 @@ class SearchNode():
                         ))
 
                 if (self.m_chronicle.m_constraint_network.tempvars_minimal_directed_distance(
-                    self.m_time, _trans_asrt.time_start) > 0
+                    self.m_now_timepoint, _trans_asrt.time_start) > 0
                 ):
                     if (self.m_chronicle.m_constraint_network.propagate_constraints([
                         (ConstraintType.UNIFICATION, (_trans_asrt.sv_val, _pers_asrt)),
@@ -877,37 +802,6 @@ class SearchNode():
 
         return res
 
-    # NOTE: TWO POSSIBLE APPROACHES : 
-    # EITHER USE FLOAT CURRENT SEARCH NODE TIME (SELF.M_TIME) OR STR
-    #
-    # IF FLOAT : TEST WHETHER << min_network["candidate_tp","ref_tp"] <= self.m_time <= min_network["ref_tp", "candidate_tp"] >>
-    # TO DETERMINE IF "candidate_tp" CAN BE SET/DISPATCHED AT TIME self.m_time. (THEN : POWER SET OF THESE CANDIDATES (FOR "PLAY" MOVES))
-    # PROBLEM : HOW TO CHOOSE TIMES FOR "WAIT" MOVES (FLOAT TOO?) ? SAMPLING / "INTUITION" ? (K.Osanlou?)
-    #
-    # IF STR : USE THE FOLLOWING LOOP TO DETERMINE POSSIBLE NEXT TIMEPOINTS:
-    #    next_ctrl_tps = []
-    #    for _tp1 in self.m_chronicle.m_constraint_network.m_stn.m_controllability:
-    #        # if tp1 is necessarily after self.m_time (i.e its earliest occurence is after self.m_time)
-    #        if (self.m_chronicle.m_constraint_network.tempvars_unified(_tp1, self.m_time)
-    #            and self.m_chronicle.m_constraint_network.m_stn.m_controllability[_tp1] == True
-    #            and self.m_chronicle.m_constraint_network.m_stn.m_minimal_network[_tp1, self.m_time] < 0
-    #        ):
-    #            _b = True
-    #            for _tp2 in self.m_chronicle.m_constraint_network.m_stn.m_controllability: 
-    #                # if not (tp1 is necessarily after tp2 and tp2 is necessarily after self.m_time)
-    #                if (self.m_chronicle.m_constraint_network.m_stn.m_controllability[_tp2] == True
-    #                    and not self.m_chronicle.m_constraint_network.tempvars_unified(_tp1, _tp2)
-    #                    and not self.m_chronicle.m_constraint_network.tempvars_unified(_tp2, self.m_time)
-    #                    and self.m_chronicle.m_constraint_network.m_stn.m_minimal_network[_tp1, _tp2] < 0
-    #                    and self.m_chronicle.m_constraint_network.m_stn.m_minimal_network[ _tp2, self.m_time] < 0
-    #                ):
-    #                    _b = False
-    #                    break
-    #        if _b:
-    #                next_ctrl_tps.append(_tp1)
-    # THEN, POWER SET OF THESE CANDIDATES (FOR "PLAY" MOVES)
-    # PROBLEM : HOW TO CHOOSE TIMES FOR "WAIT" MOVES (STR TOO ?) ? ONE OF THE VERY SAME "NEXT" CANDIDATES ?
-
     def select_tp_decisions(self) -> typing.List[TPDecisionNodeInfo]:
         res = []
         return res
@@ -915,3 +809,43 @@ class SearchNode():
     def select_tp_chances(self) -> typing.List[TPChanceNodeInfo]:
         res = []
         return res
+
+    def select_tp_decisions_and_chances(self) -> typing.Tuple[typing.List[TPDecisionNodeInfo],typing.List[TPChanceNodeInfo]]:
+        res_ctrl = []
+        res_unctrl = []
+
+        next_ctrl_tps = []
+        next_unctrl_tps = []
+        for _tp1 in self.m_chronicle.m_constraint_network.m_stn.m_controllability:
+            # if tp1 is necessarily after self.m_time (i.e its earliest occurence is after self.m_time)
+            if (self.m_chronicle.m_constraint_network.tempvars_unified(_tp1, self.m_now_timepoint)
+                and self.m_chronicle.m_constraint_network.m_stn.m_minimal_network[_tp1, self.m_now_timepoint] < 0
+            ):
+                _b = True
+                for _tp2 in self.m_chronicle.m_constraint_network.m_stn.m_controllability: 
+                    # if not (tp1 is necessarily after tp2 and tp2 is necessarily after self.m_time)
+                    if (not self.m_chronicle.m_constraint_network.tempvars_unified(_tp1, _tp2)
+                        and not self.m_chronicle.m_constraint_network.tempvars_unified(_tp2, self.m_now_timepoint)
+                        and self.m_chronicle.m_constraint_network.m_stn.m_minimal_network[_tp1, _tp2] < 0
+                        and self.m_chronicle.m_constraint_network.m_stn.m_minimal_network[ _tp2, self.m_now_timepoint] < 0
+                    ):
+                        _b = False
+                        break
+            if _b:
+                if self.m_chronicle.m_constraint_network.m_stn.m_controllability[_tp1]:
+                    next_ctrl_tps.append(_tp1)
+                else:
+                    next_unctrl_tps.append(_tp1)
+
+        for nxt_tp in next_ctrl_tps:
+            other_tps = list(next_ctrl_tps)
+            other_tps.remove(nxt_tp)
+            res_ctrl.append(TPDecisionNodeInfo(
+                p_timepoint=nxt_tp,
+                p_assigned_time=0,#!!!!!!!!!!FIXME!!!!!!!!!!!!!
+                p_other_timepoints=other_tps,
+            ))
+
+        # FIXME: DEAL WITH UNCONTROLLABLES
+
+        return (res_ctrl, res_unctrl)
