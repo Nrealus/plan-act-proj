@@ -83,13 +83,13 @@ def test1(verbose=False):
     )
 
     if verbose:
-        for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
+        for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
     ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     if verbose:
-        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
+        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
 
     if not ok:
         print("---")
@@ -146,13 +146,13 @@ def test2(verbose=False):
     )
 
     if verbose:
-        for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
+        for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
     ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     if verbose:
-        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
+        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
 
     if not ok:
         print("---")
@@ -222,13 +222,13 @@ def test3(verbose=False):
     ])
 
     if verbose:
-        for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
+        for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
     ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     if verbose:
-        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
+        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
 
     if not ok:
         print("---")
@@ -298,13 +298,13 @@ def test4(verbose=False):
     ])
 
     if verbose:
-        for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
+        for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
     ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     if verbose:
-        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
+        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
 
     if not ok:
         print("---")
@@ -374,13 +374,13 @@ def test4_1(verbose=False):
     ])
 
     if verbose:
-        for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
+        for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
     ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     if verbose:
-        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
+        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
 
     if not ok:
         print("---")
@@ -446,13 +446,13 @@ def test5(verbose=False):
     ])
         
     if verbose:
-        for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
+        for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
     ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     if verbose:
-        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
+        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
 
     if not ok:
         print("---")
@@ -522,13 +522,13 @@ def test6(verbose=False):
     ])
 
     if verbose:
-        for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
+        for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
     ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     if verbose:
-        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
+        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
 
     if not ok:
         print("---")
@@ -572,17 +572,17 @@ def test10(verbose=False):
     action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params=(
+        p_param_domain_vars=(
             ("p_robot","objvar_robots_all"),
             ("p_dest_location","objvar_locations_all"),
         ),
-        p_assertions_func=lambda ts,te,params: set([
+        p_assertions_func=lambda ts,te,param_args: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params=(("p_robot",params["p_robot"]),),
+                p_sv_params=(("p_robot",param_args["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
-                p_sv_val_sec=params["p_dest_location"],
+                p_sv_val_sec=param_args["p_dest_location"],
                 p_time_start=ts,
                 p_time_end=te,
         )]),
@@ -594,7 +594,7 @@ def test10(verbose=False):
 
     action1 = ActionMethod(
         p_template=action_template,
-        p_args=(("p_robot", "my_robot"), ("p_dest_location","my_destination")),
+        p_param_arg_vars=(("p_robot", "my_robot"), ("p_dest_location","my_destination")),
         p_name="",
         p_time_start="t1",
         p_time_end="t2"
@@ -625,7 +625,7 @@ def test10(verbose=False):
     )
     
     if verbose:
-        for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
+        for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
     main_chronicle.m_assertions[asrt1] = False
@@ -636,7 +636,7 @@ def test10(verbose=False):
     ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     if verbose:
-        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
+        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
 
     if not ok:
         print("---")
@@ -684,17 +684,17 @@ def test11(verbose=False):
     action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params=(
+        p_param_domain_vars=(
             ("p_robot","objvar_robots_all"),
             ("p_dest_location","objvar_locations_all"),
         ),
-        p_assertions_func=lambda ts,te,params: set([
+        p_assertions_func=lambda ts,te,param_args: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params=(("p_robot",params["p_robot"]),),
+                p_sv_params=(("p_robot",param_args["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
-                p_sv_val_sec=params["p_dest_location"],
+                p_sv_val_sec=param_args["p_dest_location"],
                 p_time_start=ts,
                 p_time_end=te,
         )]),
@@ -706,14 +706,14 @@ def test11(verbose=False):
 
     action1 = ActionMethod(
         p_template=action_template,
-        p_args=(("p_robot", "my_robot"), ("p_dest_location","my_destination")),
+        p_param_arg_vars=(("p_robot", "my_robot"), ("p_dest_location","my_destination")),
         p_name="",
         p_time_start="t1",
         p_time_end="t2"
     )
     constrs.extend([
-        (ConstraintType.UNIFICATION,(action1.args[0][1],"objvar_robots_grp1")),
-        (ConstraintType.UNIFICATION,(action1.args[1][1],"objvar_location_B")),
+        (ConstraintType.UNIFICATION,(action1.param_arg_vars[0][1],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.param_arg_vars[1][1],"objvar_location_B")),
     ])
     
     asrt1 = Assertion(
@@ -737,7 +737,7 @@ def test11(verbose=False):
     )
     
     if verbose:
-        for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
+        for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
     main_chronicle.m_assertions[asrt1] = False
@@ -748,7 +748,7 @@ def test11(verbose=False):
     ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     if verbose:
-        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
+        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
 
     if not ok:
         print("---")
@@ -796,17 +796,17 @@ def test12(verbose=False):
     action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params=(
+        p_param_domain_vars=(
             ("p_robot","objvar_robots_all"),
             ("p_dest_location","objvar_locations_all"),
         ),
-        p_assertions_func=lambda ts,te,params: set([
+        p_assertions_func=lambda ts,te,param_args: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params=(("p_robot",params["p_robot"]),),
+                p_sv_params=(("p_robot",param_args["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
-                p_sv_val_sec=params["p_dest_location"],
+                p_sv_val_sec=param_args["p_dest_location"],
                 p_time_start=ts,
                 p_time_end=te,
         )]),
@@ -818,14 +818,14 @@ def test12(verbose=False):
 
     action1 = ActionMethod(
         p_template=action_template,
-        p_args=(("p_robot", "my_robot"), ("p_dest_location","my_destination")),
+        p_param_arg_vars=(("p_robot", "my_robot"), ("p_dest_location","my_destination")),
         p_name="",
         p_time_start="",
         p_time_end=""
     )
     constrs.extend([
-        (ConstraintType.UNIFICATION,(action1.args[0][1],"objvar_robots_grp1")),
-        (ConstraintType.UNIFICATION,(action1.args[1][1],"objvar_location_B")),
+        (ConstraintType.UNIFICATION,(action1.param_arg_vars[0][1],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.param_arg_vars[1][1],"objvar_location_B")),
         (ConstraintType.TEMPORAL,(action1.time_start, "t1", 0, False)),
         (ConstraintType.TEMPORAL,("t1", action1.time_start, 0, False)),
         (ConstraintType.TEMPORAL,(action1.time_end, "t2", 0, False)),
@@ -863,7 +863,7 @@ def test12(verbose=False):
     ])
     
     if verbose:
-        for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
+        for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
     main_chronicle.m_assertions[asrt1] = False
@@ -874,7 +874,7 @@ def test12(verbose=False):
     ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     if verbose:
-        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
+        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
 
     if not ok:
         print("---")
@@ -921,17 +921,17 @@ def test13(verbose=False):
     action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params=(
+        p_param_domain_vars=(
             ("p_robot","objvar_robots_all"),
             ("p_dest_location","objvar_locations_all"),
         ),
-        p_assertions_func=lambda ts,te,params: set([
+        p_assertions_func=lambda ts,te,param_args: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params=(("p_robot",params["p_robot"]),),
+                p_sv_params=(("p_robot",param_args["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
-                p_sv_val_sec=params["p_dest_location"],
+                p_sv_val_sec=param_args["p_dest_location"],
                 p_time_start=ts,
                 p_time_end=te,
         )]),
@@ -943,15 +943,15 @@ def test13(verbose=False):
 
     action1 = ActionMethod(
         p_template=action_template,
-        p_args=(("p_robot", "my_robot"), ("p_dest_location","my_destination")),
+        p_param_arg_vars=(("p_robot", "my_robot"), ("p_dest_location","my_destination")),
         p_name="",
         p_time_start="t1",
         p_time_end="t2"
     )
 
     constrs.extend([
-        (ConstraintType.UNIFICATION,(action1.args[0][1],"objvar_robots_grp1")),
-        (ConstraintType.UNIFICATION,(action1.args[1][1],"objvar_location_B")),
+        (ConstraintType.UNIFICATION,(action1.param_arg_vars[0][1],"objvar_robots_grp1")),
+        (ConstraintType.UNIFICATION,(action1.param_arg_vars[1][1],"objvar_location_B")),
     ])
 
     asrt1 = Assertion(
@@ -985,7 +985,7 @@ def test13(verbose=False):
     ])
     
     if verbose:
-        for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
+        for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
     main_chronicle.m_assertions[asrt1] = False
@@ -996,7 +996,7 @@ def test13(verbose=False):
     ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     if verbose:
-        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
+        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
 
     if not ok:
         print("---")
@@ -1043,17 +1043,17 @@ def test14(verbose=False):
     action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params=(
+        p_param_domain_vars=(
             ("p_robot","objvar_robots_all"),
             ("p_dest_location","objvar_locations_all"),
         ),
-        p_assertions_func=lambda ts,te,params: set([
+        p_assertions_func=lambda ts,te,param_args: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params=(("p_robot",params["p_robot"]),),
+                p_sv_params=(("p_robot",param_args["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
-                p_sv_val_sec=params["p_dest_location"],
+                p_sv_val_sec=param_args["p_dest_location"],
                 p_time_start=ts,
                 p_time_end=te,
         )]),
@@ -1065,7 +1065,7 @@ def test14(verbose=False):
 
     action1 = ActionMethod(
         p_template=action_template,
-        p_args=(("p_robot", "my_robot"), ("p_dest_location","my_destination")),
+        p_param_arg_vars=(("p_robot", "my_robot"), ("p_dest_location","my_destination")),
         p_name="",
         p_time_start="",
         p_time_end=""
@@ -1110,7 +1110,7 @@ def test14(verbose=False):
     ])
     
     if verbose:
-        for v in main_chronicle.m_constraint_network.m_bcn.m_domains:
+        for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
     main_chronicle.m_assertions[asrt1] = False
@@ -1121,7 +1121,7 @@ def test14(verbose=False):
     ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
 
     if verbose:
-        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.m_minimal_network))
+        print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
 
     if not ok:
         print("---")

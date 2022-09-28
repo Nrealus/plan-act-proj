@@ -87,7 +87,7 @@ class SearchNode():
     monitor_action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_monitor_assertion",
-        p_params=(("p_assertion","all_assertions_objvar"),), # obviously, need to find a way to represent non explicit domains
+        p_param_domain_vars=(("p_assertion","all_assertions_objvar"),), # obviously, need to find a way to represent non explicit domains
         p_constraints_func=lambda ts,te,_:[
             (ConstraintType.TEMPORAL, (ts,te,0,False))
         ]
@@ -173,7 +173,7 @@ class SearchNode():
                     # It is this action that will be triggered when the goal/assertion will be dispatched
                     new_action = ActionMethod(
                         p_template=SearchNode.monitor_action_template,
-                        p_args=(
+                        p_param_arg_vars=(
                             ("p_assertion",self.m_flaw_node_info.m_assertion1),
                         ),
                         p_time_start=self.m_flaw_node_info.m_assertion1.time_start,
@@ -214,7 +214,7 @@ class SearchNode():
                         # Same as above, but addresses the supporter of the introduced direct supporter of the flawed unsupported assertion.
                         new_action2 = ActionMethod(
                             p_template=SearchNode.monitor_action_template,
-                            p_args=(("p_assertion",ri.m_direct_support_assertion),),
+                            p_param_arg_vars=(("p_assertion",ri.m_direct_support_assertion),),
                             p_time_start=ri.m_direct_support_assertion.time_start,
                             p_time_end=ri.m_direct_support_assertion.time_end,
                         )
@@ -561,7 +561,7 @@ class SearchNode():
                             #NOTE, FIXME !!! the action/method's end time doesn't necessarily have to be the start of the flawed unsupported assertion !!!
                             # as a matter of fact, the assertion inside the action/method supporting isn't necessarily ending at the same time as the whole action !!!!
                             # how to deal with this ? just keep it lifted ? (its own variable name) to do that just don't specify the argument
-                            p_args=args
+                            p_param_arg_vars=args
                         )
                         act_or_meth_assertion_support_info = act_or_meth_instance.propagate_applicability(
                             p_time=self.m_now_timepoint,

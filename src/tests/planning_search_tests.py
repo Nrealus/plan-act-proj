@@ -139,17 +139,17 @@ def test1(verbose=False):
     action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params=(
+        p_param_domain_vars=(
             ("p_robot","objvar_robots_all"),
             ("p_dest_location","objvar_locations_all"),
         ),
-        p_assertions_func=lambda ts,te,params: set([
+        p_assertions_func=lambda ts,te,param_args: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params=(("p_robot",params["p_robot"]),),
+                p_sv_params=(("p_robot",param_args["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
-                p_sv_val_sec=params["p_dest_location"],
+                p_sv_val_sec=param_args["p_dest_location"],
                 p_time_start=ts,
                 p_time_end=te,
         )]),
@@ -323,17 +323,17 @@ def test2(verbose=False):
     action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params=(
+        p_param_domain_vars=(
             ("p_robot","objvar_robots_all"),
             ("p_dest_location","objvar_locations_all"),
         ),
-        p_assertions_func=lambda ts,te,params: set([
+        p_assertions_func=lambda ts,te,param_args: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params=(("p_robot",params["p_robot"]),),
+                p_sv_params=(("p_robot",param_args["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
-                p_sv_val_sec=params["p_dest_location"],
+                p_sv_val_sec=param_args["p_dest_location"],
                 p_time_start=ts,
                 p_time_end=te,
         )]),
