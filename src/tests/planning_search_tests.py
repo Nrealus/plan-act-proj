@@ -97,7 +97,7 @@ def init_situation1(chronicle:Chronicle):
         (ConstraintType.TEMPORAL,("t2", "t1", "c_u12", False)),
         (ConstraintType.TEMPORAL,("t2", "t3", "c_l23", False)),
         (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
-    ])
+    ], p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
 
 def init_situation2(chronicle:Chronicle):
@@ -130,7 +130,7 @@ def init_situation2(chronicle:Chronicle):
         (ConstraintType.TEMPORAL,("t2", "t1", "c_u12", False)),
         (ConstraintType.TEMPORAL,("t2", "t3", "c_l23", False)),
         (ConstraintType.TEMPORAL,("t3", "t2", "c_u23", False)),
-    ])
+    ], p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
 def test1(verbose=False):
 
@@ -186,7 +186,7 @@ def test1(verbose=False):
     root_chronicle = Chronicle()
     init_situation1(root_chronicle)
 
-    ok = root_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = root_chronicle.m_constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
     root_chronicle.m_assertions[asrt1] = True
     root_chronicle.m_goal_nodes.setdefault(asrt1, GoalNode()).m_mode = GoalMode.COMMITTED
@@ -370,7 +370,7 @@ def test2(verbose=False):
     root_chronicle = Chronicle()
     init_situation2(root_chronicle)
 
-    ok = root_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = root_chronicle.m_constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
     root_chronicle.m_assertions[asrt1] = True
     root_chronicle.m_goal_nodes.setdefault(asrt1, GoalNode()).m_mode = GoalMode.COMMITTED

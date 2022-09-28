@@ -111,8 +111,9 @@ class Assertion():
     def propagate_causal_support_by(self,
         p_test_supporter:Assertion,
         p_cn:ConstraintNetwork,
-        p_backtrack=True,
-    ) -> typing.Tuple[bool, int]:
+        p_revert_on_failure:bool,
+        p_revert_on_success:bool,
+    ) -> bool:
         '''
         Attempts to propagate the constraints necessary to enforce causal support of this assertion
         by the specified assertion in the specified constraint network.
@@ -135,49 +136,47 @@ class Assertion():
         Side effects:
             Changes propagated to p_cn, in case p_backtrack is False.
         '''
-        num_backtracks = 0
         # check if the assertions have the same head
         if self.has_same_head(p_test_supporter):
             constrs = []
             for i in range(len(p_test_supporter.sv_params)):
                 constrs.append((ConstraintType.UNIFICATION, (p_test_supporter.sv_params[i][1], self.sv_params[i][1])))
             # check if parameters of the assertions are unified
-            if p_cn.propagate_constraints(constrs):
-                num_backtracks += 1
-            else:
-                return (False, 0)
+            p_cn.backup()
+            if not p_cn.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=True, p_revert_on_success=False):
+                if p_revert_on_failure:
+                    p_cn.backtrack()
+                return False
         else:
-            return (False, 0)
+            return False
         # check if the end timepoint of the tested supporter and start timepoint of the tested supportee are unified
         # and if the values (variables, describing the values) of the assertion's sv are unified
         if (p_test_supporter.type == AssertionType.PERSISTENCE
             and p_cn.propagate_constraints([
                 (ConstraintType.TEMPORAL,(p_test_supporter.time_end, self.time_start, 0, False)),
                 (ConstraintType.TEMPORAL,(self.time_start, p_test_supporter.time_end, 0, False)),
-                (ConstraintType.UNIFICATION,(p_test_supporter.sv_val, self.sv_val))])
+                (ConstraintType.UNIFICATION,(p_test_supporter.sv_val, self.sv_val))],
+                p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
             and p_cn.tempvars_unified(p_test_supporter.time_end, self.time_start)
         ):
-            num_backtracks += 1
-            if p_backtrack:
-                for _ in range(num_backtracks):
-                    p_cn.backtrack()
-            return (True, num_backtracks)
+            if p_revert_on_success:
+                p_cn.backtrack()
+            return True
         elif (p_test_supporter.type == AssertionType.TRANSITION
             and p_cn.propagate_constraints([
                 (ConstraintType.TEMPORAL,(p_test_supporter.time_end, self.time_start, 0, False)),
                 (ConstraintType.TEMPORAL,(self.time_start, p_test_supporter.time_end, 0, False)),
-                (ConstraintType.UNIFICATION,(p_test_supporter.sv_val_sec, self.sv_val))])
+                (ConstraintType.UNIFICATION,(p_test_supporter.sv_val_sec, self.sv_val))],
+                p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
             and p_cn.tempvars_unified(p_test_supporter.time_end, self.time_start)
         ):
-            num_backtracks += 1
-            if p_backtrack:
-                for _ in range(num_backtracks):
-                    p_cn.backtrack()
-            return (True, num_backtracks)
-        else:
-            for _ in range(num_backtracks):
+            if p_revert_on_success:
                 p_cn.backtrack()
-            return (False, 0)
+            return True
+        else:
+            if p_revert_on_failure:
+                p_cn.backtrack()
+            return False
 
     def check_conflict(self, p_other_assertion:Assertion, p_cn:ConstraintNetwork):
         """

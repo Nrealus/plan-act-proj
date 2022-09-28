@@ -86,7 +86,7 @@ def test1(verbose=False):
         for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
-    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
@@ -97,13 +97,13 @@ def test1(verbose=False):
         print("---")
     else:
         ts = time.perf_counter()
-        res = asrt1.propagate_causal_support_by(asrt2, main_chronicle.m_constraint_network)
+        res = asrt1.propagate_causal_support_by(asrt2, main_chronicle.m_constraint_network, p_revert_on_failure=False, p_revert_on_success=False)
         es = time.perf_counter()
         print("---")
         if verbose:
-            print("is causally supported : {0}".format(res[0]))
+            print("is causally supported : {0}".format(res))
             print("time : {0}".format(es-ts))
-        if not res[0]:
+        if not res:
             print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
         else:
             print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
@@ -149,7 +149,7 @@ def test2(verbose=False):
         for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
-    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
@@ -160,13 +160,13 @@ def test2(verbose=False):
         print("---")
     else:
         ts = time.perf_counter()
-        res = asrt2.propagate_causal_support_by(asrt1, main_chronicle.m_constraint_network)
+        res = asrt2.propagate_causal_support_by(asrt1, main_chronicle.m_constraint_network, p_revert_on_failure=False, p_revert_on_success=False)
         es = time.perf_counter()
         print("---")
         if verbose:
-            print("is causally supported : {0}".format(res[0]))
+            print("is causally supported : {0}".format(res))
             print("time : {0}".format(es-ts))
-        if not res[0]:
+        if not res:
             print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
         else:
             print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
@@ -225,7 +225,7 @@ def test3(verbose=False):
         for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
-    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
@@ -236,13 +236,13 @@ def test3(verbose=False):
         print("---")
     else:
         ts = time.perf_counter()
-        res = asrt2.propagate_causal_support_by(asrt1, main_chronicle.m_constraint_network)
+        res = asrt2.propagate_causal_support_by(asrt1, main_chronicle.m_constraint_network, p_revert_on_failure=False, p_revert_on_success=False)
         es = time.perf_counter()
         print("---")
         if verbose:
-            print("is causally supported : {0}".format(res[0]))
+            print("is causally supported : {0}".format(res))
             print("time : {0}".format(es-ts))
-        if res[0]:
+        if res:
             print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
         else:
             print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
@@ -301,7 +301,7 @@ def test4(verbose=False):
         for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
-    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
@@ -312,13 +312,13 @@ def test4(verbose=False):
         print("---")
     else:
         ts = time.perf_counter()
-        res = asrt2.propagate_causal_support_by(asrt1, main_chronicle.m_constraint_network)
+        res = asrt2.propagate_causal_support_by(asrt1, main_chronicle.m_constraint_network, p_revert_on_failure=False, p_revert_on_success=False)
         es = time.perf_counter()
         print("---")
         if verbose:
-            print("is causally supported : {0}".format(res[0]))
+            print("is causally supported : {0}".format(res))
             print("time : {0}".format(es-ts))
-        if res[0]:
+        if res:
             print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
         else:
             print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
@@ -377,7 +377,7 @@ def test4_1(verbose=False):
         for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
-    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
@@ -388,13 +388,13 @@ def test4_1(verbose=False):
         print("---")
     else:
         ts = time.perf_counter()
-        res = asrt2.propagate_causal_support_by(asrt1, main_chronicle.m_constraint_network)
+        res = asrt2.propagate_causal_support_by(asrt1, main_chronicle.m_constraint_network, p_revert_on_failure=False, p_revert_on_success=False)
         es = time.perf_counter()
         print("---")
         if verbose:
-            print("is causally supported : {0}".format(res[0]))
+            print("is causally supported : {0}".format(res))
             print("time : {0}".format(es-ts))
-        if not res[0]:
+        if not res:
             print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
         else:
             print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
@@ -449,7 +449,7 @@ def test5(verbose=False):
         for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
-    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
@@ -460,13 +460,13 @@ def test5(verbose=False):
         print("---")
     else:
         ts = time.perf_counter()
-        res = asrt2.propagate_causal_support_by(asrt1, main_chronicle.m_constraint_network)
+        res = asrt2.propagate_causal_support_by(asrt1, main_chronicle.m_constraint_network, p_revert_on_failure=False, p_revert_on_success=False)
         es = time.perf_counter()
         print("---")
         if verbose:
-            print("is causally supported : {0}".format(res[0]))
+            print("is causally supported : {0}".format(res))
             print("time : {0}".format(es-ts))
-        if res[0]:
+        if res:
             print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
         else:
             print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
@@ -525,7 +525,7 @@ def test6(verbose=False):
         for v in main_chronicle.m_constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, main_chronicle.m_constraint_network.objvar_domain(v).get_values()))
 
-    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
@@ -536,13 +536,13 @@ def test6(verbose=False):
         print("---")
     else:
         ts = time.perf_counter()
-        res = asrt2.propagate_causal_support_by(asrt1, main_chronicle.m_constraint_network)
+        res = asrt2.propagate_causal_support_by(asrt1, main_chronicle.m_constraint_network, p_revert_on_failure=False, p_revert_on_success=False)
         es = time.perf_counter()
         print("---")
         if verbose:
-            print("is causally supported : {0}".format(res[0]))
+            print("is causally supported : {0}".format(res))
             print("time : {0}".format(es-ts))
-        if not res[0]:
+        if not res:
             print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
         else:
             print(f"{bcolors.FAIL}FAILURE !{bcolors.ENDC}")
@@ -633,7 +633,7 @@ def test10(verbose=False):
     main_chronicle.m_assertions[asrt2] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt2,GoalNode()).m_mode = GoalMode.SELECTED
 
-    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
@@ -647,7 +647,9 @@ def test10(verbose=False):
         res = action1.propagate_applicability(
             p_time="t1",
             p_cn=main_chronicle.m_constraint_network,
-            p_assertions=main_chronicle.m_assertions
+            p_assertions=main_chronicle.m_assertions,
+            p_revert_on_failure=True,
+            p_revert_on_success=False,
         )
         es = time.perf_counter()
         print("---")
@@ -745,7 +747,7 @@ def test11(verbose=False):
     main_chronicle.m_assertions[asrt2] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt2,GoalNode()).m_mode = GoalMode.SELECTED
 
-    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
@@ -759,7 +761,9 @@ def test11(verbose=False):
         res = action1.propagate_applicability(
             p_time="t2",
             p_cn=main_chronicle.m_constraint_network,
-            p_assertions=main_chronicle.m_assertions
+            p_assertions=main_chronicle.m_assertions,
+            p_revert_on_failure=True,
+            p_revert_on_success=False,
         )
         es = time.perf_counter()
         print("---")
@@ -871,7 +875,7 @@ def test12(verbose=False):
     main_chronicle.m_assertions[asrt2] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt2,GoalNode()).m_mode = GoalMode.SELECTED
 
-    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
@@ -885,7 +889,10 @@ def test12(verbose=False):
         res = action1.propagate_applicability(
             p_time="t1",
             p_cn=main_chronicle.m_constraint_network,
-            p_assertions=main_chronicle.m_assertions)
+            p_assertions=main_chronicle.m_assertions,
+            p_revert_on_failure=True,
+            p_revert_on_success=False,
+        )
         es = time.perf_counter()
         print("---")
         if verbose:
@@ -993,7 +1000,7 @@ def test13(verbose=False):
     main_chronicle.m_assertions[asrt2] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt2,GoalNode()).m_mode = GoalMode.SELECTED
 
-    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
@@ -1007,7 +1014,10 @@ def test13(verbose=False):
         res = action1.propagate_applicability(
             p_time="t1",
             p_cn=main_chronicle.m_constraint_network,
-            p_assertions=main_chronicle.m_assertions)
+            p_assertions=main_chronicle.m_assertions,
+            p_revert_on_failure=True,
+            p_revert_on_success=False,
+        )
         es = time.perf_counter()
         print("---")
         if verbose:
@@ -1118,7 +1128,7 @@ def test14(verbose=False):
     main_chronicle.m_assertions[asrt2] = False
     #main_chronicle.m_goal_nodes.setdefault(asrt2,GoalNode()).m_mode = GoalMode.SELECTED
 
-    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs)
+    ok = main_chronicle.m_constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
 
     if verbose:
         print("minimal temporal network : {0}".format(main_chronicle.m_constraint_network.m_stn.minimal_network))
@@ -1132,7 +1142,10 @@ def test14(verbose=False):
         res = action1.propagate_applicability(
             p_time="t1",
             p_cn=main_chronicle.m_constraint_network,
-            p_assertions=main_chronicle.m_assertions)
+            p_assertions=main_chronicle.m_assertions,
+            p_revert_on_failure=True,
+            p_revert_on_success=False,
+        )
         es = time.perf_counter()
         print("---")
         if verbose:

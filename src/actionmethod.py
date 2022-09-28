@@ -4,6 +4,7 @@ import sys
 sys.path.append("/home/nrealus/perso/latest/prog/ai-planning-sandbox/python-playground7")
 
 import typing
+import time
 from enum import Enum
 from src.utility.new_int_id import new_int_id
 from src.constraints.constraints import ConstraintNetwork, ConstraintType
@@ -121,8 +122,9 @@ class ActionMethod():
         p_time:str,
         p_cn:ConstraintNetwork,
         p_assertions:typing.Iterable[Assertion],
+        p_revert_on_failure:bool,
+        p_revert_on_success:bool,
         p_assertion_to_support:Assertion=None,
-        p_backtrack=True,
     ) -> typing.Iterable[typing.Tuple[Assertion,Assertion]]:
         '''
         Attempts to propagate the constraints necessary to enforce applicability of this action/method at the
@@ -153,50 +155,47 @@ class ActionMethod():
         Side effects:
             Changes propagated to p_cn, in case p_backtrack is False.
         '''
-        num_backtracks = 0
+
         res = []
-        # the action/method's starting time must be "now" (p_time)
-        if not p_cn.propagate_constraints(self.constraints):
+        p_cn.backup()
+        if not p_cn.propagate_constraints(self.constraints, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False):
+            if p_revert_on_failure:
+                p_cn.backtrack()
             return []
-        num_backtracks += 1
+        # the action/method's starting time must be "now" (p_time)
         #if p_cn.tempvars_unified(self.time_start, p_time):
         if (p_cn.propagate_constraints([
                 (ConstraintType.TEMPORAL,(self.time_start, p_time, 0, False)),
-                (ConstraintType.TEMPORAL,(p_time, self.time_start, 0, False))])
+                (ConstraintType.TEMPORAL,(p_time, self.time_start, 0, False))],
+            p_backup=False, p_revert_on_failure=True, p_revert_on_success=False)
             # and p_cn.tempvars_minimal_directed_distance(self.time_start, p_time) == 0
         ):
-            num_backtracks += 1
             b2 = (p_assertion_to_support == None)
             for i_act_or_meth_asrt in self.assertions:
                 b1 = False
                 for i_chronicle_asrt in p_assertions:
                     if i_act_or_meth_asrt == i_chronicle_asrt: # just in case
                         break
-                    # the action/method must have at least one assertion (any, not necessarily starting at the same as it)
+                    # the action/method must have at least one assertion (any, not necessarily starting at the same time as it)
                     # supporting an unsupported assertion already present in the chronicle
-                    cs = i_chronicle_asrt.propagate_causal_support_by(i_act_or_meth_asrt, p_cn, p_backtrack=False)
-                    if cs[0]:
-                        num_backtracks += cs[1]
+                    if i_chronicle_asrt.propagate_causal_support_by(i_act_or_meth_asrt, p_cn, p_revert_on_failure=True, p_revert_on_success=False):
                         res.append((i_act_or_meth_asrt, i_chronicle_asrt))
                         if not b2 and i_chronicle_asrt == p_assertion_to_support:
                             b2 = True
                     # the chronicle must support all action/method's assertions which start at the same time as it
                     # elif because two assertions can't support each other
                     elif not b1 and p_cn.tempvars_unified(i_act_or_meth_asrt.time_start,self.time_start):
-                        cs = i_act_or_meth_asrt.propagate_causal_support_by(i_chronicle_asrt, p_cn, p_backtrack=False)
-                        if cs[0]:
-                            num_backtracks += cs[1]
+                        if i_act_or_meth_asrt.propagate_causal_support_by(i_chronicle_asrt, p_cn, p_revert_on_failure=True, p_revert_on_success=False):
                             res.append((i_chronicle_asrt, i_act_or_meth_asrt))
                             b1 = True
                 if not b1:
-                    for _ in range(num_backtracks):
+                    if p_revert_on_failure:
                         p_cn.backtrack()
                     return []
             if not b2:
-                for _ in range(num_backtracks):
+                if p_revert_on_failure:
                     p_cn.backtrack()
                 return []
-        if p_backtrack:
-            for _ in range(num_backtracks):
-                p_cn.backtrack()
+        if p_revert_on_success:
+            p_cn.backtrack()
         return res

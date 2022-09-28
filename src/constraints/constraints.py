@@ -65,7 +65,7 @@ class ConstraintNetwork():
         self.m_stn: STN = STN()
         self._bcns_stack = []
         self._stns_stack = []
-        self.d = 0
+        self.inconsistent = False
 
     def init_objvars(self, p_domains: typing.Dict[str, Domain]) -> None:
         """
@@ -244,15 +244,6 @@ class ConstraintNetwork():
         return res
 
     def backup(self) -> None:
-        # self.m_bcn._domains_list.append(deepcopy(self.m_bcn.domains))
-        # self.m_bcn._unifications_list.append(deepcopy(self.m_bcn.unifications))
-        # self.m_bcn._disj_unifications_list.append(deepcopy(self.m_bcn.disj_unifications))
-        # self.m_bcn._separations_list.append(deepcopy(self.m_bcn.separations))
-        # self.m_bcn._general_relations_list.append(deepcopy(self.m_bcn.general_relations))
-        # self.m_stn._controllability_list.append(deepcopy(self.m_stn.controllability))
-        # self.m_stn._constraints_list.append(deepcopy(self.m_stn.constraints))
-        # self.m_stn._involved_objvars_list.append(deepcopy(self.m_stn.involved_objvars))
-        # self.m_stn._minimal_network_list.append(deepcopy(self.m_stn.minimal_network))
         self.m_bcn._domains_backup()
         self.m_bcn._unifications_backup()
         self.m_bcn._disj_unifications_backup()
@@ -281,7 +272,9 @@ class ConstraintNetwork():
     def propagate_constraints(
         self,
         p_input_constraints:typing.Iterable[typing.Tuple[ConstraintType,typing.Any]],
-        p_backtrack=False,
+        p_backup:bool,
+        p_revert_on_failure:bool,
+        p_revert_on_success:bool,
     ) -> bool:
         """
         Method allowing to (partially, locally) propagate the specified constraints, by triggering (non independent) constraint propagation for both the BCN and STN.
@@ -334,9 +327,8 @@ class ConstraintNetwork():
                     binding_constraints_worklist.append((cstr_type,cstr))
         
         # back up networks
-        #self._bcns_stack.append(deepcopy(self.m_bcn))
-        #self._stns_stack.append(deepcopy(self.m_stn))
-        self.backup()
+        if p_backup:
+            self.backup()
 
         # propagate constraints to both (interacting) constraint networks (hence stn and bcn specified as arguments)
         if (self.m_bcn._propagate(binding_constraints_worklist,self.m_stn)
@@ -344,12 +336,13 @@ class ConstraintNetwork():
         ):
             # if only checking / verifying possibly consistent propagation is required, then restore backed up networks
             # (no need to apply new propagated constraints)
-            if p_backtrack:
+            if p_revert_on_success:
                 self.backtrack()
             return True
 
         # if propagation cannot be consistent, then don't apply in any case - restore backed up networks
-        self.backtrack()
+        if p_revert_on_failure:
+            self.backtrack()
         return False
 
 ############################################

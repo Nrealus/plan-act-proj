@@ -74,7 +74,7 @@ def test1(verbose=False):
         (ConstraintType.UNIFICATION,("var1", "var2")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -109,7 +109,7 @@ def test2(verbose=False):
         (ConstraintType.UNIFICATION,("var3", "var1")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -143,7 +143,7 @@ def test3(verbose=False):
         (ConstraintType.UNIFICATION,("var1", "var5")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -177,7 +177,7 @@ def test4(verbose=False):
         (ConstraintType.SEPARATION,("var2", "var1")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -212,7 +212,7 @@ def test5(verbose=False):
         (ConstraintType.DISJ_UNIFICATION,("var1", ["var2","var3","var5"])),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -247,7 +247,7 @@ def test6(verbose=False):
         (ConstraintType.GENERAL_RELATION,("relation", (("var2","var3"),[(1,1),(2,2)]))),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -283,7 +283,7 @@ def test7(verbose=False):
         (ConstraintType.SEPARATION,("var3", "var2")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -318,7 +318,7 @@ def test8(verbose=False):
         (ConstraintType.GENERAL_RELATION,("relation", (("var2","var3"),[(0,1),(1,1),(0,3),(1,3)]))),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -352,7 +352,7 @@ def test9(verbose=False):
         (ConstraintType.SEPARATION,("var1", "var5")),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -381,7 +381,7 @@ def test10(verbose=False):
         (ConstraintType.TEMPORAL,("t0","t1","c_l01",False)),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -416,7 +416,7 @@ def test11(verbose=False):
         (ConstraintType.TEMPORAL,("t1","t2","c_u21", False)),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -459,7 +459,7 @@ def test12(verbose=False):
         (ConstraintType.TEMPORAL,("t1","t4","c_u41",False)),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -488,7 +488,7 @@ def test13(verbose=False):
         (ConstraintType.TEMPORAL,("t1","t0","c_u01",False)),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -512,7 +512,7 @@ def test14(verbose=False):
         (ConstraintType.TEMPORAL,("t1","t0",10,False)),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -541,7 +541,7 @@ def test15(verbose=False):
         (ConstraintType.TEMPORAL,("t0","t1",-16,False)),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:
@@ -570,7 +570,7 @@ def test16(verbose=False):
         (ConstraintType.TEMPORAL,("t1","t0",12,False)),
     ]
     ts = time.perf_counter()
-    res = constraint_network.propagate_constraints(constrs)
+    res = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     es = time.perf_counter()
     print("---")
     if verbose:

@@ -111,7 +111,7 @@ def test1(verbose=False):
         for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
-    ok = constraint_network.propagate_constraints(constrs)
+    ok = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     chronicle.m_constraint_network = constraint_network
 
     if verbose:
@@ -190,7 +190,7 @@ def test2(verbose=False):
         for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
-    ok = constraint_network.propagate_constraints(constrs)
+    ok = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     chronicle.m_constraint_network = constraint_network
 
     if verbose:
@@ -268,7 +268,7 @@ def test3(verbose=False):
         for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
-    ok = constraint_network.propagate_constraints(constrs)
+    ok = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     chronicle.m_constraint_network = constraint_network
 
     if verbose:
@@ -346,7 +346,7 @@ def test4(verbose=False):
         for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
-    ok = constraint_network.propagate_constraints(constrs)
+    ok = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     chronicle.m_constraint_network = constraint_network
 
     if verbose:
@@ -424,7 +424,7 @@ def test5(verbose=False):
         for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
-    ok = constraint_network.propagate_constraints(constrs)
+    ok = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     chronicle.m_constraint_network = constraint_network
 
     if verbose:
@@ -504,7 +504,7 @@ def test6(verbose=False):
         for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
-    ok = constraint_network.propagate_constraints(constrs)
+    ok = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     chronicle.m_constraint_network = constraint_network
 
     if verbose:
@@ -572,7 +572,7 @@ def test7(verbose=False):
         for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
-    ok = constraint_network.propagate_constraints(constrs)
+    ok = constraint_network.propagate_constraints(constrs, p_backup=False, p_revert_on_failure=False, p_revert_on_success=False)
     chronicle.m_constraint_network = constraint_network
 
     if verbose:
