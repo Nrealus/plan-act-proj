@@ -65,6 +65,7 @@ class ConstraintNetwork():
         self.m_stn: STN = STN()
         self._bcns_stack = []
         self._stns_stack = []
+        self.d = 0
 
     def init_objvars(self, p_domains: typing.Dict[str, Domain]) -> None:
         """
@@ -77,8 +78,8 @@ class ConstraintNetwork():
         Side effects:
             Updates BCN domains object and initialises BCN union-find object used for unification constraints
         """
-        self.m_bcn.m_unifications.make_set(p_domains.keys())
-        self.m_bcn.m_domains = { **self.m_bcn.m_domains , **p_domains }
+        self.m_bcn._unifications_list[-1].make_set(p_domains.keys())
+        self.m_bcn._domains_list[-1] = { **self.m_bcn._domains_list[-1] , **p_domains }
 
     def init_tempvars(self, p_controllability: typing.Dict[str,bool]) -> None:
         """
@@ -90,7 +91,7 @@ class ConstraintNetwork():
         Side effects:
             Updates STN timepoints with the input timepoints
         """
-        self.m_stn.m_controllability = { **self.m_stn.m_controllability, **p_controllability }
+        self.m_stn._controllability_list[-1] = { **self.m_stn._controllability_list[-1], **p_controllability }
 
     def objvar_domain(self, p_var:str) -> Domain:
         """
@@ -100,8 +101,8 @@ class ConstraintNetwork():
         Returns:
            The domain (Domain) of the specified object variable 
         """
-        if p_var in self.m_bcn.m_domains:
-            return self.m_bcn.m_domains[p_var]
+        if p_var in self.m_bcn.domains:
+            return self.m_bcn.domains[p_var]
         else:
             return None
 
@@ -125,13 +126,13 @@ class ConstraintNetwork():
         # check for unification constraints
         # NOTE:(currently uses disjoint sets / union-find, but in case order constraints need to be supported,
         # it would be better to use a classic adjacency list representation and check for both orderings ("<=" and ">=")) 
-        if (self.m_bcn.m_unifications.contains([p_var1]) and self.m_bcn.m_unifications.contains([p_var2])
-            and self.m_bcn.m_unifications.find(p_var1) == self.m_bcn.m_unifications.find(p_var2)
+        if (self.m_bcn.unifications.contains([p_var1]) and self.m_bcn.unifications.contains([p_var2])
+            and self.m_bcn.unifications.find(p_var1) == self.m_bcn.unifications.find(p_var2)
         ):
             return True
         # check for identical singleton domains
-        if self.m_bcn.m_domains[p_var1].size() == 1:
-            return self.m_bcn.m_domains[p_var1].get_values() == self.m_bcn.m_domains[p_var2].get_values()
+        if self.m_bcn.domains[p_var1].size() == 1:
+            return self.m_bcn.domains[p_var1].get_values() == self.m_bcn.domains[p_var2].get_values()
         return False
 
     def objvars_unifiable(self, p_var1:str, p_var2:str) -> bool:
@@ -152,21 +153,21 @@ class ConstraintNetwork():
         if p_var1 == p_var2: 
             return True
         # check for separation constraints
-        if ((p_var1 in self.m_bcn.m_separations and p_var2 in self.m_bcn.m_separations[p_var1])
-            or (p_var2 in self.m_bcn.m_separations and p_var1 in self.m_bcn.m_separations[p_var2])
+        if ((p_var1 in self.m_bcn.separations and p_var2 in self.m_bcn.separations[p_var1])
+            or (p_var2 in self.m_bcn.separations and p_var1 in self.m_bcn.separations[p_var2])
         ):
             return False
         # check for domain intersection
-        if not self.m_bcn.m_domains[p_var1].intersects(self.m_bcn.m_domains[p_var2]):
+        if not self.m_bcn.domains[p_var1].intersects(self.m_bcn.domains[p_var2]):
             return False
         # check for separation constraints between variables unified with the specified / input variables
         # NOTE: rather inefficient
-        if self.m_bcn.m_unifications.contains([p_var1]) and self.m_bcn.m_unifications.contains([p_var2]):
-            cc1 = self.m_bcn.m_unifications.connected_component(p_var1)
-            cc2 = self.m_bcn.m_unifications.connected_component(p_var2)
+        if self.m_bcn.unifications.contains([p_var1]) and self.m_bcn.unifications.contains([p_var2]):
+            cc1 = self.m_bcn.unifications.connected_component(p_var1)
+            cc2 = self.m_bcn.unifications.connected_component(p_var2)
             for unif_var1 in cc1:
                 for unif_var2 in cc2:
-                    if unif_var1 in self.m_bcn.m_separations and unif_var2 in self.m_bcn.m_separations[unif_var1]:
+                    if unif_var1 in self.m_bcn.separations and unif_var2 in self.m_bcn.separations[unif_var1]:
                         return False
         return True
 
@@ -204,7 +205,7 @@ class ConstraintNetwork():
         Returns:
             The current minimal distance from timepoint p_tp1 to timepoint p_tp2
         """        
-        return self.m_stn.m_minimal_network[(p_tp1,p_tp2)]
+        return self.m_stn.minimal_network[(p_tp1,p_tp2)]
 
     def tempvars_unified(self, p_tp1:str, p_tp2:str) -> bool:
         """
@@ -217,7 +218,7 @@ class ConstraintNetwork():
             True if the specified timepoints are unified
         """        
         return (p_tp1 == p_tp2
-            or (self.m_stn.m_minimal_network[(p_tp1,p_tp2)] == 0 and self.m_stn.m_minimal_network[(p_tp2,p_tp1)] == 0))
+            or (self.m_stn.minimal_network[(p_tp1,p_tp2)] == 0 and self.m_stn.minimal_network[(p_tp2,p_tp1)] == 0))
 
     #def timepoint_domain(self, p_var:str) -> Domain:
     #    """
@@ -229,10 +230,53 @@ class ConstraintNetwork():
     #    """
     #    return self.m_bcn.m_domains[p_var]
 
+    def fork(self) -> ConstraintNetwork:
+        res = ConstraintNetwork()
+        res.m_bcn._domains_list.append(deepcopy(self.m_bcn.domains))
+        res.m_bcn._unifications_list.append(deepcopy(self.m_bcn.unifications))
+        res.m_bcn._disj_unifications_list.append(deepcopy(self.m_bcn.disj_unifications))
+        res.m_bcn._separations_list.append(deepcopy(self.m_bcn.separations))
+        res.m_bcn._general_relations_list.append(deepcopy(self.m_bcn.general_relations))
+        res.m_stn._controllability_list.append(deepcopy(self.m_stn.controllability))
+        res.m_stn._constraints_list.append(deepcopy(self.m_stn.constraints))
+        res.m_stn._involved_objvars_list.append(deepcopy(self.m_stn.involved_objvars))
+        res.m_stn._minimal_network_list.append(deepcopy(self.m_stn.minimal_network))
+        return res
+
+    def backup(self) -> None:
+        # self.m_bcn._domains_list.append(deepcopy(self.m_bcn.domains))
+        # self.m_bcn._unifications_list.append(deepcopy(self.m_bcn.unifications))
+        # self.m_bcn._disj_unifications_list.append(deepcopy(self.m_bcn.disj_unifications))
+        # self.m_bcn._separations_list.append(deepcopy(self.m_bcn.separations))
+        # self.m_bcn._general_relations_list.append(deepcopy(self.m_bcn.general_relations))
+        # self.m_stn._controllability_list.append(deepcopy(self.m_stn.controllability))
+        # self.m_stn._constraints_list.append(deepcopy(self.m_stn.constraints))
+        # self.m_stn._involved_objvars_list.append(deepcopy(self.m_stn.involved_objvars))
+        # self.m_stn._minimal_network_list.append(deepcopy(self.m_stn.minimal_network))
+        self.m_bcn._domains_backup()
+        self.m_bcn._unifications_backup()
+        self.m_bcn._disj_unifications_backup()
+        self.m_bcn._separations_backup()
+        self.m_bcn._general_relations_backup()
+        self.m_stn._controllability_backup()
+        self.m_stn._constraints_backup()
+        self.m_stn._involved_objvars_backup()
+        self.m_stn._minimal_network_backup()
+
     def backtrack(self) -> None:
-        if len(self._bcns_stack) > 0 and len(self._stns_stack) > 0:
-            self.m_bcn = self._bcns_stack.pop(-1)
-            self.m_stn = self._stns_stack.pop(-1)
+        self.m_bcn._domains_list.pop()
+        self.m_bcn._unifications_list.pop()
+        self.m_bcn._disj_unifications_list.pop()
+        self.m_bcn._separations_list.pop()
+        self.m_bcn._general_relations_list.pop()
+
+        self.m_stn._controllability_list.pop()
+        self.m_stn._constraints_list.pop()
+        self.m_stn._involved_objvars_list.pop()
+        self.m_stn._minimal_network_list.pop()
+        #if len(self._bcns_stack) > 0 and len(self._stns_stack) > 0:
+        #    self.m_bcn = self._bcns_stack.pop()
+        #    self.m_stn = self._stns_stack.pop()
 
     def propagate_constraints(
         self,
@@ -290,8 +334,9 @@ class ConstraintNetwork():
                     binding_constraints_worklist.append((cstr_type,cstr))
         
         # back up networks
-        self._bcns_stack.append(deepcopy(self.m_bcn))
-        self._stns_stack.append(deepcopy(self.m_stn))
+        #self._bcns_stack.append(deepcopy(self.m_bcn))
+        #self._stns_stack.append(deepcopy(self.m_stn))
+        self.backup()
 
         # propagate constraints to both (interacting) constraint networks (hence stn and bcn specified as arguments)
         if (self.m_bcn._propagate(binding_constraints_worklist,self.m_stn)
@@ -333,51 +378,49 @@ class ConstraintNetwork():
 class BCN():
 
     def __init__(self):
-        self.m_domains: typing.Dict[str, Domain] = {}
-        self.m_unifications: UnionFind2 = UnionFind2()
-        self.m_disj_unifications: typing.Dict[str,typing.Set[str]] = {}
-        self.m_separations: typing.Dict[str,typing.Set[str]] = {}
-        # self.m_orderings: typing.Dict[str,typing.Set[str]] = {}
-        self.m_general_relations: typing.Dict[str,typing.Tuple[typing.Tuple[str,...], typing.List[typing.Tuple[object,...]]]] = {}
+        self._domains_list = [{}]
+        self._unifications_list = [UnionFind2()]
+        self._disj_unifications_list = [{}]
+        self._separations_list = [{}]
+        self._general_relations_list = [{}]
         # NOTE: general relations inefficient but good enough for now... B+Tree ???
         # linear arithmetic constraints ? for example for durations...
         # ANSWER : through general relation constraints (corresponding to formula) and fape-type linking between binding constraint net and temporal net
-        self.m_old_domains: typing.Dict[str, Domain] = {}
-        self.m_old_unifications: UnionFind2 = UnionFind2()
-        self.m_old_disj_unifications: typing.Dict[str,typing.Set[str]] = {}
-        self.m_old_separations: typing.Dict[str,typing.Set[str]] = {}
-        #self.m_old_orderings: typing.Dict[str,typing.Set[str]] = {}
-        self.m_old_general_relations: typing.Dict[str,typing.Tuple[typing.Tuple[str,...], typing.List[typing.Tuple[object,...]]]] = {}
 
-    def backup(self) -> None:
-        """
-        Backs up collections (deep copies...)
-        Returns:
-            None
-        Side effects:
-            Backs up collections (deep copies...)
-        """
-        self.m_old_domains = deepcopy(self.m_domains)
-        self.m_old_unifications = deepcopy(self.m_unifications)
-        self.m_old_disj_unifications = deepcopy(self.m_disj_unifications)
-        self.m_old_separations = deepcopy(self.m_separations)
-        #self.m_old_orderings = deepcopy(self.m_orderings)
-        self.m_old_general_relations = deepcopy(self.m_general_relations)
+    @property
+    def domains(self) -> typing.Dict[str, Domain]:
+        return self._domains_list[-1]
 
-    def restore(self) -> None:
-        """
-        Restores collections from their backup
-        Returns:
-            None
-        Side effects:
-            Restores collections from their backup
-        """
-        self.m_domains = self.m_old_domains
-        self.m_unifications = self.m_old_unifications
-        self.m_disj_unifications = self.m_old_disj_unifications
-        self.m_separations = self.m_old_separations
-        #self.m_old_orderings = self.m_old_orderings
-        self.m_general_relations = self.m_old_general_relations
+    @property
+    def unifications(self) -> UnionFind2():
+        return self._unifications_list[-1]
+
+    @property
+    def disj_unifications(self) -> typing.Dict[str, typing.Set[str]]:
+        return self._disj_unifications_list[-1]
+
+    @property
+    def separations(self) -> typing.Dict[str, typing.Set[str]]:
+        return self._separations_list[-1]
+
+    @property
+    def general_relations(self) -> typing.Dict[str,typing.Tuple[typing.Tuple[str,...], typing.List[typing.Tuple[object,...]]]]:
+        return self._general_relations_list[-1]
+
+    def _domains_backup(self) -> None:
+        self._domains_list.append({ k:deepcopy(self.domains[k]) for k in self.domains })
+
+    def _unifications_backup(self) -> None:
+        self._unifications_list.append(deepcopy(self.unifications))
+
+    def _disj_unifications_backup(self) -> None:
+        self._disj_unifications_list.append({ k:self.disj_unifications[k].copy() for k in self.disj_unifications })
+
+    def _separations_backup(self) -> None:
+        self._separations_list.append({ k:self.separations[k].copy() for k in self.separations })
+
+    def _general_relations_backup(self) -> None:
+        self._general_relations_list.append({ k: (self.general_relations[k][0],deepcopy(self.general_relations[k][1])) for k in self.general_relations })
 
     def clear(self) -> None:
         """
@@ -387,19 +430,11 @@ class BCN():
         Side effects:
             Clears (by reinstantiating) all collections (including backups)
         """
-        self.m_domains = {}
-        self.m_unifications = UnionFind2()
-        self.m_disj_unifications = {}
-        self.m_separations = {}
-        #self.m_orderings = {}
-        self.m_general_relations = {}
-
-        self.m_old_domains = {}
-        self.m_old_unifications = UnionFind2()
-        self.m_old_disj_unifications = {}
-        self.m_old_separations = {}
-        #self.m_old_orderings = {}
-        self.m_old_general_relations = {}
+        self._domains_list[-1] = {}
+        self._unifications_list[-1] = UnionFind2()
+        self._disj_unifications_list[-1] = {}
+        self._separations_list[-1] = {}
+        self._general_relations_list[-1] = {}
 
     # NOTE: quite an inefficient implementation because of the copying etc...
     # ideally - the domain objects should only contain pointers to values, not the values themselves
@@ -432,7 +467,7 @@ class BCN():
         worklist = p_input_constraints
         while (len(worklist) > 0):
 
-            (constr_type, constr) = worklist.pop(0)
+            (constr_type, constr) = worklist.pop()
 
             change_info = []
             var1 = None
@@ -450,14 +485,14 @@ class BCN():
                 var1 = constr[0]
                 val = constr[1]
                 if constr_type == ConstraintType.DOMAIN_VAL_LEQ or constr_type == ConstraintType.DOMAIN_VAL_LE:
-                    changed = self.m_domains[var1].restrict_to_ls(val, constr_type == ConstraintType.DOMAIN_VAL_LE)
+                    changed = self.domains[var1].restrict_to_ls(val, constr_type == ConstraintType.DOMAIN_VAL_LE)
                 elif constr_type == ConstraintType.DOMAIN_VAL_GEQ or constr_type == ConstraintType.DOMAIN_VAL_GE:
-                    changed = self.m_domains[var1].restrict_to_gt(val, constr_type == ConstraintType.DOMAIN_VAL_GE)
+                    changed = self.domains[var1].restrict_to_gt(val, constr_type == ConstraintType.DOMAIN_VAL_GE)
 
                 if changed:
                     change_info.append((var1,val))
 
-                if self.m_domains[var1].is_empty():
+                if self.domains[var1].is_empty():
                     return False
 
             elif constr_type == ConstraintType.UNIFICATION:
@@ -465,20 +500,20 @@ class BCN():
                 var1 = constr[0]
                 var2 = constr[1]
                 
-                if ((var1 in self.m_separations and var2 in self.m_separations[var1])
-                    or (var2 in self.m_separations and var1 in self.m_separations[var2])
+                if ((var1 in self.separations and var2 in self.separations[var1])
+                    or (var2 in self.separations and var1 in self.separations[var2])
                 ):
                     return False
 
                 if var1 != Domain._ANY_VALUE_VAR and var2 != Domain._ANY_VALUE_VAR:
 
-                    self.m_unifications.add_and_union(var1, var2)
-                    changed = self.m_domains[var1].intersection(self.m_domains[var2])
+                    self.unifications.add_and_union(var1, var2)
+                    changed = self.domains[var1].intersection(self.domains[var2])
                     
                     if changed:
                         change_info.append((var1,var2))
 
-                    if self.m_domains[var1].is_empty():
+                    if self.domains[var1].is_empty():
                         return False
             
             elif constr_type == ConstraintType.DISJ_UNIFICATION:
@@ -486,17 +521,17 @@ class BCN():
                 var1 = constr[0]
                 var2list = constr[1]
             
-                self.m_disj_unifications.setdefault(var1,set()).update(var2list)
+                self.disj_unifications.setdefault(var1,set()).update(var2list)
             
-                _temp = deepcopy(self.m_domains[var2list[0]]) # deep copy so that the actual domain of var2list[0] doesn't get modified in the loop
+                _temp = deepcopy(self.domains[var2list[0]]) # deep copy so that the actual domain of var2list[0] doesn't get modified in the loop
                 for i in range(1,len(var2list)): # start at 1 instead of 0 because first element already taken care of on the previous line
-                    _temp.union(self.m_domains[var2list[i]])
+                    _temp.union(self.domains[var2list[i]])
             
-                changed = self.m_domains[var1].intersection(_temp)
+                changed = self.domains[var1].intersection(_temp)
                 if changed:
                     change_info.append((var1,var2list))
             
-                if self.m_domains[var1].is_empty():
+                if self.domains[var1].is_empty():
                     return False
 
             elif constr_type == ConstraintType.SEPARATION:
@@ -504,20 +539,20 @@ class BCN():
                 var1 = constr[0]
                 var2 = constr[1]
 
-                if ((self.m_unifications.contains([var1])
-                    and self.m_unifications.contains([var2])
-                    and self.m_unifications.find(var1) == self.m_unifications.find(var2))
-                        or (self.m_domains[var1].size() == 1 and self.m_domains[var1].get_values() == self.m_domains[var2].get_values())
+                if ((self.unifications.contains([var1])
+                    and self.unifications.contains([var2])
+                    and self.unifications.find(var1) == self.unifications.find(var2))
+                        or (self.domains[var1].size() == 1 and self.domains[var1].get_values() == self.domains[var2].get_values())
                 ):
                     return False
 
-                self.m_separations.setdefault(var1,set()).add(var2)
+                self.separations.setdefault(var1,set()).add(var2)
 
-                changed = self.m_domains[var1].difference_if_other_is_singleton(self.m_domains[var2])
+                changed = self.domains[var1].difference_if_other_is_singleton(self.domains[var2])
                 if changed:
                     change_info.append((var1,var2))
                 
-                if self.m_domains[var1].is_empty():
+                if self.domains[var1].is_empty():
                     return False
 
             #elif constr_type == ConstraintType.ORDER_LE or constr_type == ConstraintType.ORDER_GE:
@@ -539,29 +574,29 @@ class BCN():
                 relation_name = constr[0]
                 relation_param_vars = list(constr[1][0])
                 relation_table = list(constr[1][1]) # copy (shallow) so that the input parameter doesn't get modified
-                self.m_general_relations.setdefault(relation_name,(relation_param_vars,[]))[1].extend(relation_table)
+                self.general_relations.setdefault(relation_name,(relation_param_vars,[]))[1].extend(relation_table)
 
-                n_rows = len(self.m_general_relations[relation_name][1])
+                n_rows = len(self.general_relations[relation_name][1])
                 for row in range(n_rows-1,-1,-1): # backwards loop, so no problem removing elements from list
-                    for col in range(len(self.m_general_relations[relation_name][1][row])):
-                        if not self.m_domains[relation_param_vars[col]].contains(self.m_general_relations[relation_name][1][row][col]):
-                            self.m_general_relations[relation_name][1].pop(row)
+                    for col in range(len(self.general_relations[relation_name][1][row])):
+                        if not self.domains[relation_param_vars[col]].contains(self.general_relations[relation_name][1][row][col]):
+                            self.general_relations[relation_name][1].pop(row)
                             break
                 
                 proj_doms:typing.Dict[str,Domain] = {}
                 for col in range(len(relation_param_vars)):
                     var = relation_param_vars[col]
                     proj_doms[var] = Domain()
-                    for row in range(len(self.m_general_relations[relation_name][1])):
-                        proj_doms[var].add_discrete_value(self.m_general_relations[relation_name][1][row][col])
+                    for row in range(len(self.general_relations[relation_name][1])):
+                        proj_doms[var].add_discrete_value(self.general_relations[relation_name][1][row][col])
 
                 for var in proj_doms:
 
-                    changed = self.m_domains[var].intersection(proj_doms[var])
+                    changed = self.domains[var].intersection(proj_doms[var])
                     if changed:
                         change_info.append((var,relation_name))
 
-                    if self.m_domains[var].is_empty():
+                    if self.domains[var].is_empty():
                         return False
 
             # for all variables whose domains were updated during propagation of the popped constraints,
@@ -569,7 +604,7 @@ class BCN():
 
             while len(change_info) > 0:
 
-                (var1, arg) = change_info.pop(0)
+                (var1, arg) = change_info.pop()
                 val = None
                 var2 = None
                 var2list = []
@@ -584,27 +619,27 @@ class BCN():
                 elif constr_type == ConstraintType.GENERAL_RELATION:
                     relname = arg
 
-                if self.m_unifications.contains([var1]):
-                    for v in self.m_unifications.connected_component(var1):
+                if self.unifications.contains([var1]):
+                    for v in self.unifications.connected_component(var1):
                         if v != var1 and v != var2:
                             worklist.append((ConstraintType.UNIFICATION,(v, var1)))
                             worklist.append((ConstraintType.UNIFICATION,(var1, v)))
 
-                if var1 in self.m_disj_unifications:
-                    worklist.append((ConstraintType.DISJ_UNIFICATION,(var1,list(self.m_disj_unifications[var1]))))
-                for v in self.m_disj_unifications:
-                    if v != var1 and var1 in self.m_disj_unifications[v]:
-                        worklist.append((ConstraintType.DISJ_UNIFICATION,(v,list(self.m_disj_unifications[v]))))
+                if var1 in self.disj_unifications:
+                    worklist.append((ConstraintType.DISJ_UNIFICATION,(var1,list(self.disj_unifications[var1]))))
+                for v in self.disj_unifications:
+                    if v != var1 and var1 in self.disj_unifications[v]:
+                        worklist.append((ConstraintType.DISJ_UNIFICATION,(v,list(self.disj_unifications[v]))))
 
-                if var1 in self.m_separations:
-                    for v in self.m_separations[var1]:
+                if var1 in self.separations:
+                    for v in self.separations[var1]:
                         if v != var2: #and obviously v can't be having a separation with itself anyway
                             worklist.append((ConstraintType.SEPARATION,(v, var1)))
                             worklist.append((ConstraintType.SEPARATION,(var1, v)))
 
-                for name in self.m_general_relations:
-                    if name != relname and var1 in self.m_general_relations[name][0]:
-                        worklist.append((ConstraintType.GENERAL_RELATION,(name, self.m_general_relations[name])))
+                for name in self.general_relations:
+                    if name != relname and var1 in self.general_relations[name][0]:
+                        worklist.append((ConstraintType.GENERAL_RELATION,(name, self.general_relations[name])))
 
                 #if p_stn is not None:
                 #    if var1 in p_stn.m_involved_objvars:
@@ -660,7 +695,7 @@ class BCN():
 # This is currently why when the domain of a  no constraint propagation
 # Dealing with variable temporal constraints is a quite tricky, and not every result and approach carries on trivially from typical "constant" STNs.
 # Reasoning in this situation may introduce "conditional", "branching" reasoning, which is way too complex to tackle now. This is investigated in Pralet 2014 (Time-dependent STNs).
-# Finally, we probably would need to investigate how the planning search interleaved with partial/incremental uncertainty grounding ("Charlie and Eve search nodes")
+# Finally, we probably would need to investigate how the planning search interleaved with partial/incremental uncertainty grounding ("Charlie and Eve" or "Decision/chance" search nodes)
 # behaves with simple temporal constraints first, as more complex variable/functional temporal constraints (with non-singleton domains for object variables describing bounds)
 # can be seen as a form of uncertainty themselves. That may shed some light on whether more complex STNs may introduce additional difficulties for planning search,
 # local/full consistency maintaining (due to, for example, possibly unreasonable branching to deal with various cases of variable/functional temporal constraints)
@@ -672,44 +707,41 @@ class BCN():
 class STN():
 
     def __init__(self):
-        self.m_controllability: typing.Dict[str, bool] = {}
+        self._controllability_list = [{}]
         # bool indicates whether the variable is controllable or not.
-        self.m_constraints: typing.Dict[typing.Tuple[str,str],typing.Set[(str,bool)]] = {}
+        self._constraints_list = [{}]
         # (x,y,d,b) <-> x - y <= d (in that order!) (and if b is true : < instead of <=)
         # constraints of the form : t1 - t2 <= d (object variable) are interpreted as : t1 - t2 <= max{ v | v € dom(v) } : dom(v) = domain of v in binding constr net
-        self.m_involved_objvars: typing.Dict[str, typing.Set[typing.Tuple[str,str]]] = {}
-        self.m_minimal_network: typing.Dict[typing.Tuple[str,str],float] = {}
+        self._involved_objvars_list = [{}]
+        self._minimal_network_list = [{}]
 
-        self.m_old_controllability: typing.Dict[str, bool] = {}
-        self.m_old_constraints: typing.Dict[typing.Tuple[str,str],typing.Set[(str,bool)]] = {}
-        self.m_old_involved_objvars: typing.Dict[str, typing.Set[typing.Tuple[str,str]]] = {}
-        self.m_old_minimal_network: typing.Dict[typing.Tuple[str,str],float] = {}
+    @property
+    def controllability(self) -> typing.Dict[str, bool]:
+        return self._controllability_list[-1]
 
-    def backup(self) -> None:
-        """
-        Backs up collections (deep copies...)
-        Returns:
-            None
-        Side effects:
-            Backs up collections (deep copies...)
-        """
-        self.m_old_controllability = deepcopy(self.m_controllability)
-        self.m_old_constraints = deepcopy(self.m_constraints)
-        self.m_old_involved_objvars = deepcopy(self.m_involved_objvars)
-        self.m_old_minimal_network = deepcopy(self.m_minimal_network)
+    @property
+    def constraints(self) -> typing.Dict[typing.Tuple[str,str],typing.Set[(str,bool)]]:
+        return self._constraints_list[-1]
 
-    def restore(self) -> None:
-        """
-        Restores collections their backup
-        Returns:
-            None
-        Side effects:
-            Restores collections their backup
-        """
-        self.m_controllability = self.m_old_controllability
-        self.m_constraints = self.m_old_constraints
-        self.m_involved_objvars = self.m_old_involved_objvars
-        self.m_minimal_network = self.m_old_minimal_network
+    @property
+    def involved_objvars(self) -> typing.Dict[str, typing.Set[typing.Tuple[str,str]]]:
+        return self._involved_objvars_list[-1]
+
+    @property
+    def minimal_network(self) -> typing.Dict[typing.Tuple[str,str],float]:
+        return self._minimal_network_list[-1]
+
+    def _controllability_backup(self) -> None:
+        self._controllability_list.append({ k:deepcopy(self.controllability[k]) for k in self.controllability })
+
+    def _constraints_backup(self) -> None:
+        self._constraints_list.append({ k:self.constraints[k].copy() for k in self.constraints })
+
+    def _involved_objvars_backup(self) -> None:
+        self._involved_objvars_list.append({ k:self.involved_objvars[k].copy() for k in self.involved_objvars })
+
+    def _minimal_network_backup(self) -> None:
+        self._minimal_network_list.append({ k:self.minimal_network[k] for k in self.minimal_network })
 
     def clear(self) -> None:
         """
@@ -719,22 +751,17 @@ class STN():
         Side effects:
             Clears (by reinstantiating) all collections (including backups)
         """
-        self.m_controllability = {}
-        self.m_constraints = {}
-        self.m_involved_objvars = {}
-        self.m_minimal_network = {}
-
-        self.m_old_controllability = {}
-        self.m_old_constraints = {}
-        self.m_old_involved_objvars = {}
-        self.m_old_minimal_network = {}
+        self._controllability_list[-1] = {}
+        self._constraints_list[-1] = {}
+        self._involved_objvars_list[-1] = {}
+        self._minimal_network_list[-1] = {}
         
     def size(self) -> int:
         """
         Returns:
             Returns the number of time points in the STN (int)
         """
-        return len(self.m_controllability)
+        return len(self.controllability)
 
     def _propagate(
         self,
@@ -770,23 +797,23 @@ class STN():
                 # create a helper constant variable (singleton domain) in the bcn and use it instead
                 # "hcov" stands for "helper constant object variable"
                 var = "__hcov_{0}".format(new_int_id())
-                p_bcn.m_domains[var] = Domain(DomainType.DISCRETE, [bound])
+                p_bcn.domains[var] = Domain(DomainType.DISCRETE, [bound])
 
-            self.m_controllability.setdefault(t1,True)# will deal with controllability later
-            self.m_controllability.setdefault(t2,True)# will deal with controllability later
+            self.controllability.setdefault(t1,True)# will deal with controllability later
+            self.controllability.setdefault(t2,True)# will deal with controllability later
 
             # register the constraint, and propagate a new one in the bcn
             # restricting the domain of the "bound" variable of the symmetric constraint in a "least-constraining fashion"
             # e.g. if the considered constraint is "t1 - t2 <= u", and we also have "l <= t1 - t2", then we restrict l to be >= -max(u).
-            self.m_constraints.setdefault((t1,t2),set()).add((var,strict))
-            self.m_involved_objvars.setdefault(var,set()).add((t1,t2))
-            if (t2,t1) in self.m_constraints: # notice we have (t2,t1), not (t1,t2) !!
-                for (other_var, strict) in self.m_constraints[(t2,t1)]:
+            self.constraints.setdefault((t1,t2),set()).add((var,strict))
+            self.involved_objvars.setdefault(var,set()).add((t1,t2))
+            if (t2,t1) in self.constraints: # notice we have (t2,t1), not (t1,t2) !!
+                for (other_var, strict) in self.constraints[(t2,t1)]:
                     if strict:
                         cstr_type = ConstraintType.DOMAIN_VAL_GE
                     else:
                         cstr_type = ConstraintType.DOMAIN_VAL_GEQ
-                    if (not p_bcn._propagate([(cstr_type,(other_var,-p_bcn.m_domains[var].max_value()))], self)):
+                    if (not p_bcn._propagate([(cstr_type,(other_var,-p_bcn.domains[var].max_value()))], self)):
                         return False
 
         # compute the all pairs shortest paths graph (using floyd warshall)
@@ -794,19 +821,19 @@ class STN():
         # NOTE: this is obviously inefficient, although easy. Planken incremental full path consistency algorithm, or johnson's algorithm
         # could be nice
         res = self._apsp_fw(p_bcn)
-        for v in self.m_controllability:
+        for v in self.controllability:
             if res[(v,v)] < 0:
                 return False
 
-        self.m_minimal_network = res
+        self._minimal_network_list[-1] = res
         return True
 
     def _apsp_fw(self, p_bcn:BCN):
         
         res = {}
-        for q in self.m_controllability:
-            for u in self.m_controllability:
-                for v in self.m_controllability:
+        for q in self.controllability:
+            for u in self.controllability:
+                for v in self.controllability:
                     # shortest path from u to v (notice the order given to "eval" : v,u instead of u,v !!)
                     res[(u,v)] = min(
                         res.setdefault((u,v),self._eval((v,u), p_bcn)),
@@ -819,14 +846,14 @@ class STN():
 
         # basically this takes the least constraining instantiation (max value of the bound) of the tightest constraint (the one with the smallest max bound)
         # between the specified variables
-        if p_cstr in self.m_constraints:
+        if p_cstr in self.constraints:
             min = 0
             res = math.inf
-            for (objvar, strict) in self.m_constraints[p_cstr]:
+            for (objvar, strict) in self.constraints[p_cstr]:
                 if not strict:
-                    min = p_bcn.m_domains[objvar].max_value()
+                    min = p_bcn.domains[objvar].max_value()
                 else:
-                    min = p_bcn.m_domains[objvar].max_value() - sys.float_info.epsilon
+                    min = p_bcn.domains[objvar].max_value() - sys.float_info.epsilon
                 if min <= res:
                     res = min
             return res

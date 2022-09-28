@@ -33,11 +33,11 @@ def print_obj_details1():
     print("   var3 domain : {0}".format(constraint_network.objvar_domain("var3").get_values()))
     print("   var4 domain : {0}".format(constraint_network.objvar_domain("var4").get_values()))
     print("   var5 domain : {0}".format(constraint_network.objvar_domain("var5").get_values()))
-    print("   unionfind connected component - var1 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var1")))
-    print("   unionfind connected component - var2 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var2")))
-    print("   unionfind connected component - var3 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var3")))
-    print("   unionfind connected component - var4 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var4")))
-    print("   unionfind connected component - var5 : {0}".format(constraint_network.m_bcn.m_unifications.connected_component("var5")))
+    print("   unionfind connected component - var1 : {0}".format(constraint_network.m_bcn.unifications.connected_component("var1")))
+    print("   unionfind connected component - var2 : {0}".format(constraint_network.m_bcn.unifications.connected_component("var2")))
+    print("   unionfind connected component - var3 : {0}".format(constraint_network.m_bcn.unifications.connected_component("var3")))
+    print("   unionfind connected component - var4 : {0}".format(constraint_network.m_bcn.unifications.connected_component("var4")))
+    print("   unionfind connected component - var5 : {0}".format(constraint_network.m_bcn.unifications.connected_component("var5")))
 
 def print_obj_details2(u:str, v:str):
 
@@ -67,7 +67,7 @@ def test1(verbose=False):
         "var5":Domain(p_initial_allowed_values=[6,7]),
     })
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
@@ -101,7 +101,7 @@ def test2(verbose=False):
         "var5":Domain(p_initial_allowed_values=[6,7]),
     })
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
@@ -136,7 +136,7 @@ def test3(verbose=False):
         "var5":Domain(p_initial_allowed_values=[6,7]),
     })
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
@@ -170,7 +170,7 @@ def test4(verbose=False):
         "var5":Domain(p_initial_allowed_values=[6,7]),
     })
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
@@ -204,7 +204,7 @@ def test5(verbose=False):
         "var5":Domain(p_initial_allowed_values=[6,7]),
     })
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
@@ -239,7 +239,7 @@ def test6(verbose=False):
         "var5":Domain(p_initial_allowed_values=[6,7]),
     })
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
@@ -274,7 +274,7 @@ def test7(verbose=False):
         "var5":Domain(p_initial_allowed_values=[6,7]),
     })
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
@@ -310,7 +310,7 @@ def test8(verbose=False):
         "var5":Domain(p_initial_allowed_values=[6,7]),
     })
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
@@ -345,7 +345,7 @@ def test9(verbose=False):
         "var5":Domain(p_initial_allowed_values=[6,7]),
     })
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     constrs = [
@@ -387,7 +387,7 @@ def test10(verbose=False):
     if verbose:
         print("propagation successful ? : {0}".format(res))
         print("time : {0}".format(es-ts))
-        print(constraint_network.m_stn.m_minimal_network)
+        print(constraint_network.m_stn.minimal_network)
     if res == True:
         print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
     else:
@@ -422,7 +422,7 @@ def test11(verbose=False):
     if verbose:
         print("propagation successful ? : {0}".format(res))
         print("time : {0}".format(es-ts))
-        print(constraint_network.m_stn.m_minimal_network)
+        print(constraint_network.m_stn.minimal_network)
     if res == False:
         print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
     else:
@@ -465,7 +465,7 @@ def test12(verbose=False):
     if verbose:
         print("propagation successful ? : {0}".format(res))
         print("time : {0}".format(es-ts))
-        print(constraint_network.m_stn.m_minimal_network)
+        print(constraint_network.m_stn.minimal_network)
     if res == True:
         print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
     else:
@@ -475,9 +475,9 @@ def test12(verbose=False):
 def test13(verbose=False):
     
     reset_constraint_network()
-    constraint_network.m_stn.m_controllability["t0"] = True
-    constraint_network.m_stn.m_controllability["t1"] = True
-    constraint_network.m_stn.m_controllability["t2"] = True
+    constraint_network.m_stn.controllability["t0"] = True
+    constraint_network.m_stn.controllability["t1"] = True
+    constraint_network.m_stn.controllability["t2"] = True
     constraint_network.init_objvars({
         "c_l01":Domain(p_initial_allowed_values=[-6,-5,-4,-3,-2,-1]),
         "c_u01":Domain(p_initial_allowed_values=[5,6,7,8,9,10])
@@ -494,7 +494,7 @@ def test13(verbose=False):
     if verbose:
         print("propagation successful ? : {0}".format(res))
         print("time : {0}".format(es-ts))
-        print(constraint_network.m_stn.m_minimal_network)
+        print(constraint_network.m_stn.minimal_network)
     if res == True:
         print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
     else:
@@ -504,8 +504,8 @@ def test13(verbose=False):
 def test14(verbose=False):
     
     reset_constraint_network()
-    constraint_network.m_stn.m_controllability["t0"] = True
-    constraint_network.m_stn.m_controllability["t1"] = True
+    constraint_network.m_stn.controllability["t0"] = True
+    constraint_network.m_stn.controllability["t1"] = True
 
     constrs = [
         (ConstraintType.TEMPORAL,("t0","t1",-6,False)),
@@ -518,7 +518,7 @@ def test14(verbose=False):
     if verbose:
         print("propagation successful ? : {0}".format(res))
         print("time : {0}".format(es-ts))
-        print(constraint_network.m_stn.m_minimal_network)
+        print(constraint_network.m_stn.minimal_network)
     if res == True:
         print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
     else:
@@ -528,8 +528,8 @@ def test14(verbose=False):
 def test15(verbose=False):
     
     reset_constraint_network()
-    constraint_network.m_stn.m_controllability["t0"] = True
-    constraint_network.m_stn.m_controllability["t1"] = True
+    constraint_network.m_stn.controllability["t0"] = True
+    constraint_network.m_stn.controllability["t1"] = True
     constraint_network.init_objvars({
         "c_l01":Domain(p_initial_allowed_values=[-10]),
         "c_u01":Domain(p_initial_allowed_values=[15])
@@ -547,7 +547,7 @@ def test15(verbose=False):
     if verbose:
         print("propagation successful ? : {0}".format(res))
         print("time : {0}".format(es-ts))
-        print(constraint_network.m_stn.m_minimal_network)
+        print(constraint_network.m_stn.minimal_network)
     if res == False:
         print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
     else:
@@ -557,8 +557,8 @@ def test15(verbose=False):
 def test16(verbose=False):
     
     reset_constraint_network()
-    constraint_network.m_stn.m_controllability["t0"] = True
-    constraint_network.m_stn.m_controllability["t1"] = True
+    constraint_network.m_stn.controllability["t0"] = True
+    constraint_network.m_stn.controllability["t1"] = True
     constraint_network.init_objvars({
         "c_l01":Domain(p_initial_allowed_values=[-10]),
         "c_u01":Domain(p_initial_allowed_values=[15])
@@ -576,7 +576,7 @@ def test16(verbose=False):
     if verbose:
         print("propagation successful ? : {0}".format(res))
         print("time : {0}".format(es-ts))
-        print(constraint_network.m_stn.m_minimal_network)
+        print(constraint_network.m_stn.minimal_network)
     if res == True:
         print(f"{bcolors.OKGREEN}SUCCESS !{bcolors.ENDC}")
     else:

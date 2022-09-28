@@ -9,7 +9,7 @@ from src.constraints.constraints import ConstraintNetwork, ConstraintType
 from src.assertion import Assertion, AssertionType
 from src.actionmethod import ActionMethodTemplate, ActionMethod
 from src.chronicle import Chronicle
-from src.planning_search import CharlieMoveInfo, EveMoveInfo, FlawNodeInfo, ResolverNodeInfo, ResolverType, SearchNode, SearchNodeType
+from src.planning_search import TPDecisionNodeInfo, TPChanceNodeInfo, FlawNodeInfo, ResolverNodeInfo, ResolverType, SearchNode, SearchNodeType
 from src.goal_node import GoalNode, GoalMode
 
 import time
@@ -27,8 +27,8 @@ class bcolors:
 ############################################
 
 def compare_search_node_info(
-    node_info1:FlawNodeInfo|ResolverNodeInfo|CharlieMoveInfo|EveMoveInfo,
-    node_info2:FlawNodeInfo|ResolverNodeInfo|CharlieMoveInfo|EveMoveInfo,
+    node_info1:FlawNodeInfo|ResolverNodeInfo|TPDecisionNodeInfo|TPChanceNodeInfo,
+    node_info2:FlawNodeInfo|ResolverNodeInfo|TPDecisionNodeInfo|TPChanceNodeInfo,
 ):
     if node_info1 is None and node_info2 is None:
         return True
@@ -61,9 +61,9 @@ def compare_search_node_info(
         if node_info1.m_type == node_info2.m_type:
             return True
         # AND NOT EVEN NECESSARILY TO GO FURTHEr
-    if type(node_info1) == CharlieMoveInfo:
+    if type(node_info1) == TPDecisionNodeInfo:
         return NotImplemented
-    if type(node_info1) == EveMoveInfo:
+    if type(node_info1) == TPChanceNodeInfo:
         return NotImplemented
     return False
 
@@ -139,17 +139,17 @@ def test1(verbose=False):
     action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params=(
+        p_param_domain_vars=(
             ("p_robot","objvar_robots_all"),
             ("p_dest_location","objvar_locations_all"),
         ),
-        p_assertions_func=lambda ts,te,params: set([
+        p_assertions_func=lambda ts,te,param_args: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params=(("p_robot",params["p_robot"]),),
+                p_sv_params=(("p_robot",param_args["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
-                p_sv_val_sec=params["p_dest_location"],
+                p_sv_val_sec=param_args["p_dest_location"],
                 p_time_start=ts,
                 p_time_end=te,
         )]),
@@ -204,7 +204,7 @@ def test1(verbose=False):
     root_search_node = SearchNode(
         p_node_type=SearchNodeType.FLAW,
         p_parent=None,
-        p_time="t1",#"t_now",
+        p_now_timepoint="t1",#"t_now",
         p_observation=None,
         p_chronicle=root_chronicle,
         p_action_method_templates_library=set([action_template]),
@@ -261,10 +261,10 @@ def test1(verbose=False):
                 node_info = cur_node.m_flaw_node_info
             if cur_node.m_resolver_node_info is not None:
                 node_info = cur_node.m_resolver_node_info
-            if cur_node.m_charlie_move_info is not None:
-                node_info = cur_node.m_charlie_move_info
-            if cur_node.m_eve_move_info is not None:
-                node_info = cur_node.m_eve_move_info
+            if cur_node.m_tp_decision_node_info is not None:
+                node_info = cur_node.m_tp_decision_node_info
+            if cur_node.m_tp_chance_node_info is not None:
+                node_info = cur_node.m_tp_chance_node_info
             if len(success_nodes_info) == 0:
                 ok = False
                 break
@@ -283,10 +283,10 @@ def test1(verbose=False):
                     print(_ind+"| flaw node info : {0}".format(cur_node.m_flaw_node_info.__dict__))
                 if cur_node.m_resolver_node_info is not None:
                     print(_ind+"| resolver node info : {0}".format(cur_node.m_resolver_node_info.m_type))
-                if cur_node.m_charlie_move_info is not None:
-                    print(_ind+"| charlie move info : {0}".format(cur_node.m_charlie_move_info.__dict__))
-                if cur_node.m_eve_move_info is not None:
-                    print(_ind+"| eve move info : {0}".format(cur_node.m_eve_move_info.__dict__))
+                if cur_node.m_tp_decision_node_info is not None:
+                    print(_ind+"| timepoint decision node info : {0}".format(cur_node.m_tp_decision_node_info.__dict__))
+                if cur_node.m_tp_chance_node_info is not None:
+                    print(_ind+"| timepoint chance node info : {0}".format(cur_node.m_tp_chance_node_info.__dict__))
 
             ts = time.perf_counter()
             cur_node.build_children()
@@ -323,17 +323,17 @@ def test2(verbose=False):
     action_template = ActionMethodTemplate(
         p_type=ActionMethodTemplate.Type.ACTION,
         p_name="action_move",
-        p_params=(
+        p_param_domain_vars=(
             ("p_robot","objvar_robots_all"),
             ("p_dest_location","objvar_locations_all"),
         ),
-        p_assertions_func=lambda ts,te,params: set([
+        p_assertions_func=lambda ts,te,param_args: set([
             Assertion(
                 p_type=AssertionType.TRANSITION,
                 p_sv_name="sv_location",
-                p_sv_params=(("p_robot",params["p_robot"]),),
+                p_sv_params=(("p_robot",param_args["p_robot"]),),
                 p_sv_val=Domain._ANY_VALUE_VAR,
-                p_sv_val_sec=params["p_dest_location"],
+                p_sv_val_sec=param_args["p_dest_location"],
                 p_time_start=ts,
                 p_time_end=te,
         )]),
@@ -388,7 +388,7 @@ def test2(verbose=False):
     root_search_node = SearchNode(
         p_node_type=SearchNodeType.FLAW,
         p_parent=None,
-        p_time="t1",#"t_now",
+        p_now_timepoint="t1",#"t_now",
         p_observation=None,
         p_chronicle=root_chronicle,
         p_action_method_templates_library=set([action_template]),
@@ -436,10 +436,10 @@ def test2(verbose=False):
                 node_info = cur_node.m_flaw_node_info
             if cur_node.m_resolver_node_info is not None:
                 node_info = cur_node.m_resolver_node_info
-            if cur_node.m_charlie_move_info is not None:
-                node_info = cur_node.m_charlie_move_info
-            if cur_node.m_eve_move_info is not None:
-                node_info = cur_node.m_eve_move_info
+            if cur_node.m_tp_decision_node_info is not None:
+                node_info = cur_node.m_tp_decision_node_info
+            if cur_node.m_tp_chance_node_info is not None:
+                node_info = cur_node.m_tp_chance_node_info
             if len(success_nodes_info) == 0:
                 ok = False
                 break
@@ -458,10 +458,10 @@ def test2(verbose=False):
                     print(_ind+"| flaw node info : {0}".format(cur_node.m_flaw_node_info.__dict__))
                 if cur_node.m_resolver_node_info is not None:
                     print(_ind+"| resolver node info : {0}".format(cur_node.m_resolver_node_info.m_type))
-                if cur_node.m_charlie_move_info is not None:
-                    print(_ind+"| charlie move info : {0}".format(cur_node.m_charlie_move_info.__dict__))
-                if cur_node.m_eve_move_info is not None:
-                    print(_ind+"| eve move info : {0}".format(cur_node.m_eve_move_info.__dict__))
+                if cur_node.m_tp_decision_node_info is not None:
+                    print(_ind+"| timepoint decision node info : {0}".format(cur_node.m_tp_decision_node_info.__dict__))
+                if cur_node.m_tp_chance_node_info is not None:
+                    print(_ind+"| timepoint chance node info : {0}".format(cur_node.m_tp_chance_node_info.__dict__))
 
             ts = time.perf_counter()
             cur_node.build_children()

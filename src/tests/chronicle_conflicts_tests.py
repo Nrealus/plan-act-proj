@@ -108,14 +108,14 @@ def test1(verbose=False):
     ])
 
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     ok = constraint_network.propagate_constraints(constrs)
     chronicle.m_constraint_network = constraint_network
 
     if verbose:
-        print(chronicle.m_constraint_network.m_stn.m_minimal_network)
+        print(chronicle.m_constraint_network.m_stn.minimal_network)
 
     if not ok:
         print("---")
@@ -187,14 +187,14 @@ def test2(verbose=False):
     ])
 
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     ok = constraint_network.propagate_constraints(constrs)
     chronicle.m_constraint_network = constraint_network
 
     if verbose:
-        print(chronicle.m_constraint_network.m_stn.m_minimal_network)
+        print(chronicle.m_constraint_network.m_stn.minimal_network)
 
     if not ok:
         print("---")
@@ -265,14 +265,14 @@ def test3(verbose=False):
     ])
 
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     ok = constraint_network.propagate_constraints(constrs)
     chronicle.m_constraint_network = constraint_network
 
     if verbose:
-        print(chronicle.m_constraint_network.m_stn.m_minimal_network)
+        print(chronicle.m_constraint_network.m_stn.minimal_network)
 
     if not ok:
         print("---")
@@ -343,14 +343,14 @@ def test4(verbose=False):
     ])
 
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     ok = constraint_network.propagate_constraints(constrs)
     chronicle.m_constraint_network = constraint_network
 
     if verbose:
-        print(chronicle.m_constraint_network.m_stn.m_minimal_network)
+        print(chronicle.m_constraint_network.m_stn.minimal_network)
 
     if not ok:
         print("---")
@@ -421,14 +421,14 @@ def test5(verbose=False):
     ])
 
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     ok = constraint_network.propagate_constraints(constrs)
     chronicle.m_constraint_network = constraint_network
 
     if verbose:
-        print(chronicle.m_constraint_network.m_stn.m_minimal_network)
+        print(chronicle.m_constraint_network.m_stn.minimal_network)
 
     if not ok:
         print("---")
@@ -501,14 +501,14 @@ def test6(verbose=False):
     ])
 
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     ok = constraint_network.propagate_constraints(constrs)
     chronicle.m_constraint_network = constraint_network
 
     if verbose:
-        print(chronicle.m_constraint_network.m_stn.m_minimal_network)
+        print(chronicle.m_constraint_network.m_stn.minimal_network)
 
     if not ok:
         print("---")
@@ -569,14 +569,14 @@ def test7(verbose=False):
     ])
 
     if verbose:
-        for v in constraint_network.m_bcn.m_domains:
+        for v in constraint_network.m_bcn.domains:
             print("{0} initial domain : {1}".format(v, constraint_network.objvar_domain(v).get_values()))
 
     ok = constraint_network.propagate_constraints(constrs)
     chronicle.m_constraint_network = constraint_network
 
     if verbose:
-        print(chronicle.m_constraint_network.m_stn.m_minimal_network)
+        print(chronicle.m_constraint_network.m_stn.minimal_network)
 
     if not ok:
         print("---")

@@ -23,13 +23,13 @@ class ActionMethodTemplate():
     def __init__(self,
         p_type:Type,
         p_name:str,
-        p_params:typing.Tuple[typing.Tuple[str,str],...],
+        p_param_domain_vars:typing.Tuple[typing.Tuple[str,str],...],
         p_assertions_func:typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[Assertion]]=(lambda ts,te,params: set()),
         p_constraints_func:typing.Callable[[str,str,typing.Dict[str,str]],typing.Tuple[ConstraintType,typing.Any]]=(lambda ts,te,params: set()),
     ):
         self._type = p_type
         self._name = p_name
-        self._params = p_params
+        self._params_domain_vars = p_param_domain_vars
         self._assertions_func = p_assertions_func
         self._constraints_func = p_constraints_func
 
@@ -42,8 +42,8 @@ class ActionMethodTemplate():
         return self._name
 
     @property
-    def params(self) -> typing.Tuple[typing.Tuple[str,str],...]:
-        return self._params
+    def param_domain_vars(self) -> typing.Tuple[typing.Tuple[str,str],...]:
+        return self._params_domain_vars
 
     @property
     def assertions_func(self) -> typing.Callable[[str,str,typing.Dict[str,str]],typing.Set[Assertion]]:
@@ -57,7 +57,7 @@ class ActionMethod():
 
     def __init__(self,
         p_template:ActionMethodTemplate,
-        p_args:typing.Tuple[typing.Tuple[str,str],...],
+        p_param_arg_vars:typing.Tuple[typing.Tuple[str,str],...],
         p_name:str="",
         p_time_start:str="",
         p_time_end:str="",
@@ -78,12 +78,12 @@ class ActionMethod():
             te = p_time_end
 
         self._template = p_template
-        self._args = p_args
+        self._args = p_param_arg_vars
         self._name = _name
         self._time_start = ts
         self._time_end = te
-        self._assertions = p_template.assertions_func(ts,te,{ k:v for (k,v) in p_args })
-        self._constraints = p_template.constraints_func(ts,te,{ k:v for (k,v) in p_args })
+        self._assertions = p_template.assertions_func(ts,te,{ k:v for (k,v) in p_param_arg_vars })
+        self._constraints = p_template.constraints_func(ts,te,{ k:v for (k,v) in p_param_arg_vars })
 
     @property
     def type(self) -> ActionMethodTemplate.Type:
@@ -98,7 +98,7 @@ class ActionMethod():
         return self._name
 
     @property
-    def args(self) -> typing.Tuple[typing.Tuple[str,str],...]:
+    def param_arg_vars(self) -> typing.Tuple[typing.Tuple[str,str],...]:
         return self._args
 
     @property
@@ -157,53 +157,46 @@ class ActionMethod():
         res = []
         # the action/method's starting time must be "now" (p_time)
         if not p_cn.propagate_constraints(self.constraints):
-            return []#([], 0)
+            return []
         num_backtracks += 1
-        if p_cn.tempvars_unified(self.time_start, p_time):
-        #if (p_cn.propagate_constraints([
-        #        (ConstraintType.TEMPORAL,(self.time_start, p_time, 0, False)),
-        #        (ConstraintType.TEMPORAL,(p_time, self.time_start, 0, False))])
-        #    and p_cn.tempvars_minimal_directed_distance(self.time_start, p_time) == 0
-        #):
+        #if p_cn.tempvars_unified(self.time_start, p_time):
+        if (p_cn.propagate_constraints([
+                (ConstraintType.TEMPORAL,(self.time_start, p_time, 0, False)),
+                (ConstraintType.TEMPORAL,(p_time, self.time_start, 0, False))])
+            # and p_cn.tempvars_minimal_directed_distance(self.time_start, p_time) == 0
+        ):
             num_backtracks += 1
-            b1 = False
-            b3 = (p_assertion_to_support == None)
+            b2 = (p_assertion_to_support == None)
             for i_act_or_meth_asrt in self.assertions:
-                b2 = False
+                b1 = False
                 for i_chronicle_asrt in p_assertions:
-                    # just in case
-                    if i_act_or_meth_asrt == i_chronicle_asrt:
+                    if i_act_or_meth_asrt == i_chronicle_asrt: # just in case
                         break
+                    # the action/method must have at least one assertion (any, not necessarily starting at the same as it)
+                    # supporting an unsupported assertion already present in the chronicle
+                    cs = i_chronicle_asrt.propagate_causal_support_by(i_act_or_meth_asrt, p_cn, p_backtrack=False)
+                    if cs[0]:
+                        num_backtracks += cs[1]
+                        res.append((i_act_or_meth_asrt, i_chronicle_asrt))
+                        if not b2 and i_chronicle_asrt == p_assertion_to_support:
+                            b2 = True
                     # the chronicle must support all action/method's assertions which start at the same time as it
-                    if not b2 and p_cn.tempvars_unified(i_act_or_meth_asrt.time_start,self.time_start):
+                    # elif because two assertions can't support each other
+                    elif not b1 and p_cn.tempvars_unified(i_act_or_meth_asrt.time_start,self.time_start):
                         cs = i_act_or_meth_asrt.propagate_causal_support_by(i_chronicle_asrt, p_cn, p_backtrack=False)
                         if cs[0]:
                             num_backtracks += cs[1]
                             res.append((i_chronicle_asrt, i_act_or_meth_asrt))
-                            b2 = True
-                            if b1:
-                                break
-                    # the action/method must have at least one assertion (any, not necessarily starting at the same as it)
-                    # supporting an unsupported assertion already present in the chronicle
-                    if not b1:
-                        cs = i_chronicle_asrt.propagate_causal_support_by(i_act_or_meth_asrt, p_cn, p_backtrack=False)
-                        if cs[0]:
-                            num_backtracks += cs[1]
-                            res.append((i_act_or_meth_asrt, i_chronicle_asrt))
                             b1 = True
-                            if not b3 and i_chronicle_asrt == p_assertion_to_support:
-                                b3 = True
-                            if b2:
-                                break
-                if not b2:
+                if not b1:
                     for _ in range(num_backtracks):
                         p_cn.backtrack()
-                    return []#([], 0)
-            if not b1 or not b3:
+                    return []
+            if not b2:
                 for _ in range(num_backtracks):
                     p_cn.backtrack()
-                return []#([], 0)
+                return []
         if p_backtrack:
             for _ in range(num_backtracks):
                 p_cn.backtrack()
-        return res#(res, num_backtracks)
+        return res
